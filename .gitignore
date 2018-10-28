@@ -2,3 +2,6 @@ __pycache__
 venv
 kxfed.iml
 rpm_maker
+simpletreemodel.py
+cachedir
+rt-kernel-build-latest
