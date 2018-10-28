@@ -14,31 +14,49 @@
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
 
-from urllib import error, request
+import requests
 from launchpadlib.launchpad import Launchpad
 import logging, re
 from bs4 import BeautifulSoup
+from multiprocessing.dummy import Pool as ThreadPool
 
 
 class Packages():
-    def __init__(self, team, ppa, arch):
+    def __init__(self, team, arch):
         self.launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
-        self.lp_team = team
-        self.lp_ppa = ppa
-        self.lp_arch = arch
+        self.__lp_team = self.launchpad.people[team]
+        self.__lp_arch = arch
+        self.__lp_ppa = ""
+        self.__pkgs = []
         self.debs = []
+        # self._pool = ThreadPool(10)  # change th
+
+    @property
+    def lp_team(self):
+        return self.__lp_team
+
+    @property
+    def ppa(self):
+        pass
+
+    @ppa.setter
+    def ppa(self, ppa):
+        self.__lp_ppa = ppa
+
+    @property
+    def pkgs(self):
+        return self.__pkgs
 
     def get(self, callback):
-        self._get()
-        self._get_deb_links()
+        # TODO multithreading
+        self._get_()
+        self._get_deb_links_()
         callback()
 
-    def _get(self):
+    def populate_pkgs(self):
         try:
-            team = self.launchpad.people[self.lp_team]
             ubuntu = self.launchpad.distributions["ubuntu"]
-
-            ppa = team.getPPAByName(distribution=ubuntu, name=self.lp_ppa)
+            ppa = self.__lp_team.getPPAByName(distribution=ubuntu, name=self.__lp_ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
             ds2 = ubuntu.getSeries(name_or_version="lucid")
@@ -48,33 +66,43 @@ class Packages():
             d_s = [ds1,ds2,ds3,ds4]
             d_a_s = []
             for i in d_s:
-                d_a_s.append(i.getDistroArchSeries(archtag=self.lp_arch))
+                d_a_s.append(i.getDistroArchSeries(archtag=self.__lp_arch))
             p_b_h = []
             for i in d_a_s:
                 p_b_h.append(ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published", distro_arch_series=i))
 
-            self.build_links = list()
-
             for b in p_b_h:
                 if len(b):
                     for i in b:
-                        if i.build_link[8:] not in self.build_links:
-                            self.build_links.append([i.build_link[8:],
-                                                  i.binary_package_name,
-                                                  i.binary_package_version,
-                                                  i.resource_type_link])
+                        if i.build_link[8:] not in self.__pkgs:
+                            self.__pkgs.append([i.build_link[8:],
+                                                     i.binary_package_name,
+                                                     i.binary_package_version,
+                                                     i.resource_type_link])
+            return self.__pkgs
 
-        except error.HTTPError as http_error:
-            logging.log(http_error.content)
+        except requests.HTTPError as http_error:
+            logging.log("error", str(http_error))
 
-    def _get_deb_links(self):
+    def _get_deb_links_(self):
+        # TODO change below
         url_prefix = 'https://launchpad.net/~kxstudio-debian/+archive/ubuntu/plugins/+build/'
+        urls = []
         for build in self.build_links:
             regex = r"(\d+$)"
             buildnum = re.search(regex, build[0], re.MULTILINE)
-            url = url_prefix + buildnum[0]
-            html = request.urlopen(url).read()
-            soup = BeautifulSoup(html)
+            urls.append([build, url_prefix + buildnum[0]])
+        #multithread
+        self._pool = ThreadPool(10)
+        self.debs.append(self._pool.map(self.worker, urls))
+        self._pool.close()
+        self._pool.join()
 
+    def worker(self, build_url):
+        try:
+            html = requests.get(build_url[1]).content
+            soup = BeautifulSoup(html)
             links = soup.find_all('a')
-            self.debs.append(build + list(filter(lambda x: 'deb' in x and self._arch in x or 'all' in x, links)))
+            build_url[0] + list(filter(lambda x: 'deb' in x and self.__lp_arch in x or 'all' in x, links))
+        except requests.HTTPError as httperror:
+            logging.log("error", str(httperror))
