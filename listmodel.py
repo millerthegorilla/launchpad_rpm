@@ -21,7 +21,7 @@ class ListItem(QStandardItem):
 
 class ListModel(QStandardItemModel):
 
-    list_filled = pyqtSignal(bool)
+    list_filled = pyqtSignal()
 
     def __init__(self, headers, packages, *args):
         super().__init__(*args)
@@ -36,17 +36,16 @@ class ListModel(QStandardItemModel):
         return self.__packages
 
     def populate_pkg_list(self, ppa):
-        self.__list_filled.emit(False)
+        self.list_filled.emit()
         self.removeRows(0, self.rowCount())
         # self.__pool.terminate()
         self.__packages.ppa = ppa
         self.__result = self.__pool.apply_async(self.__packages.populate_pkgs, callback=self.fill_list)
 
     def fill_list(self, pkgs):
-        print(pkgs)
         for pkg in pkgs:
             self.appendRow(QStandardItem(ListItem(pkg)))
-        self.__list_filled.emit(True)
+        self.list_filled.emit()
 
 
 
