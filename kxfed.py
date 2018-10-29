@@ -5,48 +5,19 @@ from PyQt5.QtCore import pyqtSlot
 from kxfed_ui import Ui_MainWindow
 from listmodel import ListModel
 from packages import Packages
-from pathlib import Path
-import datetime
-from config import Config
-
-
-CONFIG_DIR = ".config/kxfed/"
-CONFIG_FILE = "kxfed.conf"
+from config_init import KxFedConfig
 
 
 # TODO make tree cache, make config for installed files etc.
+# investigate if cache is better with config or pickle
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
+        global cfg
         QMainWindow.__init__(self)
         self.setupUi(self)
 
-        # launchpadlib config - not necessary or move to module level / outer scope
-        home = str(Path.home()) + '/'
-        lp_cache_dir = home + ".launchpadlib/api.launchpad.net/cache/"
-        if not os.path.exists(lp_cache_dir):
-            os.mkdir(lp_cache_dir, 0o755)
         # config
-        config_dir = home + CONFIG_DIR
-        if not os.path.exists(config_dir):
-            os.mkdir(config_dir, 0o755)
-        if not os.path.exists(config_dir + CONFIG_FILE):
-            f = open(config_dir + CONFIG_FILE, "w+")
-            f.write("# kxfed configuration file. Created" + str(datetime.datetime.now()) + '\n')
-            f.close()
-        f = open(config_dir + CONFIG_FILE, "r+")
-        cfg = Config(f)
-        # tree cache built from scratch from the point that the program starts to the point
-        # that it closes
-        cache_dir = home + CONFIG_DIR
-        if not os.path.exists(cache_dir):
-            os.mkdir(cache_dir, 0o755)
-        if not os.path.exists(cache_dir + CONFIG_FILE):
-            f = open(cache_dir + CONFIG_FILE, "w+")
-            f.write("# kxfed configuration file. Created" + str(datetime.datetime.now()) + '\n')
-            f.close()
-        f = open(cache_dir + CONFIG_FILE, "r+")
-        cfg = Config(f)
-
+        KxFedConfig()
 
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.team = "kxstudio-debian"
@@ -100,10 +71,9 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.__movie.start()
         else:
             self.__movie.stop()
-# TODO but make the call to pkg_model.
+
 
 if __name__ == '__main__':
-
     app = QApplication(sys.argv)
     myapp = MainW()
     myapp.show()
