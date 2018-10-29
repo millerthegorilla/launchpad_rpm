@@ -16,15 +16,20 @@
 
 import requests
 from launchpadlib.launchpad import Launchpad
-import logging, re
+import logging, re, sys
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as ThreadPool
 
 
-class Packages():
+class Packages:
     def __init__(self, team, arch):
-        self.launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
-        self.__lp_team = self.launchpad.people[team]
+        self.__lp_team = None
+        self.__launchpad = None
+        try:
+            self.__launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
+            self.__lp_team = self.__launchpad.people[team]
+        except requests.HTTPError as http_error:
+            logging.log(0, str(http_error))
         self.__lp_arch = arch
         self.__lp_ppa = ""
         self.__pkgs = []
@@ -43,6 +48,7 @@ class Packages():
     def ppa(self, ppa):
         self.__lp_ppa = ppa
 
+
     @property
     def pkgs(self):
         return self.__pkgs
@@ -55,7 +61,7 @@ class Packages():
 
     def populate_pkgs(self):
         try:
-            ubuntu = self.launchpad.distributions["ubuntu"]
+            ubuntu = self.__launchpad.distributions["ubuntu"]
             ppa = self.__lp_team.getPPAByName(distribution=ubuntu, name=self.__lp_ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
@@ -76,9 +82,9 @@ class Packages():
                     for i in b:
                         if i.build_link[8:] not in self.__pkgs:
                             self.__pkgs.append([i.build_link[8:],
-                                                     i.binary_package_name,
-                                                     i.binary_package_version,
-                                                     i.resource_type_link])
+                                                i.binary_package_name,
+                                                i.binary_package_version,
+                                                i.resource_type_link])
             return self.__pkgs
 
         except requests.HTTPError as http_error:

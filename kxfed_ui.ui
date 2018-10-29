@@ -20,96 +20,180 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>KXFed - KXStudio on Fedora</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QFormLayout" name="formLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="team_label">
-      <property name="text">
-       <string>Team :</string>
-      </property>
-     </widget>
+   <widget class="QLabel" name="team_label">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>9</y>
+      <width>44</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Team :</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="team_combo">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>78</x>
+      <y>9</y>
+      <width>221</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="editable">
+     <bool>false</bool>
+    </property>
+    <item>
+     <property name="text">
+      <string>KxStudio-Debian</string>
+     </property>
     </item>
-    <item row="0" column="1">
-     <widget class="QComboBox" name="team_combo">
-      <property name="editable">
-       <bool>true</bool>
-      </property>
-      <item>
-       <property name="text">
-        <string>KxStudio-Debian</string>
-       </property>
-      </item>
-     </widget>
+   </widget>
+   <widget class="QLabel" name="arch_label">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>43</y>
+      <width>38</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Arch :</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="arch_combo">
+    <property name="geometry">
+     <rect>
+      <x>78</x>
+      <y>43</y>
+      <width>221</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <item>
+     <property name="text">
+      <string>AMD64</string>
+     </property>
     </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="arch_label">
-      <property name="text">
-       <string>Arch :</string>
-      </property>
-     </widget>
+    <item>
+     <property name="text">
+      <string>X386</string>
+     </property>
     </item>
-    <item row="1" column="1">
-     <widget class="QComboBox" name="arch_combo">
-      <item>
-       <property name="text">
-        <string>AMD64</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>X386</string>
-       </property>
-      </item>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QLabel" name="ppa_label">
-      <property name="text">
-       <string>PPA :</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="1">
-     <widget class="QComboBox" name="ppa_combo">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0" colspan="2">
-     <widget class="QLabel" name="packages_label">
-      <property name="text">
-       <string>Packages: </string>
-      </property>
-     </widget>
-    </item>
-    <item row="4" column="0" colspan="2">
-     <widget class="QTreeView" name="packages_treeview"/>
-    </item>
-    <item row="5" column="0" colspan="2">
-     <widget class="QCheckBox" name="kernelbuild_chk">
-      <property name="text">
-       <string>Build and install latest RT kernel</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0" colspan="2">
-     <widget class="QCheckBox" name="lowlatency_chk">
-      <property name="text">
-       <string>Lowlatency</string>
-      </property>
-     </widget>
-    </item>
-    <item row="7" column="0" colspan="2">
-     <widget class="QPushButton" name="install_btn">
-      <property name="text">
-       <string>Install</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   </widget>
+   <widget class="QLabel" name="ppa_label">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>77</y>
+      <width>34</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PPA :</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="ppa_combo">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>78</x>
+      <y>77</y>
+      <width>221</width>
+      <height>28</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="packages_label">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>111</y>
+      <width>68</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Packages: </string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="kernelbuild_chk">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>396</y>
+      <width>234</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Build and install latest RT kernel</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="lowlatency_chk">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>428</y>
+      <width>101</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Lowlatency</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="install_btn">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>460</y>
+      <width>80</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Install</string>
+    </property>
+   </widget>
+   <widget class="QListView" name="pkgs_listView">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>129</y>
+      <width>441</width>
+      <height>261</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>240</y>
+      <width>63</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
