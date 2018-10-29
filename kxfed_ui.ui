@@ -178,20 +178,28 @@
      </rect>
     </property>
    </widget>
-   <widget class="QLabel" name="label">
+   <widget class="QLabel" name="load_label">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>240</y>
-      <width>63</width>
-      <height>20</height>
+      <x>-60</x>
+      <y>220</y>
+      <width>571</width>
+      <height>51</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>50</pointsize>
+     </font>
+    </property>
     <property name="text">
-     <string/>
+     <string>loading...</string>
     </property>
     <property name="scaledContents">
-     <bool>true</bool>
+     <bool>false</bool>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>

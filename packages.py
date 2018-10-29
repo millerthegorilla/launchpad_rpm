@@ -16,7 +16,7 @@
 
 import requests
 from launchpadlib.launchpad import Launchpad
-import logging, re, sys
+import logging, re
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -61,6 +61,7 @@ class Packages:
 
     def populate_pkgs(self):
         try:
+            self.__pkgs = []
             ubuntu = self.__launchpad.distributions["ubuntu"]
             ppa = self.__lp_team.getPPAByName(distribution=ubuntu, name=self.__lp_ppa)
 
