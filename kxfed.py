@@ -3,32 +3,31 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import pyqtSlot
 from kxfed_ui import Ui_MainWindow
+from config_init import KFConf
 from listmodel import ListModel
-from packages import Packages
-from config_init import KxFedConfig
 
 
+# sudo dnf install redhat-rpm-config
+# sudo dnf install python3-devel python2-devel
+# sudo dnf install memcached
 # TODO make tree cache, make config for installed files etc.
 # investigate if cache is better with config or pickle
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
-        global cfg
         QMainWindow.__init__(self)
         self.setupUi(self)
 
         # config
-        KxFedConfig()
-
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.team = "kxstudio-debian"
         self.team_combo.addItem(self.team)
         self.arch_combo.addItem("amd64")
         self.arch_combo.addItem("x86")
         self.pkg_model = ListModel(['Installed', 'Pkg Name', 'Version', 'Description'],
-                                   Packages(self.team_combo.currentText().lower(),
-                                            self.arch_combo.currentText().lower()))
+                                   self.team_combo.currentText().lower(),
+                                   self.arch_combo.currentText().lower())
         self.pkgs_listView.setModel(self.pkg_model)
-        self._ppas_json = ""
+        self.__ppas_json = ""
         self.populate_ppa_combo()
         self.load_label.setVisible(True)
         self.__movie = QMovie("./assets/loader.gif")
@@ -55,10 +54,10 @@ class MainW (QMainWindow, Ui_MainWindow):
     def populate_ppa_combo(self):
         try:
             ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
-            self._ppas_json = requests.get(ppas_link).json()
+            self.__ppas_json = requests.get(ppas_link).json()
         except requests.HTTPError as http_error:
             logging.log("error", http_error.response)
-        for ppa in self._ppas_json['entries']:
+        for ppa in self.__ppas_json['entries']:
             self.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
     def populate_pkgs(self):
