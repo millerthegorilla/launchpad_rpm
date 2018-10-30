@@ -19,10 +19,12 @@ from launchpadlib.launchpad import Launchpad
 import logging, re
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as ThreadPool
+from config_init import KFConf
 
 
 class Packages:
     def __init__(self, team, arch):
+
         self.__lp_team = None
         self.__launchpad = None
         try:
@@ -59,11 +61,12 @@ class Packages:
         self._get_deb_links_()
         callback()
 
-    def populate_pkgs(self):
+    @KFConf.cache.cache_on_arguments()
+    def populate_pkgs(self, lp_ppa):
         try:
             self.__pkgs = []
             ubuntu = self.__launchpad.distributions["ubuntu"]
-            ppa = self.__lp_team.getPPAByName(distribution=ubuntu, name=self.__lp_ppa)
+            ppa = self.__lp_team.getPPAByName(distribution=ubuntu, name=lp_ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
             ds2 = ubuntu.getSeries(name_or_version="lucid")
