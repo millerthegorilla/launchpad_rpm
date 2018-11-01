@@ -1,17 +1,16 @@
-import sys, os, requests, logging
+import sys, requests, logging
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import pyqtSlot
 from kxfed_ui import Ui_MainWindow
-from config_init import KFConf
-from listmodel import ListModel
+from config_init import cfg
+from listmodel import ListModel, ListItem
 
 
-# sudo dnf install redhat-rpm-config
-# sudo dnf install python3-devel python2-devel
-# sudo dnf install memcached
-# TODO make tree cache, make config for installed files etc.
-# investigate if cache is better with config or pickle
+# TODO add installed packages to config
+# TODO add menu bar to ui and set config opts, expire cache etc.
+# TODO list model line 44, use self.__result, instead of callback
+# TODO to populate listview, using event property of result...
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -19,7 +18,7 @@ class MainW (QMainWindow, Ui_MainWindow):
 
         # config
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
-        self.team = "kxstudio-debian"
+        self.team = "KXStudio-Debian"
         self.team_combo.addItem(self.team)
         self.arch_combo.addItem("amd64")
         self.arch_combo.addItem("x86")
@@ -34,11 +33,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.__movie.start()
         self.load_label.setMovie(self.__movie)
         self.pkg_model.list_filled.connect(self.show_progress)
+        self.install_btn.clicked.connect(self.pkg_model.install_btn_clicked)
 
     def closeEvent(self, event):
         """
         clean up :
-            invalidate ie delete cache file
+            invalidate ie delete cache file if necessary
         :param event:
         :return:
         """
@@ -49,6 +49,11 @@ class MainW (QMainWindow, Ui_MainWindow):
         event.ignore()
 
         if result == QMessageBox.Yes:
+            try:
+                cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
+                cfg.write()
+            except OSError as e:
+                logging.log("critical", str(e))
             event.accept()
 
     def populate_ppa_combo(self):

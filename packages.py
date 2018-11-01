@@ -19,7 +19,7 @@ from launchpadlib.launchpad import Launchpad
 import logging, re
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as ThreadPool
-from config_init import KFConf
+from config_init import cache
 
 
 class Packages:
@@ -61,7 +61,7 @@ class Packages:
         self._get_deb_links_()
         callback()
 
-    @KFConf.cache.cache_on_arguments()
+    @cache.cache_on_arguments()
     def populate_pkgs(self, lp_ppa):
         try:
             self.__pkgs = []
@@ -80,15 +80,19 @@ class Packages:
             p_b_h = []
             for i in d_a_s:
                 p_b_h.append(ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published", distro_arch_series=i))
-
             for b in p_b_h:
                 if len(b):
                     for i in b:
                         if i.build_link[8:] not in self.__pkgs:
-                            self.__pkgs.append([i.build_link[8:],
-                                                i.binary_package_name,
-                                                i.binary_package_version,
-                                                i.resource_type_link])
+                            pkg = [i.build_link[8:],
+                                   i.binary_package_name,
+                                   i.binary_package_version,
+                                   lp_ppa,
+                                   ]
+                            self.__pkgs.append(pkg) # TODO don't need local pkg variable now
+                            # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
+                            #                        pkg)
+            # do I need to cache __pkgs in instance variable - why not use a local?
             return self.__pkgs
 
         except requests.HTTPError as http_error:
@@ -96,6 +100,7 @@ class Packages:
 
     def _get_deb_links_(self):
         # TODO change below
+        self.__lp_team.web_link + '/+archive/ubuntu/' + ppa + '/+build'
         url_prefix = 'https://launchpad.net/~kxstudio-debian/+archive/ubuntu/plugins/+build/'
         urls = []
         for build in self.build_links:
@@ -114,5 +119,5 @@ class Packages:
             soup = BeautifulSoup(html)
             links = soup.find_all('a')
             build_url[0] + list(filter(lambda x: 'deb' in x and self.__lp_arch in x or 'all' in x, links))
-        except requests.HTTPError as httperror:
-            logging.log("error", str(httperror))
+        except requests.HTTPError as http_error:
+            logging.log("error", str(http_error))

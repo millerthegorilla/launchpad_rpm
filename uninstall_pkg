@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo dnf -y remove $1

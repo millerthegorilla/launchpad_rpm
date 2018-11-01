@@ -51,11 +51,6 @@
     <property name="editable">
      <bool>false</bool>
     </property>
-    <item>
-     <property name="text">
-      <string>KxStudio-Debian</string>
-     </property>
-    </item>
    </widget>
    <widget class="QLabel" name="arch_label">
     <property name="geometry">
@@ -79,16 +74,6 @@
       <height>28</height>
      </rect>
     </property>
-    <item>
-     <property name="text">
-      <string>AMD64</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>X386</string>
-     </property>
-    </item>
    </widget>
    <widget class="QLabel" name="ppa_label">
     <property name="geometry">
