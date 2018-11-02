@@ -17,8 +17,7 @@
 import requests
 from launchpadlib.launchpad import Launchpad
 import logging, re
-from bs4 import BeautifulSoup
-from multiprocessing.dummy import Pool as ThreadPool
+from bs4 import BeautifulSoup, SoupStrainer
 from config_init import cache
 
 
@@ -36,7 +35,7 @@ class Packages:
         self.__lp_ppa = ""
         self.__pkgs = []
         self.debs = []
-        # self._pool = ThreadPool(10)  # change th
+        self.__strainer = SoupStrainer('a')
 
     @property
     def lp_team(self):
@@ -49,7 +48,6 @@ class Packages:
     @ppa.setter
     def ppa(self, ppa):
         self.__lp_ppa = ppa
-
 
     @property
     def pkgs(self):
@@ -73,23 +71,23 @@ class Packages:
             ds3 = ubuntu.getSeries(name_or_version="xenial")
             ds4 = ubuntu.getSeries(name_or_version="bionic")
 
-            d_s = [ds1,ds2,ds3,ds4]
+            d_s = [ds1, ds2, ds3, ds4]
             d_a_s = []
             for i in d_s:
                 d_a_s.append(i.getDistroArchSeries(archtag=self.__lp_arch))
             p_b_h = []
             for i in d_a_s:
-                p_b_h.append(ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published", distro_arch_series=i))
+                p_b_h.append(ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published",
+                                                      distro_arch_series=i))
             for b in p_b_h:
                 if len(b):
                     for i in b:
-                        if i.build_link[8:] not in self.__pkgs:
-                            pkg = [i.build_link[8:],
-                                   i.binary_package_name,
-                                   i.binary_package_version,
-                                   lp_ppa,
-                                   ]
-                            self.__pkgs.append(pkg) # TODO don't need local pkg variable now
+                        pkg = [i.binary_package_name,
+                               i.binary_package_version,
+                               lp_ppa
+                               ]
+                        if pkg not in self.__pkgs:
+                            self.__pkgs.append(pkg)  # TODO don't need local pkg variable now?
                             # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
                             #                        pkg)
             # do I need to cache __pkgs in instance variable - why not use a local?
@@ -98,26 +96,13 @@ class Packages:
         except requests.HTTPError as http_error:
             logging.log("error", str(http_error))
 
-    def _get_deb_links_(self):
-        # TODO change below
-        self.__lp_team.web_link + '/+archive/ubuntu/' + ppa + '/+build'
-        url_prefix = 'https://launchpad.net/~kxstudio-debian/+archive/ubuntu/plugins/+build/'
-        urls = []
-        for build in self.build_links:
-            regex = r"(\d+$)"
-            buildnum = re.search(regex, build[0], re.MULTILINE)
-            urls.append([build, url_prefix + buildnum[0]])
-        #multithread
-        self._pool = ThreadPool(10)
-        self.debs.append(self._pool.map(self.worker, urls))
-        self._pool.close()
-        self._pool.join()
-
-    def worker(self, build_url):
+    def _get_deb_links_(self, ppa, build_link):
         try:
-            html = requests.get(build_url[1]).content
-            soup = BeautifulSoup(html)
-            links = soup.find_all('a')
-            build_url[0] + list(filter(lambda x: 'deb' in x and self.__lp_arch in x or 'all' in x, links))
+            session = requests.Session()
+            links = BeautifulSoup(requests.get(self.__lp_team.web_link
+                                         + '/+archive/ubuntu/'
+                                         + ppa
+                                         + '/+build/' + build_link).content, builder='lxml').find_all('a', href=re.compile(r'all|amd64\.deb'))
+            return list(map(lambda x: x['href'], links))
         except requests.HTTPError as http_error:
             logging.log("error", str(http_error))

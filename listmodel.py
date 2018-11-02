@@ -13,11 +13,10 @@ class ListItem(QStandardItem):
         super().__init__(*args)
         self.setCheckable(True)
         self.setEditable(False)
-        self.build_link = pkg_list[0]
-        self.binary_package_name = pkg_list[1]
-        self.binary_package_version = pkg_list[2]
-        self.resource_type_link = pkg_list[3]
-        self.ppa = pkg_list[4]
+        self.binary_package_name = pkg_list[0]
+        self.binary_package_version = pkg_list[1]
+        self.ppa = pkg_list[2]
+        self.deb_link = None
         self.setText(self.binary_package_name)
         # TODO add binary_version to second column in listview
         self.setCheckState(Qt.Unchecked)
@@ -69,10 +68,9 @@ class ListModel(QStandardItemModel):
     @staticmethod
     def add_item_to_section(self, section, item):
         cfg[section][item.ppa] = {}
-        cfg[section][item.ppa]['build_link'] = item.build_link
         cfg[section][item.ppa]['binary_package_name'] = item.binary_package_name
         cfg[section][item.ppa]['binary_package_version'] = item.binary_package_version
-        cfg[section][item.ppa]['resource_type_link'] = item.resource_type_link
+        cfg[section][item.ppa]['deb_link'] = item.deb_link
 
     def install_btn_clicked(self):
         # uninstall packages that need uninstalling first.
@@ -80,7 +78,7 @@ class ListModel(QStandardItemModel):
         # install packages that need installing
         self.install_pkgs()
 
-    def uninstall_pkgs(self, pkg):
+    def uninstall_pkgs(self):
         # get list of packages to be uninstalled from cfg, using pop to delete
         for ppa in cfg['tobeuninstalled']:
             for pkg in cfg['tobeuninstalled'][ppa]:
@@ -91,5 +89,16 @@ class ListModel(QStandardItemModel):
         # get list of packages to be installed from cfg, using pop to delete
         for ppa in cfg['tobeinstalled']:
             for pkg in cfg['tobeinstalled'][ppa]:
-                subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)
+                self.__result = self.__pool.apply_async(self.__packages._get_deb_links_,
+                                                        (ppa, pkg.build_link.rsplit('/', 1)[-1], ),
+                                                        callback=self.download_debs)
         cfg['tobeinstalled'].clear()
+
+    def download_debs(self):
+        pass
+
+    def convert_debs_to_rpms(self):
+        pass
+
+    def install_rpms(self):
+        subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)
