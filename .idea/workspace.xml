@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fc77272c-c997-40c2-825c-eebf32f2d6d9" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/listmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/listmodel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config_init.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kxfed.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kxfed_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kxfed_ui.ui" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.ui" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/listmodel.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/packages.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/rpm_maker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/rpm_maker.sh" afterDir="false" />
@@ -24,28 +27,36 @@
     <session id="-176451968">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="15" />
+          <entry key="project.closed" value="26" />
           <entry key="project.open.time.11" value="1" />
           <entry key="project.open.time.32" value="3" />
           <entry key="project.open.time.33" value="1" />
+          <entry key="project.open.time.34" value="1" />
           <entry key="project.open.time.35" value="2" />
           <entry key="project.open.time.36" value="2" />
           <entry key="project.open.time.37" value="1" />
-          <entry key="project.open.time.41" value="1" />
-          <entry key="project.open.time.42" value="2" />
+          <entry key="project.open.time.39" value="2" />
+          <entry key="project.open.time.40" value="1" />
+          <entry key="project.open.time.41" value="2" />
+          <entry key="project.open.time.42" value="3" />
           <entry key="project.open.time.43" value="1" />
-          <entry key="project.open.time.55" value="1" />
+          <entry key="project.open.time.48" value="1" />
+          <entry key="project.open.time.49" value="1" />
+          <entry key="project.open.time.50" value="1" />
+          <entry key="project.open.time.55" value="2" />
           <entry key="project.open.time.57" value="1" />
+          <entry key="project.open.time.61" value="1" />
           <entry key="project.open.time.67" value="1" />
-          <entry key="project.opened" value="17" />
+          <entry key="project.opened" value="28" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
+          <entry key="bob" value="1" />
           <entry key="cache" value="3" />
           <entry key="cfg" value="2" />
           <entry key="conf" value="2" />
-          <entry key="py" value="38" />
+          <entry key="py" value="71" />
           <entry key="sh" value="2" />
         </counts>
       </usages-collector>
@@ -53,25 +64,25 @@
         <counts>
           <entry key="Bash" value="2" />
           <entry key="Ini" value="1" />
-          <entry key="PLAIN_TEXT" value="5" />
-          <entry key="Python" value="38" />
+          <entry key="PLAIN_TEXT" value="6" />
+          <entry key="Python" value="71" />
           <entry key="PythonStub" value="1" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="Python Console" value="5929" />
+          <entry key="Python Console" value="6070" />
           <entry key="cache" value="87" />
           <entry key="cfg" value="12" />
           <entry key="conf" value="484" />
-          <entry key="py" value="16655" />
+          <entry key="py" value="28510" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Ini" value="12" />
           <entry key="PLAIN_TEXT" value="558" />
-          <entry key="Python" value="22584" />
+          <entry key="Python" value="34580" />
           <entry key="PythonStub" value="8" />
           <entry key="UNKNOWN" value="5" />
         </counts>
@@ -84,63 +95,97 @@
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/listmodel.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="374">
-              <caret line="104" selection-start-line="104" selection-end-line="104" />
-              <folding>
-                <element signature="e#23#62#0" expanded="true" />
-                <marker date="1541184518225" expanded="true" signature="1932:1938" ph="..." />
-                <marker date="1541184518225" expanded="true" signature="2679:2688" ph="..." />
-                <marker date="1541184518225" expanded="true" signature="2875:2884" ph="..." />
-                <marker date="1541184518225" expanded="true" signature="3219:3228" ph="..." />
-                <marker date="1541184518225" expanded="true" signature="3778:3797" ph="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3190">
-              <caret line="145" column="28" selection-start-line="145" selection-start-column="28" selection-end-line="145" selection-end-column="28" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/config_init.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="176">
-              <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
-              <folding>
-                <element signature="e#12#26#0" expanded="true" />
-                <marker date="1541061578124" expanded="true" signature="313:322" ph="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/packages.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-70">
-              <caret line="86" column="37" selection-start-line="86" selection-start-column="37" selection-end-line="86" selection-end-column="37" />
+            <state relative-caret-position="333">
+              <caret line="90" selection-start-line="90" selection-end-line="90" />
               <folding>
-                <element signature="e#730#745#0" expanded="true" />
-                <marker date="1541184205557" expanded="true" signature="1501:1520" ph="..." />
-                <marker date="1541184205557" expanded="true" signature="1618:1651" ph="..." />
+                <element signature="e#730#760#0" expanded="true" />
+                <marker date="1541679538419" expanded="true" signature="1599:1618" ph="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/helpers.py">
+        <entry file="file:///usr/lib64/python3.7/logging/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="132">
-              <caret line="6" column="18" selection-start-line="6" selection-start-column="18" selection-end-line="6" selection-end-column="18" />
+            <state relative-caret-position="31724">
+              <caret line="1444" selection-start-line="1444" selection-end-line="1444" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/kfconf.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="110">
+              <caret line="5" column="27" selection-start-line="5" selection-start-column="27" selection-end-line="5" selection-end-column="27" />
+              <folding>
+                <element signature="e#12#26#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/lazr/restfulclient/resource.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="16082">
+              <caret line="731" selection-start-line="731" selection-end-line="731" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tvitem.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-291">
+              <caret line="15" column="10" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
+              <folding>
+                <element signature="e#22#59#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tvmodel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="311">
+              <caret line="117" selection-start-line="117" selection-end-line="117" />
+              <folding>
+                <element signature="e#23#62#0" expanded="true" />
+                <marker date="1541701940268" expanded="true" signature="1529:1535" ph="..." />
+                <marker date="1541701940268" expanded="true" signature="2695:2783" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/region.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="27632">
+              <caret line="1269" selection-start-line="1269" selection-end-line="1269" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/backends/file.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="4576">
+              <caret line="213" selection-start-line="213" selection-end-line="213" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file:///usr/lib64/python3.7/dbm/__init__.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1628">
+              <caret line="77" selection-start-line="77" selection-end-line="77" />
             </state>
           </provider>
         </entry>
@@ -148,11 +193,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfed.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="836">
-              <caret line="44" column="38" selection-start-line="44" selection-start-column="38" selection-end-line="44" selection-end-column="38" />
+            <state relative-caret-position="655">
+              <caret line="54" column="49" selection-start-line="54" selection-start-column="49" selection-end-line="54" selection-end-column="49" />
               <folding>
                 <element signature="e#0#29#0" expanded="true" />
-                <marker date="1541065952965" expanded="true" signature="1678:1687" ph="..." />
+                <marker date="1541683408515" expanded="true" signature="1821:1830" ph="..." />
               </folding>
             </state>
           </provider>
@@ -171,7 +216,13 @@
     <findStrings>
       <find>,</find>
       <find>&quot;</find>
+      <find>self.conf</find>
+      <find>KFConf</find>
     </findStrings>
+    <replaceStrings>
+      <replace>KFConf</replace>
+      <replace>kfconf</replace>
+    </replaceStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -186,19 +237,25 @@
         <option value="$PROJECT_DIR$/config.py" />
         <option value="$USER_HOME$/.config/kxfed/kxfed.cache" />
         <option value="$USER_HOME$/.config/kxfed/kxfed.conf" />
-        <option value="$PROJECT_DIR$/kxfed_ui.py" />
         <option value="$USER_HOME$/.config/kxfed/kxfed.cfg" />
-        <option value="$PROJECT_DIR$/config_init.py" />
-        <option value="$PROJECT_DIR$/kxfed.py" />
-        <option value="$PROJECT_DIR$/packages.py" />
+        <option value="$PROJECT_DIR$/kxfed_ui.py" />
+        <option value="$PROJECT_DIR$/listitem.py" />
         <option value="$PROJECT_DIR$/listmodel.py" />
+        <option value="$PROJECT_DIR$/bob" />
+        <option value="$PROJECT_DIR$/config_init.py" />
+        <option value="$PROJECT_DIR$/packages.py" />
+        <option value="$PROJECT_DIR$/kxfed.py" />
+        <option value="$PROJECT_DIR$/kfconf.py" />
+        <option value="$PROJECT_DIR$/tvitem.py" />
+        <option value="$PROJECT_DIR$/tvmodel.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="212" />
-    <option name="width" value="1400" />
-    <option name="height" value="1000" />
+    <option name="x" value="184" />
+    <option name="y" value="27" />
+    <option name="width" value="1390" />
+    <option name="height" value="1007" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -223,6 +280,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -230,31 +288,15 @@
               <item name="kxfed" type="b2602c69:ProjectViewProjectNode" />
               <item name="kxfed" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="kxfed" type="b2602c69:ProjectViewProjectNode" />
-              <item name="kxfed" type="462c0819:PsiDirectoryNode" />
-              <item name="rpm_maker" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="kxfed" type="b2602c69:ProjectViewProjectNode" />
-              <item name="kxfed" type="462c0819:PsiDirectoryNode" />
-              <item name="rpm_maker" type="462c0819:PsiDirectoryNode" />
-              <item name="scripts" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="kxfed" type="b2602c69:ProjectViewProjectNode" />
-              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
-            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$USER_HOME$/.config/kxfed/kxfed.cfg" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.appearance" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -316,20 +358,20 @@
   <component name="ToolWindowManager">
     <frame x="0" y="27" width="1920" height="1053" extended-state="6" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4147541" visible="true" weight="0.18133895" />
-      <window_info id="Favorites" order="1" sideWeight="0.5852459" side_tool="true" weight="0.1814346" />
+      <window_info id="Favorites" order="0" sideWeight="0.5852459" side_tool="true" weight="0.1814346" />
+      <window_info content_ui="combo" id="Project" order="1" sideWeight="0.4147541" visible="true" weight="0.18133895" />
       <window_info auto_hide="true" id="Structure" internal_type="SLIDING" order="2" sideWeight="0.5852459" type="SLIDING" weight="0.1814346" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.45861888" weight="0.32896176" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.45651028" weight="0.34535518" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
-      <window_info anchor="bottom" id="Debug" order="5" sideWeight="0.62572485" weight="0.4262295" />
-      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49894515" weight="0.33150384" />
+      <window_info anchor="bottom" id="Debug" order="5" sideWeight="0.6188719" weight="0.4262295" />
+      <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49868214" weight="0.33114755" />
       <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5282024" side_tool="true" visible="true" weight="0.38797814" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="9" sideWeight="0.4717976" visible="true" weight="0.38797814" />
-      <window_info anchor="bottom" id="Python Console" order="10" sideWeight="0.8808645" weight="0.38797814" />
+      <window_info anchor="bottom" id="Event Log" order="8" sideWeight="0.5434897" side_tool="true" weight="0.32896176" />
+      <window_info anchor="bottom" id="Terminal" order="9" sideWeight="0.46389034" weight="0.39344263" />
+      <window_info anchor="bottom" id="Python Console" order="10" sideWeight="0.8798102" weight="0.38797814" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -360,108 +402,109 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/config_init.py</url>
-          <line>64</line>
-          <option name="timeStamp" value="51" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file:///usr/lib/python3.6/site-packages/dnf/base.py</url>
           <line>1266</line>
           <option name="timeStamp" value="61" />
         </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/packages.py</url>
-          <line>93</line>
-          <option name="timeStamp" value="62" />
+          <line>90</line>
+          <option name="timeStamp" value="106" />
         </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/listmodel.py</url>
-          <line>52</line>
-          <option name="timeStamp" value="63" />
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tvmodel.py</url>
+          <line>86</line>
+          <option name="timeStamp" value="113" />
         </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/packages.py</url>
-          <line>84</line>
-          <option name="timeStamp" value="66" />
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tvmodel.py</url>
+          <line>110</line>
+          <option name="timeStamp" value="115" />
         </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/packages.py</url>
-          <line>105</line>
-          <option name="timeStamp" value="67" />
-        </line-breakpoint>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/packages.py</url>
-          <line>101</line>
-          <option name="timeStamp" value="68" />
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/tvmodel.py</url>
+          <line>117</line>
+          <option name="timeStamp" value="116" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <default-breakpoints>
-        <breakpoint type="python-exception">
-          <properties notifyOnTerminate="true" exception="BaseException">
-            <option name="notifyOnTerminate" value="true" />
-          </properties>
-        </breakpoint>
-      </default-breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="pkg[3][0]" language="Python" />
+        <watch expression="pkg()" language="Python" />
+        <watch expression="kfconf.cfg['tobeinstalled'][ppa][pkg]['build_link']" language="Python" />
+        <watch expression="item.checkState()" language="Python" />
+        <watch expression="Qt.Checked" language="Python" />
       </configuration>
     </watches-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
       <expression>
-        <expression-string>pkg[3][0]</expression-string>
+        <expression-string>pkg()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>type(links[0])</expression-string>
+        <expression-string>pkg</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>links[0]</expression-string>
+        <expression-string>kfconf.cfg['tobeinstalled'][ppa][pkg]['build_link']</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>links</expression-string>
+        <expression-string>kfconf.cfg</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>pkg[3][0].text</expression-string>
+        <expression-string>pkg['build_link']</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>pkg[3]</expression-string>
+        <expression-string>pkg.installed</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>pkg[4]</expression-string>
+        <expression-string>item.checkState()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>pkg[0]</expression-string>
+        <expression-string>Qt.Unchecked</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>pkg[0].text</expression-string>
+        <expression-string>Qt.Checked</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>item.triState()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
     </expressions>
     <expressions id="evaluateExpression">
+      <expression>
+        <expression-string>Qt.DisplayRole</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>role</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
       <expression>
         <expression-string>links</expression-string>
         <language-id>Python</language-id>
@@ -497,16 +540,6 @@
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
-      <expression>
-        <expression-string>self._ListModel</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self._ListModel_</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
     </expressions>
   </component>
   <component name="editorHistoryManager">
@@ -530,13 +563,6 @@
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.6/site-packages/config.py" />
     <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cache" />
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.6/site-packages/dogpile/cache/backends/memcached.py" />
-    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="450">
-          <caret line="84" column="71" selection-start-line="84" selection-start-column="71" selection-end-line="84" selection-end-column="71" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/.config/kxfed/kxfed.conf" />
     <entry file="file:///usr/lib64/python3.6/codecs.py" />
     <entry file="file:///usr/lib64/python3.6/site-packages/abrt_exception_handler3.py" />
@@ -570,24 +596,6 @@
     </entry>
     <entry file="file:///usr/lib/python3.6/site-packages/dnf/base.py" />
     <entry file="file:///usr/lib64/python3.6/multiprocessing/pool.py" />
-    <entry file="file://$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3190">
-          <caret line="145" column="28" selection-start-line="145" selection-start-column="28" selection-end-line="145" selection-end-column="28" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/config_init.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="12" column="12" selection-start-line="12" selection-start-column="12" selection-end-line="12" selection-end-column="12" />
-          <folding>
-            <element signature="e#12#26#0" expanded="true" />
-            <marker date="1541061578124" expanded="true" signature="313:322" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/helpers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="132">
@@ -595,40 +603,178 @@
         </state>
       </provider>
     </entry>
+    <entry file="file:///usr/lib64/python3.7/threading.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="297">
+          <caret line="864" selection-start-line="864" selection-end-line="864" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/traceback.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="157">
+          <caret line="499" selection-start-line="499" selection-end-line="499" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/requests/adapters.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="515" selection-start-line="515" selection-end-line="515" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1279">
+          <caret line="145" column="28" selection-start-line="145" selection-start-column="28" selection-end-line="145" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/listmodel.py" />
+    <entry file="file://$PROJECT_DIR$/listitem.py" />
+    <entry file="file://$PROJECT_DIR$/config_init.py" />
+    <entry file="file://$PROJECT_DIR$/bob">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="682">
+          <caret line="31" column="93" selection-start-line="31" selection-start-column="93" selection-end-line="31" selection-end-column="93" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1210">
+          <caret line="55" column="36" selection-start-line="55" selection-start-column="36" selection-end-line="55" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/xml/etree/ElementPath.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="165">
+          <caret line="312" selection-start-line="312" selection-end-line="312" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/wadllib/application.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="157">
+          <caret line="380" selection-start-line="380" selection-end-line="380" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/contextlib.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="190">
+          <caret line="111" selection-start-line="111" selection-end-line="111" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/multiprocessing/pool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8250">
+          <caret line="386" selection-start-line="386" selection-end-line="386" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharmCE2018.2/system/python_stubs/-921856370/PyQt5/QtGui/QStandardItem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="817">
+          <caret line="339" column="8" selection-start-line="339" selection-start-column="8" selection-end-line="339" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.PyCharmCE2018.2/system/python_stubs/-921856370/PyQt5/QtGui/QStandardItemModel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="165" column="8" selection-start-line="165" selection-start-column="8" selection-end-line="165" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/logging/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="31724">
+          <caret line="1444" selection-start-line="1444" selection-end-line="1444" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/lazr/restfulclient/resource.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="16082">
+          <caret line="731" selection-start-line="731" selection-end-line="731" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/region.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="27632">
+          <caret line="1269" selection-start-line="1269" selection-end-line="1269" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/backends/file.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4576">
+          <caret line="213" selection-start-line="213" selection-end-line="213" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/lib64/python3.7/dbm/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1628">
+          <caret line="77" selection-start-line="77" selection-end-line="77" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kfconf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="110">
+          <caret line="5" column="27" selection-start-line="5" selection-start-column="27" selection-end-line="5" selection-end-column="27" />
+          <folding>
+            <element signature="e#12#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/kxfed.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="836">
-          <caret line="44" column="38" selection-start-line="44" selection-start-column="38" selection-end-line="44" selection-end-column="38" />
+        <state relative-caret-position="655">
+          <caret line="54" column="49" selection-start-line="54" selection-start-column="49" selection-end-line="54" selection-end-column="49" />
           <folding>
             <element signature="e#0#29#0" expanded="true" />
-            <marker date="1541065952965" expanded="true" signature="1678:1687" ph="..." />
+            <marker date="1541683408515" expanded="true" signature="1821:1830" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tvitem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-291">
+          <caret line="15" column="10" selection-start-line="15" selection-start-column="10" selection-end-line="15" selection-end-column="10" />
+          <folding>
+            <element signature="e#22#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tvmodel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="311">
+          <caret line="117" selection-start-line="117" selection-end-line="117" />
+          <folding>
+            <element signature="e#23#62#0" expanded="true" />
+            <marker date="1541701940268" expanded="true" signature="1529:1535" ph="..." />
+            <marker date="1541701940268" expanded="true" signature="2695:2783" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/packages.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-70">
-          <caret line="86" column="37" selection-start-line="86" selection-start-column="37" selection-end-line="86" selection-end-column="37" />
+        <state relative-caret-position="333">
+          <caret line="90" selection-start-line="90" selection-end-line="90" />
           <folding>
-            <element signature="e#730#745#0" expanded="true" />
-            <marker date="1541184205557" expanded="true" signature="1501:1520" ph="..." />
-            <marker date="1541184205557" expanded="true" signature="1618:1651" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/listmodel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="374">
-          <caret line="104" selection-start-line="104" selection-end-line="104" />
-          <folding>
-            <element signature="e#23#62#0" expanded="true" />
-            <marker date="1541184518225" expanded="true" signature="1932:1938" ph="..." />
-            <marker date="1541184518225" expanded="true" signature="2679:2688" ph="..." />
-            <marker date="1541184518225" expanded="true" signature="2875:2884" ph="..." />
-            <marker date="1541184518225" expanded="true" signature="3219:3228" ph="..." />
-            <marker date="1541184518225" expanded="true" signature="3778:3797" ph="..." />
+            <element signature="e#730#760#0" expanded="true" />
+            <marker date="1541679538419" expanded="true" signature="1599:1618" ph="..." />
           </folding>
         </state>
       </provider>

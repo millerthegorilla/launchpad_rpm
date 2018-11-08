@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>459</width>
-    <height>521</height>
+    <height>531</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -145,15 +145,15 @@
      <rect>
       <x>10</x>
       <y>460</y>
-      <width>80</width>
-      <height>28</height>
+      <width>131</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">
      <string>Install</string>
     </property>
    </widget>
-   <widget class="QListView" name="pkgs_listView">
+   <widget class="QTableView" name="pkgs_tableView">
     <property name="geometry">
      <rect>
       <x>9</x>
@@ -167,9 +167,9 @@
     <property name="geometry">
      <rect>
       <x>-60</x>
-      <y>220</y>
+      <y>210</y>
       <width>571</width>
-      <height>51</height>
+      <height>91</height>
      </rect>
     </property>
     <property name="font">
@@ -187,6 +187,18 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <zorder>pkgs_tableView</zorder>
+   <zorder>team_label</zorder>
+   <zorder>team_combo</zorder>
+   <zorder>arch_label</zorder>
+   <zorder>arch_combo</zorder>
+   <zorder>ppa_label</zorder>
+   <zorder>ppa_combo</zorder>
+   <zorder>packages_label</zorder>
+   <zorder>kernelbuild_chk</zorder>
+   <zorder>lowlatency_chk</zorder>
+   <zorder>install_btn</zorder>
+   <zorder>load_label</zorder>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

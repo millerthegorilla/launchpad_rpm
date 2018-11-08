@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import pyqtSlot
 from kxfed_ui import Ui_MainWindow
-from config_init import cfg
-from listmodel import ListModel, ListItem
+import kfconf
+from tvmodel import TVModel
 
 
 # TODO add installed packages to config
@@ -22,10 +22,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.team_combo.addItem(self.team)
         self.arch_combo.addItem("amd64")
         self.arch_combo.addItem("x86")
-        self.pkg_model = ListModel(['Installed', 'Pkg Name', 'Version', 'Description'],
-                                   self.team_combo.currentText().lower(),
-                                   self.arch_combo.currentText().lower())
-        self.pkgs_listView.setModel(self.pkg_model)
+        self.pkg_model = TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
+                                 self.team_combo.currentText().lower(),
+                                 self.arch_combo.currentText().lower())
+        self.pkgs_tableView.setModel(self.pkg_model)
+        self.pkgs_tableView.horizontalHeader().setStretchLastSection(True)
+        self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
         self.__ppas_json = ""
         self.populate_ppa_combo()
         self.load_label.setVisible(True)
@@ -49,9 +51,11 @@ class MainW (QMainWindow, Ui_MainWindow):
         event.ignore()
 
         if result == QMessageBox.Yes:
+            kfconf.cfg['tobeinstalled'].clear()
+            kfconf.cfg['tobeuninstalled'].clear()
             try:
-                cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
-                cfg.write()
+                kfconf.cfg.filename = (kfconf.cfg['config']['dir'] + kfconf.cfg['config']['filename'])
+                kfconf.cfg.write()
             except OSError as e:
                 logging.log("critical", str(e))
             event.accept()
@@ -75,6 +79,7 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.__movie.start()
         else:
             self.__movie.stop()
+            self.pkgs_tableView.resizeColumnsToContents()
 
 
 if __name__ == '__main__':
