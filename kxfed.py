@@ -34,8 +34,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.__movie = QMovie("./assets/loader.gif")
         self.__movie.start()
         self.load_label.setMovie(self.__movie)
-        self.pkg_model.list_filled.connect(self.show_progress)
+        self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
         self.install_btn.clicked.connect(self.pkg_model.install_btn_clicked)
+        self.progress_bar.setVisible(False)
+        self.pkg_model.progress_adjusted.connect(self.progress_changed)
+        self._download_total = 0
+        self._download_current = 0
 
     def closeEvent(self, event):
         """
@@ -73,13 +77,29 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkg_model.populate_pkg_list(self.ppa_combo.itemData(self.ppa_combo.currentIndex()))
 
     @pyqtSlot()
-    def show_progress(self):
+    def toggle_pkg_list_loading(self):
         self.load_label.setVisible(not self.load_label.isVisible())
         if self.load_label.isVisible():
             self.__movie.start()
         else:
             self.__movie.stop()
             self.pkgs_tableView.resizeColumnsToContents()
+
+    @pyqtSlot(int, int)
+    def progress_changed(self, v, m):
+        if m == 0 and v == 0:
+            self.progress_bar.setVisible(False)
+            self._download_total = 0
+            self._download_current = 0
+        else:
+            if m != 0:
+                self._download_total += m
+            if v != 0:
+                self._download_current += v
+            self.statusbar.showMessage("Downloading Packages", 100)
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setMaximum(self._download_total)
+            self.progress_bar.setValue(self._download_current)
 
 
 if __name__ == '__main__':

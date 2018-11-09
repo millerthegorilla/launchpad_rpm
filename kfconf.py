@@ -30,6 +30,8 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['installed']                       = {}
     cfg['tobeinstalled']                   = {}
     cfg['tobeuninstalled']                 = {}
+    cfg['installing']                      = {}
+    cfg['debs']                            = {}
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
