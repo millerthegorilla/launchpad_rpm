@@ -18,7 +18,7 @@ from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
 import logging
 import re
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 import requests
 import kfconf
 
@@ -36,6 +36,7 @@ class Packages:
         self.__lp_ppa = ""
         self.__pkgs = []
         self.debs = []
+        self.__strainer = SoupStrainer('a')
 
     @property
     def lp_team(self):
@@ -94,8 +95,8 @@ class Packages:
             html = requests.get(self.__lp_team.web_link
                                          + '/+archive/ubuntu/'
                                          + ppa
-                                         + '/+build/' + build_link.rsplit('/', 1)[-1])
-            links = BeautifulSoup(html.content, 'lxml').find_all('a', href=re.compile(r'' + name + '(.*?)(all|amd64\.deb)'))
+                                         + '/+build/' + build_link)
+            links = BeautifulSoup(html, 'lxml').find_all('a', href=re.compile(r'' + name + '(.*?)(all|amd64\.deb)'))
             return [build_link, list(map(lambda x: x['href'], links))]
         except Exception as http_error:
             logging.log("error", str(http_error))

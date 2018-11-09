@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtGui import QStandardItemModel
 import multiprocessing.dummy
 from packages import Packages
 import subprocess
 import kfconf
 from kfconf import TVITEM_ROLE
 from tvitem import TVItem
+import requests
 
 
 class TVModel(QStandardItemModel):
 
     list_filled = pyqtSignal()
+    progress_adjusted = pyqtSignal(int,int)
 
     def __init__(self, headers, team, arch, *args):
         # passing in conf to avoid static for threading.
@@ -65,10 +67,6 @@ class TVModel(QStandardItemModel):
                 item.setCheckState(Qt.Unchecked)
             pkg.installed = item.checkState()
 
-            # make sure the following is done when pkg is uninstalled
-            # kfconf.cfg['installed'][pkg.ppa].pop(pkg.id)
-            # TVModel.delete_ppa_if_empty('installed', pkg.ppa)
-
     @staticmethod
     def delete_ppa_if_empty(section, ppa):
         if not kfconf.cfg[section][ppa]:
@@ -107,18 +105,55 @@ class TVModel(QStandardItemModel):
         # get list of packages to be installed from cfg, using pop to delete
         for ppa in kfconf.cfg['tobeinstalled']:
             for pkg in kfconf.cfg['tobeinstalled'][ppa]:
-                # self.download_debs(pkg)
+                if ppa not in kfconf.cfg['installing']:
+                    kfconf.cfg['installing'][ppa] = {}
+                kfconf.cfg['installing'][ppa][pkg] = kfconf.cfg['tobeinstalled'][ppa].pop(pkg)
                 self.__result = self.__pool.apply_async(self.__packages._get_deb_links_,
-                                                        (ppa, kfconf.cfg['tobeinstalled'][ppa][pkg]['build_link'].rsplit('/', 1)[-1], ),
+                                                        (ppa,
+                                                         kfconf.cfg['installing'][ppa][pkg]['build_link'],
+                                                         kfconf.cfg['installing'][ppa][pkg]['name'],),
                                                         callback=self.download_debs)
         kfconf.cfg['tobeinstalled'].clear()
 
-    def download_debs(self, pkg):
-
-        pass
+    def download_debs(self, link_gen):
+        kfconf.cfg['debs'] = []
+        section = kfconf.cfg['installing'].walk(config_search, build_link=link_gen[0])
+        section['deb_link'] = []
+        for i in link_gen[1]:
+            section['deb_link'].append(i)
+            fn = i.rsplit('/', 1)[-1]
+            kfconf.cfg['debs'].append(fn)
+            self.__pool.apply_async(self.download_file,
+                                    (i, fn,),
+                                    callback=self.downloads_finished)
 
     def convert_debs_to_rpms(self):
+        subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
         pass
 
     def install_rpms(self, pkg):
         subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)
+
+    def download_file(self, url, file_name):
+        with open(file_name, "wb+") as f:
+            response = requests.get(url, stream=True)
+            total_length = response.headers.get('content-length')
+
+            if total_length is None:  # no content length header
+                f.write(response.content)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=1024):
+                    f.write(data)
+                    self.progress_adjusted.emit(len(data), total_length)
+                    total_length = 0
+
+    def downloads_finished(self, *args):
+        self.progress_adjusted.emit(0, 0)
+        self.convert_debs_to_rpms()
+
+
+def config_search(section, key, build_link):
+    if build_link in section:
+        return section
