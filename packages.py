@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-
+from PyQt5.QtCore import pyqtSignal
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
 import logging
@@ -24,14 +24,17 @@ import kfconf
 
 
 class Packages:
+
+    message = pyqtSignal(str)
+
     def __init__(self, team, arch):
         self.__lp_team = None
         self.__launchpad = None
         try:
             self.__launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
             self.__lp_team = self.__launchpad.people[team]
-        except HTTPError as http_error:
-            logging.log(0, str(http_error))
+        except requests.HTTPError as e:
+            logging.log(0, e.strerror)
         self.__lp_arch = arch
         self.__lp_ppa = ""
         self.__pkgs = []
@@ -95,7 +98,8 @@ class Packages:
                                          + '/+archive/ubuntu/'
                                          + ppa
                                          + '/+build/' + build_link.rsplit('/', 1)[-1])
-            links = BeautifulSoup(html.content, 'lxml').find_all('a', href=re.compile(r'' + name + '(.*?)(all|amd64\.deb)'))
+            links = BeautifulSoup(html.content, 'lxml').find_all('a',
+                                                                 href=re.compile(r'' + name + '(.*?)(all|amd64\.deb)'))
             return [build_link, list(map(lambda x: x['href'], links))]
         except Exception as http_error:
             logging.log("error", str(http_error))
