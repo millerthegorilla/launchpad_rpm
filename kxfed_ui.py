@@ -86,6 +86,13 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.menuBar = QtWidgets.QMenuBar(MainWindow)
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 459, 24))
+        self.menuBar.setObjectName("menuBar")
+        self.menuPreferences = QtWidgets.QMenu(self.menuBar)
+        self.menuPreferences.setObjectName("menuPreferences")
+        MainWindow.setMenuBar(self.menuBar)
+        self.menuBar.addAction(self.menuPreferences.menuAction())
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -101,4 +108,5 @@ class Ui_MainWindow(object):
         self.lowlatency_chk.setText(_translate("MainWindow", "Lowlatency"))
         self.install_btn.setText(_translate("MainWindow", "Install"))
         self.load_label.setText(_translate("MainWindow", "loading..."))
+        self.menuPreferences.setTitle(_translate("MainWindow", "Preferences..."))
 
