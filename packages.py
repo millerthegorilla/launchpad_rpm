@@ -19,11 +19,13 @@ from launchpadlib.errors import HTTPError
 import logging
 import re
 from bs4 import BeautifulSoup
-import multiprocessing.dummy
+from multiprocessing.dummy import Pool as thread_pool
+from multiprocessing import Pool as mp_pool
 from kfconf import cfg, cache
 import requests
 import subprocess
 import traceback
+import threading
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -33,10 +35,12 @@ import traceback
 # TODO and clean up the packages etc afterwards
 # TODO and install, adding package details to list of installed packages.
 # TODO then uninstall and preferences.
+# TODO ** REMEMBER ** to selinux installed packages.
 class Packages(QObject):
 
     progress_adjusted = pyqtSignal(int, int)
     exception = pyqtSignal('PyQt_PyObject')
+    message = pyqtSignal(str, int)
 
     def __init__(self, team, arch):
         super().__init__()
@@ -46,15 +50,14 @@ class Packages(QObject):
         self._lp_ppa = ""
         self._pkgs = []
         self.debs = []
-        self._pool = multiprocessing.dummy.Pool(10)
+        self._thread_pool = thread_pool(10)
+        self._mp_pool = mp_pool(10)
         self._result = None
+        self._lock = threading.Lock()
 
     def connect(self):
-        try:
-            self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
-            self._lp_team = self._launchpad.people[self._lp_team]
-        except HTTPError as e:
-            logging.log(0, e.strerror)
+        self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
+        self._lp_team = self._launchpad.people[self._lp_team]
 
     @property
     def lp_team(self):
@@ -128,28 +131,29 @@ class Packages(QObject):
                 cfg['downloading'][ppa][pkgid] = pkg
                 debs_dir = cfg['debs_dir']
                 rpms_dir = cfg['rpms_dir']
-                self._pool.apply_async(self._get_deb_links_and_download,
-                                       (ppa,
-                                        pkg,
-                                        debs_dir,
-                                        rpms_dir,))
-
+                self._thread_pool.apply_async(self._get_deb_links_and_download,
+                                              (ppa,
+                                               pkg,
+                                               debs_dir,
+                                               rpms_dir,))
         self.progress_adjusted.emit(0, 0)
+        # self._convert_rpms()
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir, rpms_dir):
         # threaded function called from install_packages
         try:
             html = requests.get(self._lp_team.web_link
-                                         + '/+archive/ubuntu/'
-                                         + ppa
-                                         + '/+build/' + pkg['build_link'].rsplit('/', 1)[-1])
+                                + '/+archive/ubuntu/'
+                                + ppa
+                                + '/+build/' + pkg['build_link'].rsplit('/', 1)[-1])
             links = BeautifulSoup(html.content, 'lxml').find_all('a',
                                                                  href=re.compile(r''
                                                                                  + pkg['name']
                                                                                  + '(.*?)(all|amd64\.deb)'))
             pkg['deb_link'] = links
             for link in links:
-                fp = debs_dir + link['href'].rsplit('/', 1)[-1]
+                fn = link['href'].rsplit('/', 1)[-1]
+                fp = debs_dir + fn.split('.')[0]
                 with open(fp, "wb+") as f:
                     response = requests.get(link['href'], stream=True)
                     total_length = response.headers.get('content-length')
@@ -163,17 +167,26 @@ class Packages(QObject):
                             self.progress_adjusted.emit(len(data), total_length)
                             total_length = 0
                 # build_rpms.sh working_dir deb_filepath rpms_dir arch
-                result = subprocess.run(['/bin/bash',
-                                         '/home/james/Src/kxfed/build_rpms.sh',
-                                         debs_dir,
-                                         fp,
-                                         rpms_dir,
-                                         'amd64'],
-                                        stdout=subprocess.PIPE).stdout.decode('utf-8')
-                logging.log(logging.DEBUG, result)
-        except (requests.HTTPError, Exception) as e:
-            logging.log(logging.ERROR, traceback.format_exc())
-            self.exception.emit(e)
+                # TODO the following must block
+                # self._lock.acquire(blocking=True)
+                result = self._mp_pool.apply_async(subprocess.check_output,
+                                                   (['/bin/bash',
+                                                     '/home/james/Src/kxfed/build_rpms.sh',
+                                                     debs_dir,
+                                                     fp,
+                                                     fn,
+                                                     rpms_dir,
+                                                     'amd64'],))
+                logging.log(logging.DEBUG, result.get())
+                self.progress_adjusted.emit(0, 0)
+                self.message.emit('converted ' + fp + ' successfully', 200)
+        except (requests.HTTPError, subprocess.CalledProcessError) as e:
+            if e is subprocess.CalledProcessError:
+                logging.log(logging.ERROR, e.output)
+                self.exception.emit(e.stderror)
+            else:
+                logging.log(logging.ERROR, traceback.format_exc())
+                self.exception.emit(e)
 
     def _install_rpms(self, pkg):
         subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)

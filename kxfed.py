@@ -1,10 +1,14 @@
 import sys, requests, logging, traceback
+import httplib2
+from launchpadlib.errors import HTTPError
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QTimer
 from kxfed_ui import Ui_MainWindow
 import kfconf
 from tvmodel import TVModel
+import shutil
+from pathlib import Path
 
 
 # TODO add installed packages to config
@@ -43,25 +47,25 @@ class MainW (QMainWindow, Ui_MainWindow):
 
         # status bar
         self.label = QLabel()
+        self.label.setWordWrap(True)
+        self.label.timerEvent = self.hide_message
         self.statusbar.addWidget(self.label)
+        # connection button
+        self.reconnectBtn.setVisible(False)
+        self.reconnectBtn.pressed.connect(self.connect)
 
         # signals
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
         self.pkg_model.message.connect(self.message_user)
         self.pkg_model.packages.progress_adjusted.connect(self.progress_changed)
-        #        self.pkg_model.packages.message.connect(self.message_user)
+        self.pkg_model.packages.message.connect(self.message_user)
         self.pkg_model.packages.exception.connect(self._exception)
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs)
 
-        # initiate connection and populate combo
-        try:
-            self.pkg_model.connect()
-            self.populate_ppa_combo()
-        except requests.HTTPError as e:
-            logging.log(logging.ERROR, str(e))
-            self.message_user(traceback.format_exc())
+        # connect
+        self.connect()
 
     def closeEvent(self, event):
         """
@@ -83,8 +87,19 @@ class MainW (QMainWindow, Ui_MainWindow):
                 kfconf.cfg.filename = (kfconf.cfg['config']['dir'] + kfconf.cfg['config']['filename'])
                 kfconf.cfg.write()
             except OSError as e:
-                logging.log(logging.CRITICAL, str(e))
+                logging.log(logging.CRITICAL, str(e) + "\n" + traceback.format_exc())
             event.accept()
+
+    def connect(self):
+        try:
+            self.pkg_model.packages.connect()
+            self.reconnectBtn.setVisible(False)
+            self.populate_ppa_combo()
+            self.pkg_model.list_filled.emit()
+            self.message_user('Connected to Launchpad')
+        except (httplib2.ServerNotFoundError, HTTPError) as e:
+            self.reconnectBtn.setVisible(True)
+            self.message_user(str(e) + ' - perhaps check your internet connection. ', 500)
 
     def populate_ppa_combo(self):
         try:
@@ -92,23 +107,32 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.__ppas_json = requests.get(ppas_link).json()
         except requests.HTTPError as e:
             logging.log("error", e.strerror)
-            self.message_user(e.strerror)
+            self.message_user(e.strerror, 500)
         for ppa in self.__ppas_json['entries']:
             self.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
     def install_pkgs(self):
         try:
             self.pkg_model.action_pkgs()
+            # path = str(Path.home()) + '/rpmbuild'
+            # result = QMessageBox.question(self,
+            #                               "Remove BuildRoot...",
+            #                               "Remove the temporary build root in your home dir?",
+            #                               QMessageBox.Yes | QMessageBox.No)
+            # if result == QMessageBox.Yes:
+            #     if Path(path).exists():
+            #         shutil.rm(path)
+            # TODO do not show the above message again option
         except Exception as e:
-            logging.log(logging.ERROR, str(e))
-            self.message_user(traceback.format_exc())
+            logging.log(logging.CRITICAL, str(e) + "\n" + traceback.format_exc())
+            self.message_user('Critical Error, Exiting', 500, True)
 
     def populate_pkgs(self):
         try:
             self.pkg_model.populate_pkg_list(self.ppa_combo.itemData(self.ppa_combo.currentIndex()))
         except Exception as e:
             logging.log(logging.ERROR, str(e))
-            self.message_user(traceback.format_exc())
+            self.message_user(traceback.format_exc(), 500)
 
     @pyqtSlot()
     def toggle_pkg_list_loading(self):
@@ -136,11 +160,20 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.progress_bar.setValue(self._download_current)
 
     @pyqtSlot(str)
-    def message_user(self, msg):
+    def message_user(self, msg, timeout=0, exit=False):
         self.label.setText(msg)
+        if timeout:
+            self.label.startTimer(timeout)
+            self._exit = exit
+
+    def hide_message(self, ev):
+        self.label.setText('')
+        if self._exit:
+            exit(1)
 
     @pyqtSlot('PyQt_PyObject')
     def _exception(self, ex):
+        self.message_user(str(ex), 500)
         raise type(ex)(traceback.format_exc())
 
 

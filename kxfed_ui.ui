@@ -10,19 +10,13 @@
     <x>0</x>
     <y>0</y>
     <width>459</width>
-    <height>583</height>
+    <height>612</height>
    </rect>
-  </property>
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
     <width>459</width>
-    <height>583</height>
+    <height>612</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -155,11 +149,14 @@
    <widget class="QPushButton" name="install_btn">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>460</y>
+      <x>313</x>
+      <y>485</y>
       <width>131</width>
       <height>41</height>
      </rect>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
     </property>
     <property name="text">
      <string>Install</string>
@@ -206,13 +203,38 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>510</y>
-      <width>118</width>
-      <height>23</height>
+      <y>500</y>
+      <width>288</width>
+      <height>25</height>
      </rect>
     </property>
     <property name="value">
      <number>24</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="reconnectBtn">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>466</y>
+      <width>88</width>
+      <height>27</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>88</width>
+      <height>27</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>88</width>
+      <height>27</height>
+     </size>
+    </property>
+    <property name="text">
+     <string>Reconnect</string>
     </property>
    </widget>
    <zorder>pkgs_tableView</zorder>
@@ -228,8 +250,25 @@
    <zorder>install_btn</zorder>
    <zorder>load_label</zorder>
    <zorder>progress_bar</zorder>
+   <zorder>reconnectBtn</zorder>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
+     <verstretch>1</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+  </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
@@ -249,4 +288,21 @@
  </widget>
  <resources/>
  <connections/>
+ <designerdata>
+  <property name="gridDeltaX">
+   <number>10</number>
+  </property>
+  <property name="gridDeltaY">
+   <number>10</number>
+  </property>
+  <property name="gridSnapX">
+   <bool>false</bool>
+  </property>
+  <property name="gridSnapY">
+   <bool>false</bool>
+  </property>
+  <property name="gridVisible">
+   <bool>true</bool>
+  </property>
+ </designerdata>
 </ui>

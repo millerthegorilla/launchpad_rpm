@@ -5,9 +5,7 @@ from PyQt5.QtGui import QStandardItemModel
 from packages import Packages
 from kfconf import TVITEM_ROLE, cfg
 from tvitem import TVItem
-from launchpadlib.errors import HTTPError
 import multiprocessing.dummy
-import logging, traceback
 
 # TODO separate pkg downloading, converting and installing functions into
 # TODO Packages class.  TVModel has reference to packages and Packages class
@@ -21,6 +19,7 @@ class TVModel(QStandardItemModel):
 
     list_filled = pyqtSignal()
     message = pyqtSignal(str)
+    exception = pyqtSignal('PyQt_PyObject')
 
     def __init__(self, headers, team, arch):
         super().__init__()
@@ -29,13 +28,6 @@ class TVModel(QStandardItemModel):
         self.setHorizontalHeaderLabels(headers)
         self.itemChanged.connect(TVModel.on_item_changed)
         self._pool = multiprocessing.dummy.Pool(10)
-
-    def connect(self):
-        try:
-            self._packages.connect()
-        except HTTPError as e:
-            logging.log(logging.ERROR, str(e))
-            self.message.emit(traceback.format_exc())
 
     @property
     def packages(self):
