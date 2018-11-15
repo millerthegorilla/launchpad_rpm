@@ -16,8 +16,8 @@ __this__ = sys.modules[__name__]
 
 config_dir = str(Path.home()) + '/' + CONFIG_DIR
 tmp_dir = str(Path.home()) + '/.local/share/kxfed/'
-debs_dir = tmp_dir + 'debs/'
-rpms_dir = tmp_dir + 'rpms/'
+debs_dir = tmp_dir + 'debs'
+rpms_dir = tmp_dir + 'rpms'
 
 
 def mkpath(path):

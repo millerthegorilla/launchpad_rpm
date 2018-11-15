@@ -17,12 +17,11 @@
 # build_rpms.sh working_dir deb_filepath rpms_dir arch
 # rpms_dir can be working_dir/rpms
 RPM_ROOT=$1
-DEB_DIR_PATH=$RPM_ROOT
-RPM_BUILD_ROOT=$DEB_DIR_PATH/root/rpmbuild/BUILD/
-RPM_LOG=$RPM_BUILD_ROOT/kxfed_rpm_log
 DEB_PATH=$2
-BUILT_RPMS_DIR=$3
-ARCH=$4
+FILE_NAME=$3
+BUILT_RPMS_DIR=$4
+ARCH=$5
+RPM_BUILD_ROOT=$DEB_PATH/root/rpmbuild/BUILDROOT/
 
 if [ ! -d "$RPM_BUILD_ROOT" ]; then
   mkdir -p "$RPM_BUILD_ROOT"
@@ -59,9 +58,7 @@ specfilepath="$RPM_BUILD_ROOT$adir$specfilename"
 sed -i '/^%dir/ d' "$specfilepath"
 
 cd "$adir"
-log+=$(echo rpm says $(rpmbuild -bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath" 2>&1))
-# fn=$(echo "$adir" | sed 's/\///' | sed 's/\.x/-x/' | awk '{print $1".rpm"}')
-mv "$RPM_BUILD_ROOT"*.rpm "$BUILT_RPMS_DIR" # $fn"
-rm -rf $RPM_BUILD_ROOT
+log=$log" "$(echo rpm says $(rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath"))
+mv "$RPM_BUILD_ROOT"*.rpm "$BUILT_RPMS_DIR"
 echo $log
 exit 0
