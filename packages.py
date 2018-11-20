@@ -26,6 +26,7 @@ import requests
 import subprocess
 import traceback
 import threading
+from os.path import splitext
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -137,7 +138,6 @@ class Packages(QObject):
                                                debs_dir,
                                                rpms_dir,))
         self.progress_adjusted.emit(0, 0)
-        # self._convert_rpms()
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir, rpms_dir):
         # threaded function called from install_packages
@@ -152,8 +152,9 @@ class Packages(QObject):
                                                                                  + '(.*?)(all|amd64\.deb)'))
             pkg['deb_link'] = links
             for link in links:
+                # TODO try os path basename etc out of interest
                 fn = link['href'].rsplit('/', 1)[-1]
-                fp = debs_dir + fn.split('.')[0]
+                fp = debs_dir + splitext(fn)[0]
                 with open(fp, "wb+") as f:
                     response = requests.get(link['href'], stream=True)
                     total_length = response.headers.get('content-length')
@@ -166,9 +167,7 @@ class Packages(QObject):
                             f.write(data)
                             self.progress_adjusted.emit(len(data), total_length)
                             total_length = 0
-                # build_rpms.sh working_dir deb_filepath rpms_dir arch
-                # TODO the following must block
-                # self._lock.acquire(blocking=True)
+                # build_rpms.sh working_dir deb_filepath filename rpms_dir arch
                 result = self._mp_pool.apply_async(subprocess.check_output,
                                                    (['/bin/bash',
                                                      '/home/james/Src/kxfed/build_rpms.sh',
@@ -190,4 +189,3 @@ class Packages(QObject):
 
     def _install_rpms(self, pkg):
         subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)
-
