@@ -32,22 +32,20 @@ if [ ! -d "$BUILT_RPMS_DIR" ]; then
 fi
 
 cd "$RPM_BUILD_ROOT"
-echo $(pwd)
-log+=(echo alien says $(alien -r -g -v "$DEB_PATH" 2>&1))
+
+log+=$(alien -r -g -v "$DEB_PATH")
 
 aliendir=$(find . -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
-echo 'aliendir is '"$aliendir"
+
 
 specfilename=$(find "$RPM_BUILD_ROOT$aliendir" -type f -name \*.spec)
 specfilename=$(basename "$specfilename")
-echo 'specfilename is '"$specfilename"
 
 if [ "$ARCH"=='amd64' ]; then
     adir=$(echo "$specfilename" | sed 's/spec/x86_64\//')
-    else
+else
     adir=$(echo "$specfilename" | sed 's/spec/x386\//')
-    fi
-echo 'adir is '"$adir"
+fi
 
 mv "$RPM_BUILD_ROOT$aliendir" "$RPM_BUILD_ROOT$adir"
 mv "$RPM_BUILD_ROOT$adir/usr" "$RPM_BUILD_ROOT"
@@ -58,7 +56,7 @@ specfilepath="$RPM_BUILD_ROOT$adir$specfilename"
 sed -i '/^%dir/ d' "$specfilepath"
 
 cd "$adir"
-log=$log" "$(echo rpm says $(rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath"))
+log=$log"\n"$(rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath")
 mv "$RPM_BUILD_ROOT"*.rpm "$BUILT_RPMS_DIR"
 echo $log
 exit 0
