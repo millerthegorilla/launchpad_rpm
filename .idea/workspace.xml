@@ -2,20 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fc77272c-c997-40c2-825c-eebf32f2d6d9" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/QLabelChanged.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/install_pkgs.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kxfed_prefs.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kxfed_prefs_ui.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/kxfed_prefs_ui.ui" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build_rpms.sh" beforeDir="false" afterPath="$PROJECT_DIR$/build_rpms.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kfconf.py" beforeDir="false" afterPath="$PROJECT_DIR$/kfconf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed_ui.ui" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.ui" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/rpm_maker.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/rpm_maker.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh" afterDir="false" />
@@ -23,7 +9,6 @@
       <change beforePath="$PROJECT_DIR$/rpm_maker/scripts/lynxdump.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/scripts/lynxdump.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tvmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/tvmodel.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -36,7 +21,7 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/packages.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="502">
@@ -44,6 +29,18 @@
               <folding>
                 <element signature="e#729#773#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="110">
+                <caret line="5" column="24" lean-forward="true" selection-start-line="5" selection-start-column="24" selection-end-line="5" selection-end-column="24" />
+              </first_editor>
+              <second_editor />
             </state>
           </provider>
         </entry>
@@ -62,18 +59,6 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="668">
               <caret line="49" column="26" selection-start-line="49" selection-start-column="26" selection-end-line="49" selection-end-column="26" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/kxfed_prefs_ui.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1320">
-              <caret line="61" column="87" selection-start-line="61" selection-start-column="87" selection-end-line="61" selection-end-column="87" />
-              <folding>
-                <element signature="e#203#245#0" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -336,14 +321,14 @@
     <editor active="true" />
     <layout>
       <window_info id="Favorites" order="0" sideWeight="0.5852459" side_tool="true" weight="0.1814346" />
-      <window_info content_ui="combo" id="Project" order="1" sideWeight="0.4147541" visible="true" weight="0.18133895" />
+      <window_info active="true" content_ui="combo" id="Project" order="1" sideWeight="0.4147541" visible="true" weight="0.18133895" />
       <window_info auto_hide="true" id="Structure" internal_type="SLIDING" order="2" sideWeight="0.5852459" type="SLIDING" weight="0.1814346" />
       <window_info id="Capture Tool" order="3" />
       <window_info id="Image Layers" order="4" />
       <window_info id="Designer" order="5" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" sideWeight="0.49868214" weight="0.32969433" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.84818137" visible="true" weight="0.34497815" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.84818137" visible="true" weight="0.34497815" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
       <window_info anchor="bottom" id="Debug" order="5" sideWeight="0.6104375" weight="0.2849345" />
@@ -509,7 +494,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/lib64/python3.6/configparser.py" />
     <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -792,6 +776,16 @@
           <folding>
             <element signature="e#729#773#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="110">
+            <caret line="5" column="24" lean-forward="true" selection-start-line="5" selection-start-column="24" selection-end-line="5" selection-end-column="24" />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>
