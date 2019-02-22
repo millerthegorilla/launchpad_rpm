@@ -7,6 +7,7 @@ from PyQt5.QtCore import pyqtSlot, QTimer
 from kxfed_ui import Ui_MainWindow
 import kfconf
 from tvmodel import TVModel
+from kxfed_prefs import KxfedPrefsDialog
 import shutil
 from pathlib import Path
 
@@ -19,6 +20,7 @@ class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+
         # instance variables
         self.__ppas_json = ""
         self.team = "KXStudio-Debian"
@@ -50,9 +52,17 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.label.setWordWrap(True)
         self.label.timerEvent = self.hide_message
         self.statusbar.addWidget(self.label)
+
         # connection button
         self.reconnectBtn.setVisible(False)
         self.reconnectBtn.pressed.connect(self.connect)
+
+        # refresh cache button
+        self.btn_refresh_cache.triggered.connect(self.refresh_cache)
+
+        # preferences dialog
+        self.kxfed_prefs_dialog = KxfedPrefsDialog()
+        self.btn_edit_config.triggered.connect(self.show_prefs)
 
         # signals
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
@@ -176,6 +186,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.message_user(str(ex), 500)
         raise type(ex)(traceback.format_exc())
 
+    @staticmethod
+    def refresh_cache(self):
+        kfconf.cache.invalidate(hard=True)
+
+    def show_prefs(self):
+        self.kxfed_prefs_dialog.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

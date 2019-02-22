@@ -6,6 +6,7 @@ from packages import Packages
 from kfconf import TVITEM_ROLE, cfg
 from tvitem import TVItem
 import multiprocessing.dummy
+import subprocess
 
 # TODO separate pkg downloading, converting and installing functions into
 # TODO Packages class.  TVModel has reference to packages and Packages class
@@ -73,6 +74,7 @@ class TVModel(QStandardItemModel):
         # uninstall packages that need uninstalling first.
         # self._packages.uninstall_pkgs()
         # install packages that need installing
+
         self._packages.install_pkgs()
         # TODO status bar progress report
 

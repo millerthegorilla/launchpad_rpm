@@ -282,9 +282,28 @@
     <property name="title">
      <string>Preferences...</string>
     </property>
+    <addaction name="btn_refresh_cache"/>
+    <addaction name="btn_edit_config"/>
+    <addaction name="separator"/>
+    <addaction name="btn_quit"/>
    </widget>
    <addaction name="menuPreferences"/>
   </widget>
+  <action name="btn_edit_config">
+   <property name="text">
+    <string>Edit Configuration</string>
+   </property>
+  </action>
+  <action name="btn_quit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="btn_refresh_cache">
+   <property name="text">
+    <string>Refresh Cache</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

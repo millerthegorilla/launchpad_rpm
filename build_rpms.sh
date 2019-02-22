@@ -47,6 +47,7 @@ else
     adir=$(echo "$specfilename" | sed 's/spec/x386\//')
 fi
 
+# what is the below doing?
 mv "$RPM_BUILD_ROOT$aliendir" "$RPM_BUILD_ROOT$adir"
 mv "$RPM_BUILD_ROOT$adir/usr" "$RPM_BUILD_ROOT"
 
