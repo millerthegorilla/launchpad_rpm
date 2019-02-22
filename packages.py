@@ -124,19 +124,30 @@ class Packages(QObject):
 
     def install_pkgs(self):
         # get list of packages to be installed from cfg, using pop to delete
-        for ppa in cfg['tobeinstalled']:
-            for pkgid in cfg['tobeinstalled'][ppa]:
-                if ppa not in cfg['installing']:
-                    cfg['downloading'][ppa] = {}
-                pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
-                cfg['downloading'][ppa][pkgid] = pkg
-                debs_dir = cfg['debs_dir']
-                rpms_dir = cfg['rpms_dir']
-                self._thread_pool.apply_async(self._get_deb_links_and_download,
-                                              (ppa,
-                                               pkg,
-                                               debs_dir,
-                                               rpms_dir,))
+        p = subprocess.Popen(['pkexec',
+                             '/usr/bin/python3',
+                             '/home/james/Src/kxfed/' + 'install_pkgs.py'], stdout=subprocess.PIPE)
+        for line in p.stdout:
+            if line[0] == '*':
+                self.message.emit('converted ' + line[1:] + ' successfully', 200)
+            elif line[0] == '!':
+                self.exception.emit(line)
+            else:
+                lens = line.split(":")
+                self.progress_adjusted.emit(lens[0], lens[1])
+        # for ppa in cfg['tobeinstalled']:
+        #     for pkgid in cfg['tobeinstalled'][ppa]:
+        #         if ppa not in cfg['installing']:
+        #             cfg['downloading'][ppa] = {}
+        #         pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
+        #         cfg['downloading'][ppa][pkgid] = pkg
+        #         debs_dir = cfg['debs_dir']
+        #         rpms_dir = cfg['rpms_dir']
+        #         self._thread_pool.apply_async(self._get_deb_links_and_download,
+        #                                       (ppa,
+        #                                        pkg,
+        #                                        debs_dir,
+        #                                        rpms_dir,))
         self.progress_adjusted.emit(0, 0)
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir, rpms_dir):

@@ -20,6 +20,12 @@ debs_dir = tmp_dir + 'debs'
 rpms_dir = tmp_dir + 'rpms'
 
 
+def change_tmp_dir(tmpdir):
+    cfg[tmp_dir] = tmpdir
+    cfg[debs_dir] = tmpdir + 'debs'
+    cfg[rpms_dir] = tmpdir + 'rpms'
+
+
 def mkpath(path):
     if not Path(path).exists():
         Path(path).mkdir(parents=True, exist_ok=True)
