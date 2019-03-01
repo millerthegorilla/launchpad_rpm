@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import sys, requests, logging, traceback
 import httplib2
 from launchpadlib.errors import HTTPError
@@ -124,14 +125,6 @@ class MainW (QMainWindow, Ui_MainWindow):
     def install_pkgs(self):
         try:
             self.pkg_model.action_pkgs()
-            # path = str(Path.home()) + '/rpmbuild'
-            # result = QMessageBox.question(self,
-            #                               "Remove BuildRoot...",
-            #                               "Remove the temporary build root in your home dir?",
-            #                               QMessageBox.Yes | QMessageBox.No)
-            # if result == QMessageBox.Yes:
-            #     if Path(path).exists():
-            #         shutil.rm(path)
             # TODO do not show the above message again option
         except Exception as e:
             logging.log(logging.CRITICAL, str(e) + "\n" + traceback.format_exc())

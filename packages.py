@@ -27,6 +27,14 @@ import subprocess
 import traceback
 import threading
 from os.path import splitext
+import os
+import sys
+import dbus
+import dbus.mainloop.glib
+import gi
+from gi.repository import GLib
+gi.require_version('Polkit', '1.0')
+from gi.repository import Polkit
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -122,19 +130,14 @@ class Packages(QObject):
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
         cfg['tobeuninstalled'].clear()
 
+    def install_pkgs_signal_handler(self, cur_len, tot_len):
+        self.progress_adjusted.emit(cur_len, tot_len)
+
     def install_pkgs(self):
         # get list of packages to be installed from cfg, using pop to delete
-        p = subprocess.Popen(['pkexec',
-                             '/usr/bin/python3',
-                             '/home/james/Src/kxfed/' + 'install_pkgs.py'], stdout=subprocess.PIPE)
-        for line in p.stdout:
-            if line[0] == '*':
-                self.message.emit('converted ' + line[1:] + ' successfully', 200)
-            elif line[0] == '!':
-                self.exception.emit(line)
-            else:
-                lens = line.split(":")
-                self.progress_adjusted.emit(lens[0], lens[1])
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        dbus.mainloop.glib.threads_init()
+        #
         # for ppa in cfg['tobeinstalled']:
         #     for pkgid in cfg['tobeinstalled'][ppa]:
         #         if ppa not in cfg['installing']:
@@ -148,7 +151,57 @@ class Packages(QObject):
         #                                        pkg,
         #                                        debs_dir,
         #                                        rpms_dir,))
-        self.progress_adjusted.emit(0, 0)
+        try:
+            # bus = dbus.SystemBus()
+            # proxy = bus.get_object('org.freedesktop.PolicyKit1', '/org/freedesktop/PolicyKit1/Authority')
+            # authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
+            #
+            # system_bus_name = bus.get_unique_name()
+            #
+            # subject = ('system-bus-name', {'name': system_bus_name})
+            # action_id = 'org.freedesktop.policykit.exec'
+            # details = {}
+            # flags = 1  # AllowUserInteraction flag
+            # cancellation_id = ''  # No cancellation id
+            #
+            # result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
+
+            system_bus = dbus.SystemBus()
+            proxy = system_bus.get_object("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority")
+            authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
+            system_bus_name = system_bus.get_unique_name()
+            proc = Polkit.UnixProcess.new(os.getpid())
+            subject = ('unix-process',
+                       {'pid': dbus.UInt32(proc.get_pid()), 'start-time': dbus.UInt64(proc.get_start_time())})
+            action_id = 'uk.co.jerlesey.kxfed.InstallPkgs'
+            details = {} #dbus.Dictionary({'year': 1964}, signature='sv')
+            flags = 1
+            cancellation_id = ''
+            result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
+
+            if result[0] == True:
+                session_bus = dbus.SessionBus()
+                proxy_object = session_bus.get_object("uk.co.jerlesey.kxfed.InstallPkgs", "/InstallPkgs")
+                proxy_object.connect_to_signal("progress_adjusted",
+                                         self.install_pkgs_signal_handler,
+                                         dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs")
+                proxy_object.install(self.lp_team.web_link, dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs")
+
+                loop = GLib.MainLoop()
+                loop.run()
+            else:
+                pass
+        except dbus.DBusException:
+            traceback.print_exc()
+            sys.exit(1)
+
+            # lets make a catchall
+
+        session_bus.add_signal_receiver(self.install_pkgs_signal_handler, dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs",
+                                signal_name="progress_adjusted")
+
+        # # self.progress_adjusted.emit(0, 0)
+        # pass
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir, rpms_dir):
         # threaded function called from install_packages
@@ -180,7 +233,7 @@ class Packages(QObject):
                             total_length = 0
                 # build_rpms.sh working_dir deb_filepath filename rpms_dir arch
                 result = self._mp_pool.apply_async(subprocess.check_output,
-                                                   (['/bin/bash',
+                                                   (["/usr/bin/pkexec",
                                                      '/home/james/Src/kxfed/build_rpms.sh',
                                                      debs_dir,
                                                      fp,

@@ -16,14 +16,14 @@ __this__ = sys.modules[__name__]
 
 config_dir = str(Path.home()) + '/' + CONFIG_DIR
 tmp_dir = str(Path.home()) + '/.local/share/kxfed/'
-debs_dir = tmp_dir + 'debs'
-rpms_dir = tmp_dir + 'rpms'
+debs_dir = tmp_dir + 'debs/'
+rpms_dir = tmp_dir + 'rpms/'
 
 
 def change_tmp_dir(tmpdir):
     cfg[tmp_dir] = tmpdir
-    cfg[debs_dir] = tmpdir + 'debs'
-    cfg[rpms_dir] = tmpdir + 'rpms'
+    cfg[debs_dir] = tmpdir + 'debs/'
+    cfg[rpms_dir] = tmpdir + 'rpms/'
 
 
 def mkpath(path):

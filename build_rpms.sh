@@ -1,3 +1,4 @@
+#!/usr/bin/sudo bash
 #    This file is part of rpm_maker.
 
 #    rpm_maker is free software: you can redistribute it and/or modify
@@ -13,7 +14,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-#!/bin/bash
 # build_rpms.sh working_dir deb_filepath rpms_dir arch
 # rpms_dir can be working_dir/rpms
 RPM_ROOT=$1
@@ -33,7 +33,7 @@ fi
 
 cd "$RPM_BUILD_ROOT"
 
-log+=$(alien -r -g -v "$DEB_PATH")
+fakeroot $(alien -r -g -v "$DEB_PATH")
 
 aliendir=$(find . -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
 
@@ -57,7 +57,7 @@ specfilepath="$RPM_BUILD_ROOT$adir$specfilename"
 sed -i '/^%dir/ d' "$specfilepath"
 
 cd "$adir"
-log=$log"\n"$(rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath")
+rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath"
 mv "$RPM_BUILD_ROOT"*.rpm "$BUILT_RPMS_DIR"
-echo $log
+
 exit 0

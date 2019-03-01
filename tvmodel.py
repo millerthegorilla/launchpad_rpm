@@ -3,7 +3,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QStandardItemModel
 from packages import Packages
-from kfconf import TVITEM_ROLE, cfg
+import kfconf
 from tvitem import TVItem
 import multiprocessing.dummy
 import subprocess
@@ -44,7 +44,7 @@ class TVModel(QStandardItemModel):
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
-            if pkg.build_link in cfg['installed']:
+            if pkg.build_link in kfconf.cfg['installed']:
                 pkg.installed = Qt.Checked
             else:
                 pkg.installed = Qt.Unchecked
@@ -53,22 +53,24 @@ class TVModel(QStandardItemModel):
 
     @staticmethod
     def on_item_changed(item):
-        pkg = item.data(TVITEM_ROLE)
+        pkg = item.data(kfconf.TVITEM_ROLE)
         if item.isCheckable():
             if pkg.installed == Qt.Unchecked:
                 item.setCheckState(Qt.PartiallyChecked)
             if item.checkState() == Qt.Unchecked:
                 if pkg.installed == Qt.PartiallyChecked:
-                    cfg['tobeinstalled'][pkg.ppa].pop(pkg.id)
-                    cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
+                    kfconf.cfg['tobeinstalled'][pkg.ppa].pop(pkg.id)
+                    kfconf.cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
             if item.checkState() == Qt.PartiallyChecked:
                 if pkg.installed == Qt.Unchecked:
-                    cfg.add_item_to_section('tobeinstalled', pkg)
+                    kfconf.cfg.add_item_to_section('tobeinstalled', pkg)
                 if pkg.installed == Qt.Checked:
-                    cfg.add_item_to_section('tobeuninstalled', pkg)
+                    kfconf.cfg.add_item_to_section('tobeuninstalled', pkg)
             if item.checkState() == Qt.Checked:
                 item.setCheckState(Qt.Unchecked)
             pkg.installed = item.checkState()
+        kfconf.cfg.filename = kfconf.config_dir + kfconf.CONFIG_FILE
+        kfconf.cfg.write()
 
     def action_pkgs(self):
         # uninstall packages that need uninstalling first.
