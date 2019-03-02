@@ -1,0 +1,10 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/" xmlns:doc="http://www.freedesktop.org/dbus/1.0/doc.dtd">
+   <interface name="uk.co.jerlesey.kxfed.InstallPkgs">
+       <method name="install" >
+          <arg type='s' name='lp_team_web_address' direction='in'/>
+       </method>
+       <signal name="progress_adjusted">
+       </signal>
+   </interface>
+</node>

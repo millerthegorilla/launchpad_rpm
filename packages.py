@@ -48,6 +48,7 @@ from gi.repository import Polkit
 class Packages(QObject):
 
     progress_adjusted = pyqtSignal(int, int)
+    progress_label = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
     message = pyqtSignal(str, int)
 
@@ -124,7 +125,7 @@ class Packages(QObject):
         # get list of packages to be uninstalled from cfg, using pop to delete
         for ppa in cfg['tobeuninstalled']:
             for pkg in cfg['tobeuninstalled'][ppa]:
-                subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
+                #subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
                 # TODO if success!!
                 cfg['installed'][pkg.ppa].pop(pkg.id)
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
@@ -135,37 +136,40 @@ class Packages(QObject):
 
     def install_pkgs(self):
         # get list of packages to be installed from cfg, using pop to delete
+        self.progress_label.emit('Downloading Packages')
+        tasks = []
+        for ppa in cfg['tobeinstalled']:
+            for pkgid in cfg['tobeinstalled'][ppa]:
+                if ppa not in cfg['installing']:
+                    cfg['downloading'][ppa] = {}
+                pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
+                cfg['downloading'][ppa][pkgid] = pkg
+                debs_dir = cfg['debs_dir']
+                rpms_dir = cfg['rpms_dir']
+                result = self._thread_pool.apply_async(self._get_deb_links_and_download,
+                                              (ppa,
+                                               pkg,
+                                               debs_dir,
+                                               rpms_dir,))
+                tasks.append(result.get())
+        self._thread_pool.close()
+        self._thread_pool.join()
+        self.progress_adjusted.emit(0, 0)
+        self.progress_label.emit('Converting Packages')
+        deb_pkgs = ['pkexec', '/bin/bash', '/home/james/Src/kxfed/build_rpms.sh', rpms_dir, cfg['arch']]
+        for deb_list in tasks:
+            for filepath in deb_list:
+                deb_pkgs.append(filepath)
+
+        bob = subprocess.check_output(deb_pkgs)
+
+        print(bob)
+
+    def callback_when_done(self):
+
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         dbus.mainloop.glib.threads_init()
-        #
-        # for ppa in cfg['tobeinstalled']:
-        #     for pkgid in cfg['tobeinstalled'][ppa]:
-        #         if ppa not in cfg['installing']:
-        #             cfg['downloading'][ppa] = {}
-        #         pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
-        #         cfg['downloading'][ppa][pkgid] = pkg
-        #         debs_dir = cfg['debs_dir']
-        #         rpms_dir = cfg['rpms_dir']
-        #         self._thread_pool.apply_async(self._get_deb_links_and_download,
-        #                                       (ppa,
-        #                                        pkg,
-        #                                        debs_dir,
-        #                                        rpms_dir,))
         try:
-            # bus = dbus.SystemBus()
-            # proxy = bus.get_object('org.freedesktop.PolicyKit1', '/org/freedesktop/PolicyKit1/Authority')
-            # authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
-            #
-            # system_bus_name = bus.get_unique_name()
-            #
-            # subject = ('system-bus-name', {'name': system_bus_name})
-            # action_id = 'org.freedesktop.policykit.exec'
-            # details = {}
-            # flags = 1  # AllowUserInteraction flag
-            # cancellation_id = ''  # No cancellation id
-            #
-            # result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
-
             system_bus = dbus.SystemBus()
             proxy = system_bus.get_object("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority")
             authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
@@ -174,7 +178,7 @@ class Packages(QObject):
             subject = ('unix-process',
                        {'pid': dbus.UInt32(proc.get_pid()), 'start-time': dbus.UInt64(proc.get_start_time())})
             action_id = 'uk.co.jerlesey.kxfed.InstallPkgs'
-            details = {} #dbus.Dictionary({'year': 1964}, signature='sv')
+            details = {}
             flags = 1
             cancellation_id = ''
             result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
@@ -185,8 +189,6 @@ class Packages(QObject):
                 proxy_object.connect_to_signal("progress_adjusted",
                                          self.install_pkgs_signal_handler,
                                          dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs")
-                proxy_object.install(self.lp_team.web_link, dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs")
-
                 loop = GLib.MainLoop()
                 loop.run()
             else:
@@ -215,10 +217,11 @@ class Packages(QObject):
                                                                                  + pkg['name']
                                                                                  + '(.*?)(all|amd64\.deb)'))
             pkg['deb_link'] = links
+            deb_links = []
             for link in links:
                 # TODO try os path basename etc out of interest
                 fn = link['href'].rsplit('/', 1)[-1]
-                fp = debs_dir + splitext(fn)[0]
+                fp = debs_dir + fn
                 with open(fp, "wb+") as f:
                     response = requests.get(link['href'], stream=True)
                     total_length = response.headers.get('content-length')
@@ -231,18 +234,8 @@ class Packages(QObject):
                             f.write(data)
                             self.progress_adjusted.emit(len(data), total_length)
                             total_length = 0
-                # build_rpms.sh working_dir deb_filepath filename rpms_dir arch
-                result = self._mp_pool.apply_async(subprocess.check_output,
-                                                   (["/usr/bin/pkexec",
-                                                     '/home/james/Src/kxfed/build_rpms.sh',
-                                                     debs_dir,
-                                                     fp,
-                                                     fn,
-                                                     rpms_dir,
-                                                     'amd64'],))
-                logging.log(logging.DEBUG, result.get())
-                self.progress_adjusted.emit(0, 0)
-                self.message.emit('converted ' + fp + ' successfully', 200)
+                deb_links.append(fp)
+            return deb_links
         except (requests.HTTPError, subprocess.CalledProcessError) as e:
             if e is subprocess.CalledProcessError:
                 logging.log(logging.ERROR, e.output)

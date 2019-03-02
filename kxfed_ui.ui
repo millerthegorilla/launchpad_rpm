@@ -202,8 +202,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>500</y>
+      <x>13</x>
+      <y>503</y>
       <width>288</width>
       <height>25</height>
      </rect>
@@ -237,6 +237,19 @@
      <string>Reconnect</string>
     </property>
    </widget>
+   <widget class="QLabel" name="progress_label">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>533</y>
+      <width>287</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
    <zorder>pkgs_tableView</zorder>
    <zorder>team_label</zorder>
    <zorder>team_combo</zorder>
@@ -251,6 +264,7 @@
    <zorder>load_label</zorder>
    <zorder>progress_bar</zorder>
    <zorder>reconnectBtn</zorder>
+   <zorder>progress_label</zorder>
   </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="sizePolicy">

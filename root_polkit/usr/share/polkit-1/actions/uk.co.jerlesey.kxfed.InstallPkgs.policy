@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/software/polkit/policyconfig-1.dtd">
+<policyconfig>
+
+  <action id="uk.co.jerlesey.kxfed.InstallPkgs">
+    <message>Authentication is required to install packages using KXFed</message>
+    <icon_name>kxfed</icon_name>
+    <defaults>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/pxexec</annotate>
+    <annotate key="org.freedesktop.policykit.imply">uk.co.jerlesey.kxfed.BuildRpms</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">/home/james/Src/kxfed/install_pkgs.py</annotate>
+  </action>
+
+</policyconfig>

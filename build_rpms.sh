@@ -1,4 +1,4 @@
-#!/usr/bin/sudo bash
+#! /bin/bash
 #    This file is part of rpm_maker.
 
 #    rpm_maker is free software: you can redistribute it and/or modify
@@ -14,50 +14,42 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-# build_rpms.sh working_dir deb_filepath rpms_dir arch
-# rpms_dir can be working_dir/rpms
-RPM_ROOT=$1
-DEB_PATH=$2
-FILE_NAME=$3
-BUILT_RPMS_DIR=$4
-ARCH=$5
-RPM_BUILD_ROOT=$DEB_PATH/root/rpmbuild/BUILDROOT/
+
+RPMS_DIR=$1
+ARCH=$2
+
+RPM_BUILD_ROOT=/home/.local/share/kxfed/root/rpmbuild/BUILDROOT/
+MAX_NUM_OF_JOBS=10
 
 if [ ! -d "$RPM_BUILD_ROOT" ]; then
   mkdir -p "$RPM_BUILD_ROOT"
 fi
 
-if [ ! -d "$BUILT_RPMS_DIR" ]; then
-  mkdir -p "$BUILT_RPMS_DIR"
+if [ ! -d "$RPMS_DIR" ]; then
+  mkdir -p "$RPMS_DIR"
 fi
 
-cd "$RPM_BUILD_ROOT"
+. /home/james/Src/kxfed/job_pool.sh
 
-fakeroot $(alien -r -g -v "$DEB_PATH")
+number_of_debs=$(($#-2))
 
-aliendir=$(find . -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
-
-
-specfilename=$(find "$RPM_BUILD_ROOT$aliendir" -type f -name \*.spec)
-specfilename=$(basename "$specfilename")
-
-if [ "$ARCH"=='amd64' ]; then
-    adir=$(echo "$specfilename" | sed 's/spec/x86_64\//')
+if [ $MAX_NUM_OF_JOBS -lt $number_of_debs ]; then
+    number_of_jobs=$MAX_NUM_OF_JOBS
 else
-    adir=$(echo "$specfilename" | sed 's/spec/x386\//')
+    number_of_jobs=$number_of_debs
 fi
 
-# what is the below doing?
-mv "$RPM_BUILD_ROOT$aliendir" "$RPM_BUILD_ROOT$adir"
-mv "$RPM_BUILD_ROOT$adir/usr" "$RPM_BUILD_ROOT"
+job_pool_init $number_of_jobs 0
 
-specfilepath="$RPM_BUILD_ROOT$adir$specfilename"
+for (( i=3; i<=$#; i++ ))
+do
+    job_pool_run /home/james/Src/kxfed/build_rpm.sh $RPM_BUILD_ROOT $RPMS_DIR $ARCH ${!i}
+done
 
-# edit spec file to remove unnecessary prefixes
-sed -i '/^%dir/ d' "$specfilepath"
+job_pool_wait
 
-cd "$adir"
-rpmbuild --bb --rebuild --noclean --buildroot "$RPM_BUILD_ROOT" "$specfilepath"
-mv "$RPM_BUILD_ROOT"*.rpm "$BUILT_RPMS_DIR"
+job_pool_shutdown
 
+# check the $job_pool_nerrors for the number of jobs that exited non-zero
+#echo "job_pool_nerrors: ${job_pool_nerrors}"
 exit 0

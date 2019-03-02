@@ -5,6 +5,7 @@ from launchpadlib.errors import HTTPError
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
 from PyQt5.QtCore import pyqtSlot, QTimer
+import PyQt5.QtCore
 from kxfed_ui import Ui_MainWindow
 import kfconf
 from tvmodel import TVModel
@@ -67,8 +68,9 @@ class MainW (QMainWindow, Ui_MainWindow):
 
         # signals
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
-        self.pkg_model.message.connect(self.message_user)
-        self.pkg_model.packages.progress_adjusted.connect(self.progress_changed)
+        self.pkg_model.message.connect(self.message_user, type=PyQt5.QtCore.Qt.DirectConnection)
+        self.pkg_model.packages.progress_adjusted.connect(self.progress_changed, type=PyQt5.QtCore.Qt.DirectConnection)
+        self.pkg_model.packages.progress_label.connect(self.progress_label_change)
         self.pkg_model.packages.message.connect(self.message_user)
         self.pkg_model.packages.exception.connect(self._exception)
         # user signals
@@ -157,17 +159,21 @@ class MainW (QMainWindow, Ui_MainWindow):
                 self._download_total += m
             if v != 0:
                 self._download_current += v
-            self.statusbar.showMessage("Downloading Packages", 100)
+            self.statusbar.showMessage("Downloading Packages")
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(self._download_total)
             self.progress_bar.setValue(self._download_current)
 
     @pyqtSlot(str)
+    def progress_label_change(self, s):
+        self.progress_label.setText(s)
+
+    @pyqtSlot(str)
     def message_user(self, msg, timeout=0, exit=False):
         self.label.setText(msg)
-        if timeout:
-            self.label.startTimer(timeout)
-            self._exit = exit
+        # if timeout:
+        #     self.label.startTimer(timeout)
+        #     self._exit = exit
 
     def hide_message(self, ev):
         self.label.setText('')

@@ -2,11 +2,12 @@
 
 # Form implementation generated from reading ui file 'kxfed_ui.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -64,7 +65,7 @@ class Ui_MainWindow(object):
         self.load_label.setObjectName("load_label")
         self.progress_bar = QtWidgets.QProgressBar(self.centralwidget)
         self.progress_bar.setEnabled(True)
-        self.progress_bar.setGeometry(QtCore.QRect(10, 500, 288, 25))
+        self.progress_bar.setGeometry(QtCore.QRect(13, 503, 288, 25))
         self.progress_bar.setProperty("value", 24)
         self.progress_bar.setObjectName("progress_bar")
         self.reconnectBtn = QtWidgets.QPushButton(self.centralwidget)
@@ -72,6 +73,10 @@ class Ui_MainWindow(object):
         self.reconnectBtn.setMinimumSize(QtCore.QSize(88, 27))
         self.reconnectBtn.setMaximumSize(QtCore.QSize(88, 27))
         self.reconnectBtn.setObjectName("reconnectBtn")
+        self.progress_label = QtWidgets.QLabel(self.centralwidget)
+        self.progress_label.setGeometry(QtCore.QRect(12, 533, 287, 19))
+        self.progress_label.setText("")
+        self.progress_label.setObjectName("progress_label")
         self.pkgs_tableView.raise_()
         self.team_label.raise_()
         self.team_combo.raise_()
@@ -86,6 +91,7 @@ class Ui_MainWindow(object):
         self.load_label.raise_()
         self.progress_bar.raise_()
         self.reconnectBtn.raise_()
+        self.progress_label.raise_()
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
@@ -134,4 +140,5 @@ class Ui_MainWindow(object):
         self.btn_edit_config.setText(_translate("MainWindow", "Edit Configuration"))
         self.btn_quit.setText(_translate("MainWindow", "Exit"))
         self.btn_refresh_cache.setText(_translate("MainWindow", "Refresh Cache"))
+
 

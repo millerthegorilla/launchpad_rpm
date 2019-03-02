@@ -57,6 +57,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['debs_dir']                        = debs_dir
     cfg['log']                             = ''
     cfg['rpms_dir']                        = rpms_dir
+    cfg['arch']                    = 'amd64'
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
