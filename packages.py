@@ -26,15 +26,14 @@ import requests
 import subprocess
 import traceback
 import threading
-from os.path import splitext
 import os
 import sys
-import dbus
-import dbus.mainloop.glib
-import gi
-from gi.repository import GLib
-gi.require_version('Polkit', '1.0')
-from gi.repository import Polkit
+# import dbus
+# import dbus.mainloop.glib
+# import gi
+# from gi.repository import GLib
+# gi.require_version('Polkit', '1.0')
+# from gi.repository import Polkit
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -131,8 +130,8 @@ class Packages(QObject):
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
         cfg['tobeuninstalled'].clear()
 
-    def install_pkgs_signal_handler(self, cur_len, tot_len):
-        self.progress_adjusted.emit(cur_len, tot_len)
+    def install_pkgs_signal_handler(self, label):
+        self.progress_label.emit(label)
 
     def install_pkgs(self):
         # get list of packages to be installed from cfg, using pop to delete
@@ -145,67 +144,30 @@ class Packages(QObject):
                 pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
                 cfg['downloading'][ppa][pkgid] = pkg
                 debs_dir = cfg['debs_dir']
-                rpms_dir = cfg['rpms_dir']
                 result = self._thread_pool.apply_async(self._get_deb_links_and_download,
                                               (ppa,
                                                pkg,
-                                               debs_dir,
-                                               rpms_dir,))
+                                               debs_dir,))
                 tasks.append(result.get())
         self._thread_pool.close()
         self._thread_pool.join()
         self.progress_adjusted.emit(0, 0)
         self.progress_label.emit('Converting Packages')
-        deb_pkgs = ['pkexec', '/bin/bash', '/home/james/Src/kxfed/build_rpms.sh', rpms_dir, cfg['arch']]
+        deb_pkgs = ['pkexec', '/bin/bash', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']]
         for deb_list in tasks:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
 
-        bob = subprocess.check_output(deb_pkgs)
+        process = subprocess.Popen(deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        print(bob)
+        while True:
+            nextline = process.stdout.readline()
+            if nextline == b'' and process.poll() != None:
+                break
+            if 'Wrote' in nextline.decode('utf-8'):
+                self.progress_label.emit(nextline.decode('utf-8'))
 
-    def callback_when_done(self):
-
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        dbus.mainloop.glib.threads_init()
-        try:
-            system_bus = dbus.SystemBus()
-            proxy = system_bus.get_object("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority")
-            authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
-            system_bus_name = system_bus.get_unique_name()
-            proc = Polkit.UnixProcess.new(os.getpid())
-            subject = ('unix-process',
-                       {'pid': dbus.UInt32(proc.get_pid()), 'start-time': dbus.UInt64(proc.get_start_time())})
-            action_id = 'uk.co.jerlesey.kxfed.InstallPkgs'
-            details = {}
-            flags = 1
-            cancellation_id = ''
-            result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
-
-            if result[0] == True:
-                session_bus = dbus.SessionBus()
-                proxy_object = session_bus.get_object("uk.co.jerlesey.kxfed.InstallPkgs", "/InstallPkgs")
-                proxy_object.connect_to_signal("progress_adjusted",
-                                         self.install_pkgs_signal_handler,
-                                         dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs")
-                loop = GLib.MainLoop()
-                loop.run()
-            else:
-                pass
-        except dbus.DBusException:
-            traceback.print_exc()
-            sys.exit(1)
-
-            # lets make a catchall
-
-        session_bus.add_signal_receiver(self.install_pkgs_signal_handler, dbus_interface="uk.co.jerlesey.kxfed.InstallPkgs",
-                                signal_name="progress_adjusted")
-
-        # # self.progress_adjusted.emit(0, 0)
-        # pass
-
-    def _get_deb_links_and_download(self, ppa, pkg, debs_dir, rpms_dir):
+    def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
         # threaded function called from install_packages
         try:
             html = requests.get(self._lp_team.web_link

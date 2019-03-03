@@ -18,12 +18,8 @@
 RPMS_DIR=$1
 ARCH=$2
 
-RPM_BUILD_ROOT=/home/.local/share/kxfed/root/rpmbuild/BUILDROOT/
+RPM_BUILD_ROOT=/home/james/.local/share/kxfed/rpmbuild/BUILDROOT/
 MAX_NUM_OF_JOBS=10
-
-if [ ! -d "$RPM_BUILD_ROOT" ]; then
-  mkdir -p "$RPM_BUILD_ROOT"
-fi
 
 if [ ! -d "$RPMS_DIR" ]; then
   mkdir -p "$RPMS_DIR"
@@ -39,10 +35,15 @@ else
     number_of_jobs=$number_of_debs
 fi
 
+echo number_of_jobs is $number_of_jobs
+echo number_of_debs is $number_of_debs
+
 job_pool_init $number_of_jobs 0
 
 for (( i=3; i<=$#; i++ ))
 do
+    echo i is $i
+    echo thingy is $#
     job_pool_run /home/james/Src/kxfed/build_rpm.sh $RPM_BUILD_ROOT $RPMS_DIR $ARCH ${!i}
 done
 
@@ -50,6 +51,7 @@ job_pool_wait
 
 job_pool_shutdown
 
+rm -rf /home/james/.local/share/kxfed/rpmbuild
 # check the $job_pool_nerrors for the number of jobs that exited non-zero
 #echo "job_pool_nerrors: ${job_pool_nerrors}"
 exit 0

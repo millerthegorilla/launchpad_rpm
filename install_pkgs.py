@@ -1,27 +1,10 @@
 #!/usr/bin/python3
-import logging
-import re
-from bs4 import BeautifulSoup
-from multiprocessing.dummy import Pool as thread_pool
-from multiprocessing import Pool as mp_pool
-from kfconf import cfg
-import requests
-import subprocess
-import traceback
-import threading
-from os.path import splitext
-from configobj import ConfigObj
-from pathlib import Path
+
 import sys
 import dbus
 import dbus.service
 import dbus.mainloop.glib
-import gi
 from gi.repository import GLib
-import os
-
-CONFIG_DIR = '.config/kxfed/'
-CONFIG_FILE = 'kxfed.cfg'
 
 
 class PkgException(dbus.DBusException):
@@ -34,15 +17,9 @@ class InstallPkgs(dbus.service.Object):
             super().__init__(bus_name, "/InstallPkgs")
         except dbus.DBusException:
             raise PkgException("Exception in install pkgs")
-        self._thread_pool = thread_pool(10)
-        self._mp_pool = mp_pool(10)
-        self._result = None
-        self._lock = threading.Lock()
-        config_dir = str(Path.home()) + '/' + CONFIG_DIR
-        self.cfg = ConfigObj(config_dir + CONFIG_FILE)
 
-    @dbus.service.signal("uk.co.jerlesey.kxfed.InstallPkgs", signature='xx')
-    def progress_adjusted(self, cur_len, total_len):
+    @dbus.service.signal("uk.co.jerlesey.kxfed.InstallPkgs", signature='s')
+    def progress_label(self, converted):
         # The signal is emitted when this method exits
         # You can have code here if you wish
         pass
