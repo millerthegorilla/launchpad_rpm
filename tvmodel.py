@@ -6,7 +6,7 @@ from packages import Packages
 import kfconf
 from tvitem import TVItem
 import multiprocessing.dummy
-import subprocess
+from PyQt5.QtCore import pyqtSlot
 
 # TODO separate pkg downloading, converting and installing functions into
 # TODO Packages class.  TVModel has reference to packages and Packages class
@@ -18,7 +18,6 @@ import subprocess
 
 class TVModel(QStandardItemModel):
 
-    list_filled = pyqtSignal()
     message = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
 
@@ -28,6 +27,7 @@ class TVModel(QStandardItemModel):
         # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
         self.itemChanged.connect(TVModel.on_item_changed)
+        self.packages.pkg_list_complete.connect(self.pkg_list_complete)
         self._pool = multiprocessing.dummy.Pool(10)
 
     @property
@@ -35,21 +35,21 @@ class TVModel(QStandardItemModel):
         return self._packages
 
     def populate_pkg_list(self, ppa):
-        self.list_filled.emit()
         self.removeRows(0, self.rowCount())
-        self._pool.apply_async(self._packages.populate_pkgs,
-                               (ppa,),
-                               callback=self.pkg_list_complete)
+        # self._pool.apply_async(self._packages.populate_pkgs,
+        #                        (ppa,),
+        #                        callback=self.pkg_list_complete)
+        self._packages.populate_pkgs(ppa)
 
-    def pkg_list_complete(self, pkgs):
-        for pkg in pkgs:
+    @pyqtSlot()
+    def pkg_list_complete(self):
+        for pkg in self._packages.pkgs:
             pkg = TVItem(pkg)
             if pkg.build_link in kfconf.cfg['installed']:
                 pkg.installed = Qt.Checked
             else:
                 pkg.installed = Qt.Unchecked
             self.appendRow(pkg.row)
-        self.list_filled.emit()
 
     @staticmethod
     def on_item_changed(item):

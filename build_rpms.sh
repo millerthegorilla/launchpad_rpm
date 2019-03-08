@@ -35,15 +35,10 @@ else
     number_of_jobs=$number_of_debs
 fi
 
-echo number_of_jobs is $number_of_jobs
-echo number_of_debs is $number_of_debs
-
 job_pool_init $number_of_jobs 0
 
 for (( i=3; i<=$#; i++ ))
 do
-    echo i is $i
-    echo thingy is $#
     job_pool_run /home/james/Src/kxfed/build_rpm.sh $RPM_BUILD_ROOT $RPMS_DIR $ARCH ${!i}
 done
 

@@ -27,13 +27,8 @@ import subprocess
 import traceback
 import threading
 import os
-import sys
-# import dbus
-# import dbus.mainloop.glib
-# import gi
-# from gi.repository import GLib
-# gi.require_version('Polkit', '1.0')
-# from gi.repository import Polkit
+import fastcache
+from fastcache import clru_cache
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -50,13 +45,15 @@ class Packages(QObject):
     progress_label = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
     message = pyqtSignal(str, int)
+    pkg_list_complete = pyqtSignal()
 
     def __init__(self, team, arch):
         super().__init__()
         self._lp_team = team
         self._launchpad = None
         self._lp_arch = arch
-        self._lp_ppa = ""
+        self._lp_ppa = None
+        self._ppa = ''
         self._pkgs = []
         self.debs = []
         self._thread_pool = thread_pool(10)
@@ -74,22 +71,27 @@ class Packages(QObject):
 
     @property
     def ppa(self):
-        pass
+        return self._ppa
 
     @ppa.setter
     def ppa(self, ppa):
-        self._lp_ppa = ppa
+        self._ppa = ppa
 
     @property
     def pkgs(self):
         return self._pkgs
 
+    def populate_pkgs(self, ppa):
+        self.pkgs = self.populate_pkg_list(ppa)
+        #self._thread_pool.apply_async(self.populate_pkg_list, ppa)
+
     @cache.cache_on_arguments()
-    def populate_pkgs(self, lp_ppa):
+    def populate_pkg_list(self, ppa):
+        # ppa has to be passed in, for cache to work
         try:
             pkgs = []
             ubuntu = self._launchpad.distributions["ubuntu"]
-            ppa = self._lp_team.getPPAByName(distribution=ubuntu, name=lp_ppa)
+            self._lp_ppa = self._lp_team.getPPAByName(distribution=ubuntu, name=self._ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
             ds2 = ubuntu.getSeries(name_or_version="lucid")
@@ -108,7 +110,7 @@ class Packages(QObject):
                 if len(b):
                     for i in b:
                         pkg = [i.build_link,
-                               lp_ppa,
+                               self._lp_ppa,
                                i.binary_package_name,
                                i.binary_package_version]
                         if pkg not in pkgs:
@@ -134,38 +136,76 @@ class Packages(QObject):
         self.progress_label.emit(label)
 
     def install_pkgs(self):
+        if cfg['download'] == 'True':
+            deb_links = self.download_packages()
+        if cfg['convert'] == 'True':
+            self.convert_packages(deb_links)
+        # If cfg['install'] == 'True':
+        #     self.install_packages
+
+    def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
         self.progress_label.emit('Downloading Packages')
-        tasks = []
+        self.progress_adjusted.emit(0, 0)
+        deb_links = []
+        cfg['downloading'] = {}
+
         for ppa in cfg['tobeinstalled']:
             for pkgid in cfg['tobeinstalled'][ppa]:
-                if ppa not in cfg['installing']:
-                    cfg['downloading'][ppa] = {}
-                pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
-                cfg['downloading'][ppa][pkgid] = pkg
-                debs_dir = cfg['debs_dir']
-                result = self._thread_pool.apply_async(self._get_deb_links_and_download,
-                                              (ppa,
-                                               pkg,
-                                               debs_dir,))
-                tasks.append(result.get())
+                if ppa not in cfg['installing'] and ppa not in cfg['installed']:
+                    pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
+                    if ppa not in cfg['downloading']:
+                        cfg['downloading'][ppa] = {}
+                    cfg['downloading'][ppa][pkgid] = pkg
+                    cfg.write()
+                    debs_dir = cfg['debs_dir']
+                    result = self._thread_pool.apply_async(self._get_deb_links_and_download,
+                                                           (ppa,
+                                                            pkg,
+                                                            debs_dir,))
+                    deb_links.append(result.get())
         self._thread_pool.close()
         self._thread_pool.join()
-        self.progress_adjusted.emit(0, 0)
-        self.progress_label.emit('Converting Packages')
+
+        return deb_links
+
+    def convert_packages(self, deb_links):
+
         deb_pkgs = ['pkexec', '/bin/bash', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']]
-        for deb_list in tasks:
+        for deb_list in deb_links:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
 
+        for ppa in cfg['downloading']:
+            for pkgid in cfg['downloading'][ppa]:
+                tag = cfg['downloading'][ppa][pkgid]['deb_link'][0]
+                for deb in deb_pkgs:
+                    if os.path.basename(deb) == str(tag.contents[0]):
+                        pkg = cfg['downloading'][ppa].pop(pkgid)
+                        if ppa not in cfg['converting']:
+                            cfg['converting'][ppa] = {}
+                        cfg['converting'][ppa][pkgid] = pkg
+                        cfg.write()
+
         process = subprocess.Popen(deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        self.progress_adjusted.emit(0, 0)
+        self.progress_adjusted.emit(0, 100)
+
+        self.progress_label.emit('Converting packages')
+        i = 0
         while True:
-            nextline = process.stdout.readline()
-            if nextline == b'' and process.poll() != None:
+            nextline = process.stdout.readline().decode('utf-8')
+            if nextline == '' and process.poll() != None:
                 break
-            if 'Wrote' in nextline.decode('utf-8'):
-                self.progress_label.emit(nextline.decode('utf-8'))
+            if 'Converted' in nextline:
+                self.progress_label.emit(nextline)
+            self.progress_adjusted.emit(i % 100, 100)
+            i = i + 3
+
+        self.progress_adjusted.emit(0, 0)
+        self.progress_label.emit('Finished Converting Packages')
+
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
         # threaded function called from install_packages
