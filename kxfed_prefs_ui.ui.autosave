@@ -55,10 +55,10 @@
     </rect>
    </property>
    <property name="toolTip">
-    <string extracomment="The directories that store the deb and rpm files are located here, as well as the temporary conversion files"/>
+    <string/>
    </property>
    <property name="toolTipDuration">
-    <number>3</number>
+    <number>-1</number>
    </property>
    <property name="statusTip">
     <string/>

@@ -5,3 +5,5 @@ dogpile
 pyqt5
 
 dnf rpm-devel
+dnf install redhat-rpm-config (for hardened gcc)
+dnf install python3-devel  for fastcache
