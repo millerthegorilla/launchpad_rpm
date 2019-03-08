@@ -4,7 +4,7 @@ import httplib2
 from launchpadlib.errors import HTTPError
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
-from PyQt5.QtCore import pyqtSlot, QTimer
+from PyQt5.QtCore import pyqtSlot
 import PyQt5.QtCore
 from kxfed_ui import Ui_MainWindow
 import kfconf
@@ -24,7 +24,7 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         # instance variables
-        self.__ppas_json = ""
+        self._ppas_json = {}
         self.team = "KXStudio-Debian"
 
         # config variables
@@ -39,7 +39,7 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
 
         # progress label
-        self.load_label.setVisible(True)
+        self.load_label.setVisible(False)
         self.__movie = QMovie("./assets/loader.gif")
         self.__movie.start()
         self.load_label.setMovie(self.__movie)
@@ -67,12 +67,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.btn_edit_config.triggered.connect(self.show_prefs)
 
         # signals
-        self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
         self.pkg_model.message.connect(self.message_user, type=PyQt5.QtCore.Qt.DirectConnection)
         self.pkg_model.packages.progress_adjusted.connect(self.progress_changed, type=PyQt5.QtCore.Qt.DirectConnection)
         self.pkg_model.packages.progress_label.connect(self.progress_label_change)
         self.pkg_model.packages.message.connect(self.message_user)
         self.pkg_model.packages.exception.connect(self._exception)
+
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs)
@@ -108,7 +108,6 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.pkg_model.packages.connect()
             self.reconnectBtn.setVisible(False)
             self.populate_ppa_combo()
-            self.pkg_model.list_filled.emit()
             self.message_user('Connected to Launchpad')
         except (httplib2.ServerNotFoundError, HTTPError) as e:
             self.reconnectBtn.setVisible(True)
@@ -117,12 +116,15 @@ class MainW (QMainWindow, Ui_MainWindow):
     def populate_ppa_combo(self):
         try:
             ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
-            self.__ppas_json = requests.get(ppas_link).json()
+            self.toggle_pkg_list_loading(True)
+            self._ppas_json = requests.get(ppas_link).json()
         except requests.HTTPError as e:
+            self.toggle_pkg_list_loading(False)
             logging.log("error", e.strerror)
             self.message_user(e.strerror, 500)
-        for ppa in self.__ppas_json['entries']:
+        for ppa in self._ppas_json['entries']:
             self.ppa_combo.addItem(ppa['displayname'], ppa['name'])
+        self.toggle_pkg_list_loading(False)
 
     def install_pkgs(self):
         try:
@@ -139,14 +141,14 @@ class MainW (QMainWindow, Ui_MainWindow):
             logging.log(logging.ERROR, str(e))
             self.message_user(traceback.format_exc(), 500)
 
-    @pyqtSlot()
-    def toggle_pkg_list_loading(self):
-        self.load_label.setVisible(not self.load_label.isVisible())
-        if self.load_label.isVisible():
+    def toggle_pkg_list_loading(self, visible):
+        if visible is True:
+            self.load_label.setVisible(True)
             self.__movie.start()
         else:
             self.__movie.stop()
-            self.pkgs_tableView.resizeColumnsToContents()
+            self.load_label.setVisible(False)
+        self.pkgs_tableView.resizeColumnsToContents()
 
     @pyqtSlot(int, int)
     def progress_changed(self, v, m):
@@ -159,7 +161,6 @@ class MainW (QMainWindow, Ui_MainWindow):
                 self._download_total += m
             if v != 0:
                 self._download_current += v
-            self.statusbar.showMessage("Downloading Packages")
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(self._download_total)
             self.progress_bar.setValue(self._download_current)

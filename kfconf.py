@@ -32,7 +32,11 @@ def mkpath(path):
 
 
 paths = [config_dir, tmp_dir, debs_dir, rpms_dir]
-map(mkpath, paths)
+for path in paths:
+    mkpath(path)
+
+if not os.path.exists(config_dir + CACHE_FILE):
+    Path(config_dir + CACHE_FILE).touch(mode=0o775)
 
 if not os.path.exists(config_dir + CONFIG_FILE):
     cfg = ConfigObj()
@@ -46,25 +50,28 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['cache']['expiration_time']        = "604800"
     cfg['cache']['arguments']              = {}
     cfg['cache']['arguments']['filename']  = config_dir + CACHE_FILE
-    cfg['installed']                       = {}
     cfg['tobeinstalled']                   = {}
     cfg['tobeuninstalled']                 = {}
     cfg['downloading']                     = {}
     cfg['converting']                      = {}
     cfg['installing']                      = {}
+    cfg['installed']                       = {}
     cfg['tmp_dir']                         = tmp_dir
     cfg['debs']                            = {}
     cfg['debs_dir']                        = debs_dir
     cfg['log']                             = ''
     cfg['rpms_dir']                        = rpms_dir
-    cfg['arch']                    = 'amd64'
+    cfg['arch']                            = 'amd64'
+    cfg['download']                        = 'True'
+    cfg['convert']                         = 'True'
+    cfg['install']                         = 'True'
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
 cache = make_region().configure(
     backend=cfg['cache']['backend'],
     expiration_time=int(cfg['cache']['expiration_time']),
-    arguments={ 'filename' : cfg['cache']['arguments']['filename'] })
+    arguments={'filename': cfg['cache']['arguments']['filename']})
 
 
 def delete_ppa_if_empty(section, ppa):
