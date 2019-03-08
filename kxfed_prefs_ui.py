@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'kxfed_prefs_ui.ui'
 #
-# Created by: PyQt5 UI code generator 5.11.3
+# Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -21,31 +21,34 @@ class Ui_prefs_dialog(object):
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.label = QtWidgets.QLabel(prefs_dialog)
-        self.label.setGeometry(QtCore.QRect(50, 130, 67, 19))
+        self.label.setGeometry(QtCore.QRect(50, 130, 151, 19))
         self.label.setObjectName("label")
         self.directory_label = QLabelChanged(prefs_dialog)
         self.directory_label.setGeometry(QtCore.QRect(50, 160, 311, 19))
+        self.directory_label.setToolTip("The directories that store the deb and rpm files are located here, as well as the temporary conversion files")
+        self.directory_label.setStatusTip("")
+        self.directory_label.setWhatsThis("")
         self.directory_label.setAutoFillBackground(True)
         self.directory_label.setFrameShape(QtWidgets.QFrame.Box)
         self.directory_label.setObjectName("directory_label")
-        self.widget = QtWidgets.QWidget(prefs_dialog)
-        self.widget.setGeometry(QtCore.QRect(50, 20, 225, 89))
-        self.widget.setObjectName("widget")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.widget)
+        self.layoutWidget = QtWidgets.QWidget(prefs_dialog)
+        self.layoutWidget.setGeometry(QtCore.QRect(50, 20, 225, 89))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
-        self.checkBox = QtWidgets.QCheckBox(self.widget)
-        self.checkBox.setChecked(True)
-        self.checkBox.setObjectName("checkBox")
-        self.verticalLayout.addWidget(self.checkBox)
-        self.checkBox_2 = QtWidgets.QCheckBox(self.widget)
-        self.checkBox_2.setChecked(True)
-        self.checkBox_2.setObjectName("checkBox_2")
-        self.verticalLayout.addWidget(self.checkBox_2)
-        self.checkBox_3 = QtWidgets.QCheckBox(self.widget)
-        self.checkBox_3.setChecked(True)
-        self.checkBox_3.setObjectName("checkBox_3")
-        self.verticalLayout.addWidget(self.checkBox_3)
+        self.download_chkbox = QtWidgets.QCheckBox(self.layoutWidget)
+        self.download_chkbox.setChecked(True)
+        self.download_chkbox.setObjectName("download_chkbox")
+        self.verticalLayout.addWidget(self.download_chkbox)
+        self.convert_chkbox = QtWidgets.QCheckBox(self.layoutWidget)
+        self.convert_chkbox.setChecked(True)
+        self.convert_chkbox.setObjectName("convert_chkbox")
+        self.verticalLayout.addWidget(self.convert_chkbox)
+        self.install_chkbox = QtWidgets.QCheckBox(self.layoutWidget)
+        self.install_chkbox.setChecked(True)
+        self.install_chkbox.setObjectName("install_chkbox")
+        self.verticalLayout.addWidget(self.install_chkbox)
 
         self.retranslateUi(prefs_dialog)
         self.buttonBox.accepted.connect(prefs_dialog.accept)
@@ -55,8 +58,10 @@ class Ui_prefs_dialog(object):
     def retranslateUi(self, prefs_dialog):
         _translate = QtCore.QCoreApplication.translate
         prefs_dialog.setWindowTitle(_translate("prefs_dialog", "KXFed Preferences"))
-        self.label.setText(_translate("prefs_dialog", "Directory"))
+        self.label.setText(_translate("prefs_dialog", "Working Directory"))
         self.directory_label.setText(_translate("prefs_dialog", "TextLabel"))
-        self.checkBox.setText(_translate("prefs_dialog", "Download Checked Packages"))
-        self.checkBox_2.setText(_translate("prefs_dialog", "Convert Checked Packages"))
-        self.checkBox_3.setText(_translate("prefs_dialog", "Install Checked Packages"))
+        self.download_chkbox.setText(_translate("prefs_dialog", "Download Checked Packages"))
+        self.convert_chkbox.setText(_translate("prefs_dialog", "Convert Checked Packages"))
+        self.install_chkbox.setText(_translate("prefs_dialog", "Install Checked Packages"))
+
+
