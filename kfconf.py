@@ -35,8 +35,8 @@ paths = [config_dir, tmp_dir, debs_dir, rpms_dir]
 for path in paths:
     mkpath(path)
 
-if not os.path.exists(config_dir + CACHE_FILE):
-    Path(config_dir + CACHE_FILE).touch(mode=0o775)
+#if not os.path.exists(config_dir + CACHE_FILE):
+#    Path(config_dir + CACHE_FILE).touch()
 
 if not os.path.exists(config_dir + CONFIG_FILE):
     cfg = ConfigObj()
@@ -68,11 +68,6 @@ if not os.path.exists(config_dir + CONFIG_FILE):
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
-cache = make_region().configure(
-    backend=cfg['cache']['backend'],
-    expiration_time=int(cfg['cache']['expiration_time']),
-    arguments={'filename': cfg['cache']['arguments']['filename']})
-
 
 def delete_ppa_if_empty(section, ppa):
     if not cfg[section][ppa]:
@@ -94,6 +89,11 @@ def config_search(section, key, search_key, sect):
     if section[key] == search_key or search_key in section[key]:
         sect.append(section)
 
+
+cache = make_region().configure(
+            backend=cfg['cache']['backend'],
+            expiration_time=int(cfg['cache']['expiration_time']),
+            arguments={'filename': cfg['cache']['arguments']['filename']})
 
 cfg._lock = RLock()
 cfg.search = config_search
