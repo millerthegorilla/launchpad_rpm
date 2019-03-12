@@ -27,8 +27,6 @@ import subprocess
 import traceback
 import threading
 import os
-import fastcache
-from fastcache import clru_cache
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -45,7 +43,7 @@ class Packages(QObject):
     progress_label = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
     message = pyqtSignal(str, int)
-    pkg_list_complete = pyqtSignal()
+    pkg_list_complete = pyqtSignal(list)
 
     def __init__(self, team, arch):
         super().__init__()
@@ -82,8 +80,7 @@ class Packages(QObject):
         return self._pkgs
 
     def populate_pkgs(self, ppa):
-        self.pkgs = self.populate_pkg_list(ppa)
-        #self._thread_pool.apply_async(self.populate_pkg_list, ppa)
+        self._thread_pool.apply_async(self.populate_pkg_list, (ppa,), callback=self.pkg_list_complete.emit)
 
     @cache.cache_on_arguments()
     def populate_pkg_list(self, ppa):
@@ -91,7 +88,7 @@ class Packages(QObject):
         try:
             pkgs = []
             ubuntu = self._launchpad.distributions["ubuntu"]
-            self._lp_ppa = self._lp_team.getPPAByName(distribution=ubuntu, name=self._ppa)
+            lp_ppa = self._lp_team.getPPAByName(distribution=ubuntu, name=ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
             ds2 = ubuntu.getSeries(name_or_version="lucid")
@@ -104,13 +101,13 @@ class Packages(QObject):
                 d_a_s.append(i.getDistroArchSeries(archtag=self._lp_arch))
             p_b_h = []
             for i in d_a_s:
-                p_b_h.append(ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published",
-                                                      distro_arch_series=i))
+                p_b_h.append(lp_ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published",
+                                                         distro_arch_series=i))
             for b in p_b_h:
                 if len(b):
                     for i in b:
                         pkg = [i.build_link,
-                               self._lp_ppa,
+                               ppa,
                                i.binary_package_name,
                                i.binary_package_version]
                         if pkg not in pkgs:
@@ -118,10 +115,12 @@ class Packages(QObject):
                             # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
                             #                        pkg)
             # do I need to cache _pkgs in instance variable - why not use a local?
+            # returns pkgs for sake of cache.
             return pkgs
         except HTTPError as http_error:
             logging.log(logging.ERROR, str(http_error))
 
+    @staticmethod
     def uninstall_pkgs(self):
         # get list of packages to be uninstalled from cfg, using pop to delete
         for ppa in cfg['tobeuninstalled']:
@@ -171,7 +170,7 @@ class Packages(QObject):
 
     def convert_packages(self, deb_links):
 
-        deb_pkgs = ['pkexec', '/bin/bash', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']]
+        deb_pkgs = ['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']]
         for deb_list in deb_links:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
@@ -205,7 +204,6 @@ class Packages(QObject):
 
         self.progress_adjusted.emit(0, 0)
         self.progress_label.emit('Finished Converting Packages')
-
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
         # threaded function called from install_packages

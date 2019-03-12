@@ -18,6 +18,7 @@ from PyQt5.QtCore import pyqtSlot
 
 class TVModel(QStandardItemModel):
 
+    list_filled = pyqtSignal()
     message = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
 
@@ -35,21 +36,21 @@ class TVModel(QStandardItemModel):
         return self._packages
 
     def populate_pkg_list(self, ppa):
+        self.list_filled.emit()
         self.removeRows(0, self.rowCount())
-        # self._pool.apply_async(self._packages.populate_pkgs,
-        #                        (ppa,),
-        #                        callback=self.pkg_list_complete)
         self._packages.populate_pkgs(ppa)
+        #self._pool.apply_async(self._packages.populate_pkg_list, (ppa,), callback=self.pkg_list_complete)
 
-    @pyqtSlot()
-    def pkg_list_complete(self):
-        for pkg in self._packages.pkgs:
+    @pyqtSlot(list)
+    def pkg_list_complete(self, pkgs):
+        for pkg in pkgs:
             pkg = TVItem(pkg)
             if pkg.build_link in kfconf.cfg['installed']:
                 pkg.installed = Qt.Checked
             else:
                 pkg.installed = Qt.Unchecked
             self.appendRow(pkg.row)
+        self.list_filled.emit()
 
     @staticmethod
     def on_item_changed(item):
