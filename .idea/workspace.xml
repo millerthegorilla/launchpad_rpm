@@ -2,13 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fc77272c-c997-40c2-825c-eebf32f2d6d9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bob.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/build_rpm.sh" beforeDir="false" afterPath="$PROJECT_DIR$/build_rpm.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build_rpms.sh" beforeDir="false" afterPath="$PROJECT_DIR$/build_rpms.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dependencies" beforeDir="false" afterPath="$PROJECT_DIR$/dependencies" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/job_pool.sh" beforeDir="false" afterPath="$PROJECT_DIR$/job_pool.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kfconf.py" beforeDir="false" afterPath="$PROJECT_DIR$/kfconf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kxfed.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/conf/rpm_maker.conf" afterDir="false" />
@@ -19,7 +17,6 @@
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tvmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/tvmodel.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/uninstall_pkg" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -35,8 +32,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tvmodel.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-353">
-              <caret line="45" selection-start-line="45" selection-end-line="45" />
+            <state relative-caret-position="1496">
+              <caret line="74" selection-start-line="74" selection-end-line="74" />
               <folding>
                 <element signature="e#23#62#0" expanded="true" />
               </folding>
@@ -47,8 +44,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dependencies">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="264">
-              <caret line="12" lean-forward="true" selection-start-line="12" selection-end-line="12" />
+            <state relative-caret-position="242">
+              <caret line="11" column="9" selection-start-line="11" selection-start-column="9" selection-end-line="11" selection-end-column="9" />
             </state>
           </provider>
         </entry>
@@ -56,8 +53,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfed.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="464">
-              <caret line="97" column="14" lean-forward="true" selection-start-line="97" selection-start-column="14" selection-end-line="97" selection-end-column="14" />
+            <state relative-caret-position="310">
+              <caret line="168" column="38" lean-forward="true" selection-start-line="168" selection-start-column="38" selection-end-line="168" selection-end-column="38" />
               <folding>
                 <element signature="e#19#59#0" expanded="true" />
               </folding>
@@ -68,8 +65,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/packages.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="80">
-              <caret line="188" selection-start-line="188" selection-end-line="188" />
+            <state relative-caret-position="202">
+              <caret line="227" column="68" lean-forward="true" selection-start-line="227" selection-start-column="68" selection-end-line="227" selection-end-column="68" />
               <folding>
                 <element signature="e#729#773#0" expanded="true" />
               </folding>
@@ -80,8 +77,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/build_rpms.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="77">
-              <caret line="18" column="7" lean-forward="true" selection-start-line="18" selection-start-column="7" selection-end-line="18" selection-end-column="7" />
+            <state relative-caret-position="8">
+              <caret line="18" column="7" selection-start-line="18" selection-start-column="7" selection-end-line="18" selection-end-column="7" />
             </state>
           </provider>
         </entry>
@@ -89,8 +86,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/job_pool.sh">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1430">
-              <caret line="46" lean-forward="true" selection-start-line="46" selection-end-line="46" />
+            <state relative-caret-position="583">
+              <caret line="46" selection-start-line="46" selection-end-line="46" />
             </state>
           </provider>
         </entry>
@@ -178,11 +175,11 @@
         <option value="$PROJECT_DIR$/kxfed_prefs_ui.py" />
         <option value="$PROJECT_DIR$/kxfed_prefs.py" />
         <option value="$PROJECT_DIR$/kfconf.py" />
-        <option value="$PROJECT_DIR$/tvmodel.py" />
-        <option value="$PROJECT_DIR$/packages.py" />
         <option value="$PROJECT_DIR$/build_rpms.sh" />
-        <option value="$PROJECT_DIR$/kxfed.py" />
         <option value="$PROJECT_DIR$/dependencies" />
+        <option value="$PROJECT_DIR$/tvmodel.py" />
+        <option value="$PROJECT_DIR$/kxfed.py" />
+        <option value="$PROJECT_DIR$/packages.py" />
       </list>
     </option>
   </component>
@@ -215,6 +212,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -231,7 +229,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="PackagesPane" />
     </panes>
   </component>
@@ -356,11 +353,11 @@
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.84818137" weight="0.34497815" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
-      <window_info active="true" anchor="bottom" id="Debug" order="5" sideWeight="0.6104375" visible="true" weight="0.2849345" />
+      <window_info anchor="bottom" id="Debug" order="5" sideWeight="0.6104375" weight="0.2849345" />
       <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49868214" weight="0.33078602" />
       <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.38956246" side_tool="true" weight="0.4257642" />
-      <window_info anchor="bottom" id="Terminal" order="8" sideWeight="0.41222984" weight="0.4213974" />
-      <window_info anchor="bottom" id="Python Console" order="9" sideWeight="0.46968898" weight="0.3941048" />
+      <window_info anchor="bottom" id="Terminal" order="8" sideWeight="0.41222984" weight="0.42248908" />
+      <window_info anchor="bottom" id="Python Console" order="9" sideWeight="0.46968898" weight="0.3930131" />
       <window_info anchor="bottom" id="Version Control" order="10" sideWeight="0.49973643" weight="0.3286026" />
       <window_info anchor="bottom" id="Docker" order="11" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" order="12" />
@@ -415,12 +412,39 @@
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="p_b_h" language="Python" />
+        <watch expression="os.path.basename(deb)" language="Python" />
+        <watch expression="cfg['downloading'][ppa][pkgid]['deb_link'][0]" language="Python" />
+        <watch expression="tag.contents[0]" language="Python" />
       </configuration>
     </watches-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
+      <expression>
+        <expression-string>cfg['downloading'][ppa][pkgid]['deb_link'][0]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>tag = cfg['downloading'][ppa][pkgid]['deb_link'][0]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>tag.contents[0]</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>os.path.basename(deb)</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>str(tag.contents[0])</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
       <expression>
         <expression-string>p_b_h</expression-string>
         <language-id>Python</language-id>
@@ -438,36 +462,6 @@
       </expression>
       <expression>
         <expression-string>cfg['cache']['arguments']['filename']</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self._packages.populate_pkgs</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self._ppas_json</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self.</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self.__ppas_json['entries']</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>self.ppa_combo</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>not self.load_label.isVisible()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
@@ -521,13 +515,7 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/lazr/restfulclient/resource.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="16082">
-          <caret line="731" selection-start-line="731" selection-end-line="731" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/lazr/restfulclient/resource.py" />
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/region.py" />
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/cache/backends/file.py" />
     <entry file="file:///usr/lib64/python3.7/dbm/__init__.py">
@@ -555,20 +543,8 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/configobj.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="817">
-          <caret line="888" selection-start-line="888" selection-end-line="888" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/httplib2/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="817">
-          <caret line="1193" selection-start-line="1193" selection-end-line="1193" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/configobj.py" />
+    <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/httplib2/__init__.py" />
     <entry file="file://$USER_HOME$/.PyCharmCE2018.2/system/python_stubs/-921856370/PyQt5/QtWidgets/QWidget.py" />
     <entry file="file://$USER_HOME$/.PyCharmCE2018.2/system/python_stubs/-921856370/PyQt5/QtGui/QFontMetrics.py" />
     <entry file="file://$PROJECT_DIR$/kxfed_prefs_dialog.py" />
@@ -610,9 +586,7 @@
         <state relative-caret-position="-264" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bob.txt">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
+    <entry file="file://$PROJECT_DIR$/bob.txt" />
     <entry file="file://$PROJECT_DIR$/helpers.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="183">
@@ -713,18 +687,32 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tvmodel.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-353">
-          <caret line="45" selection-start-line="45" selection-end-line="45" />
+        <state relative-caret-position="1496">
+          <caret line="74" selection-start-line="74" selection-end-line="74" />
           <folding>
             <element signature="e#23#62#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/dependencies">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="242">
+          <caret line="11" column="9" selection-start-line="11" selection-start-column="9" selection-end-line="11" selection-end-column="9" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/build_rpms.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="8">
+          <caret line="18" column="7" selection-start-line="18" selection-start-column="7" selection-end-line="18" selection-end-column="7" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/kxfed.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="464">
-          <caret line="97" column="14" lean-forward="true" selection-start-line="97" selection-start-column="14" selection-end-line="97" selection-end-column="14" />
+        <state relative-caret-position="310">
+          <caret line="168" column="38" lean-forward="true" selection-start-line="168" selection-start-column="38" selection-end-line="168" selection-end-column="38" />
           <folding>
             <element signature="e#19#59#0" expanded="true" />
           </folding>
@@ -733,34 +721,35 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/job_pool.sh">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1430">
-          <caret line="46" lean-forward="true" selection-start-line="46" selection-end-line="46" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/build_rpms.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="77">
-          <caret line="18" column="7" lean-forward="true" selection-start-line="18" selection-start-column="7" selection-end-line="18" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/dependencies">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="264">
-          <caret line="12" lean-forward="true" selection-start-line="12" selection-end-line="12" />
+        <state relative-caret-position="583">
+          <caret line="46" selection-start-line="46" selection-end-line="46" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/packages.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="80">
-          <caret line="188" selection-start-line="188" selection-end-line="188" />
+        <state relative-caret-position="202">
+          <caret line="227" column="68" lean-forward="true" selection-start-line="227" selection-start-column="68" selection-end-line="227" selection-end-column="68" />
           <folding>
             <element signature="e#729#773#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ScopeChooserConfigurable.UI">
+        <settings>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+        </settings>
+      </state>
+    </states>
   </component>
 </project>

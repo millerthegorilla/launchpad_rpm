@@ -27,6 +27,16 @@ import subprocess
 import traceback
 import threading
 import os
+import distro
+try:
+  import rpm
+except ImportError as exc:
+    if "exists" in str(exc):
+        # is fedora/centos.
+        pass
+    else:
+        # is not fedora
+        raise
 
 
 # TODO send exception data from stderror of rpm script and raise exception
@@ -134,11 +144,20 @@ class Packages(QObject):
     def install_pkgs_signal_handler(self, label):
         self.progress_label.emit(label)
 
-    def install_pkgs(self):
+    def install_pkgs_button(self):
         if cfg['download'] == 'True':
             deb_links = self.download_packages()
-        if cfg['convert'] == 'True':
+        if cfg['convert'] == 'True' and 'Fedora' in distro.linux_distribution():
             self.convert_packages(deb_links)
+        if cfg['install'] == 'True':
+            try:
+                ts = rpm.TransactionSet()
+                if ts.dbMatch('name', 'python3-rpm').count() == 1:
+                    pass
+            except Exception as e:
+                #ducktype to ubuntu or similar.
+                pass
+
         # If cfg['install'] == 'True':
         #     self.install_packages
 
@@ -170,40 +189,45 @@ class Packages(QObject):
 
     def convert_packages(self, deb_links):
 
-        deb_pkgs = ['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']]
+        deb_pkgs = []
         for deb_list in deb_links:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
 
-        for ppa in cfg['downloading']:
-            for pkgid in cfg['downloading'][ppa]:
-                tag = cfg['downloading'][ppa][pkgid]['deb_link'][0]
-                for deb in deb_pkgs:
+        for deb in deb_pkgs:
+            for ppa in cfg['downloading']:
+                for pkgid in cfg['downloading'][ppa]:
+                    tag = cfg['downloading'][ppa][pkgid]['deb_link'][0]
                     if os.path.basename(deb) == str(tag.contents[0]):
                         pkg = cfg['downloading'][ppa].pop(pkgid)
                         if ppa not in cfg['converting']:
                             cfg['converting'][ppa] = {}
                         cfg['converting'][ppa][pkgid] = pkg
-                        cfg.write()
 
-        process = subprocess.Popen(deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cfg.write()
 
-        self.progress_adjusted.emit(0, 0)
-        self.progress_adjusted.emit(0, 100)
+        process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
+                                   deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        #self.progress_adjusted.emit(0, 0)
 
         self.progress_label.emit('Converting packages')
-        i = 0
+        conv = False
         while True:
             nextline = process.stdout.readline().decode('utf-8')
             if nextline == '' and process.poll() != None:
                 break
             if 'Converted' in nextline:
                 self.progress_label.emit(nextline)
-            self.progress_adjusted.emit(i % 100, 100)
-            i = i + 3
+                conv = True
+            self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
 
-        self.progress_adjusted.emit(0, 0)
-        self.progress_label.emit('Finished Converting Packages')
+        # self.progress_adjusted.emit(0, 0)
+        # self.progress_adjusted.emit(0, 100)
+        if conv is True:
+            self.progress_label.emit('Finished Converting Packages')
+        else:
+            raise Exception("There is an error with the bash script when converting.")
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
         # threaded function called from install_packages

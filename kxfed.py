@@ -10,14 +10,10 @@ from kxfed_ui import Ui_MainWindow
 import kfconf
 from tvmodel import TVModel
 from kxfed_prefs import KxfedPrefsDialog
-import shutil
-from pathlib import Path
 
 
 # TODO add installed packages to config
-# TODO add menu bar to ui and set config opts, expire cache etc.
-# TODO list model line 44, use self.__result, instead of callback
-# TODO to populate listview, using event property of result...
+# TODO after installing them, using rpm from bookmarked website rpm library
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -67,7 +63,7 @@ class MainW (QMainWindow, Ui_MainWindow):
 
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
-        self.install_btn.clicked.connect(self.install_pkgs)
+        self.install_btn.clicked.connect(self.install_pkgs_button)
 
         # connect
         self.connect()
@@ -131,9 +127,9 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.ppa_combo.addItem(ppa['displayname'], ppa['name'])
         #self.toggle_pkg_list_loading()
 
-    def install_pkgs(self):
+    def install_pkgs_button(self):
         try:
-            self.pkg_model.action_pkgs()
+            self.pkg_model.packages.install_pkgs_button()
             # TODO do not show the above message again option
         except Exception as e:
             logging.log(logging.CRITICAL, str(e) + "\n" + traceback.format_exc())

@@ -73,11 +73,4 @@ class TVModel(QStandardItemModel):
         kfconf.cfg.filename = kfconf.config_dir + kfconf.CONFIG_FILE
         kfconf.cfg.write()
 
-    def action_pkgs(self):
-        # uninstall packages that need uninstalling first.
-        # self._packages.uninstall_pkgs()
-        # install packages that need installing
-
-        self._packages.install_pkgs()
-        # TODO status bar progress report
 
