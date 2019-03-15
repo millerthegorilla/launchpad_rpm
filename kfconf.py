@@ -85,9 +85,9 @@ def add_item_to_section(section, pkg):
         cfg[section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
 
 
-def config_search(section, key, search_key, sect):
-    if section[key] == search_key or search_key in section[key]:
-        sect.append(section)
+def config_search(section, key, search_value=None):
+    if search_value == str(section[key]):
+        cfg['found'] = section
 
 
 cache = make_region().configure(
@@ -96,7 +96,6 @@ cache = make_region().configure(
             arguments={'filename': cfg['cache']['arguments']['filename']})
 
 cfg._lock = RLock()
-cfg.search = config_search
 cfg.delete_ppa_if_empty = delete_ppa_if_empty
 cfg.add_item_to_section = add_item_to_section
 

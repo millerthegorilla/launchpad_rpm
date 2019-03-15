@@ -1,4 +1,4 @@
-import logging
+import logging, threading
 
 class FuncThread(threading.Thread):
     def __init__(self, target, *args):
