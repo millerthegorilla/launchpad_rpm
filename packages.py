@@ -21,7 +21,7 @@ import re
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as thread_pool
 from multiprocessing import Pool as mp_pool
-from kfconf import cfg, cache
+from kfconf import cfg, cache, config_search
 import requests
 import subprocess
 import traceback
@@ -153,13 +153,9 @@ class Packages(QObject):
             try:
                 ts = rpm.TransactionSet()
                 if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                    pass
+                    self._install_rpms()
             except Exception as e:
-                #ducktype to ubuntu or similar.
-                pass
-
-        # If cfg['install'] == 'True':
-        #     self.install_packages
+                self._install_debs()
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
@@ -203,6 +199,7 @@ class Packages(QObject):
                         if ppa not in cfg['converting']:
                             cfg['converting'][ppa] = {}
                         cfg['converting'][ppa][pkgid] = pkg
+        cfg['downloading'] = {}
 
         cfg.write()
 
@@ -214,18 +211,33 @@ class Packages(QObject):
         self.progress_label.emit('Converting packages')
         conv = False
         while True:
+            conv = False
             nextline = process.stdout.readline().decode('utf-8')
-            if nextline == '' and process.poll() != None:
-                break
             if 'Converted' in nextline:
                 self.progress_label.emit(nextline)
-                conv = True
+                cfg['converting'].walk(config_search, search_value=nextline[len('Converted '):nextline.index('_')])
+                if cfg['found']:
+                    if not cfg['installing']:
+                        cfg['installing'] = {}
+                    if cfg['found'].parent.name not in cfg['installing']:
+                        cfg['installing'][cfg['found'].parent.name] = {}
+                    cfg['installing'][cfg['found'].parent.name][cfg['found'].name] = \
+                        cfg['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
+                    cfg['found'] = {}
+                    conv = True
+            if nextline == '' and process.poll() != None:
+                break
             self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
 
         # self.progress_adjusted.emit(0, 0)
         # self.progress_adjusted.emit(0, 100)
         if conv is True:
             self.progress_label.emit('Finished Converting Packages')
+            for ppa in cfg['converting']:
+                if ppa:
+                    for pkg in ppa:
+                        self.progress_label.emit('Error - did not convert ' + str(pkg.name))
+            cfg['converting'] = {}
         else:
             raise Exception("There is an error with the bash script when converting.")
 
@@ -268,5 +280,5 @@ class Packages(QObject):
                 logging.log(logging.ERROR, traceback.format_exc())
                 self.exception.emit(e)
 
-    def _install_rpms(self, pkg):
-        subprocess.run(['pkexec', './install_pkg', pkg.rpm_file], stdout=subprocess.PIPE)
+    def _install_rpms(self):
+        pass

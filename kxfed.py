@@ -117,15 +117,12 @@ class MainW (QMainWindow, Ui_MainWindow):
     def populate_ppa_combo(self):
         try:
             ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
-            #self.toggle_pkg_list_loading(True)
             self._ppas_json = requests.get(ppas_link).json()
         except requests.HTTPError as e:
-            #self.toggle_pkg_list_loading(False)
             logging.log("error", e.strerror)
             self.message_user(e.strerror)
         for ppa in self._ppas_json['entries']:
             self.ppa_combo.addItem(ppa['displayname'], ppa['name'])
-        #self.toggle_pkg_list_loading()
 
     def install_pkgs_button(self):
         try:
@@ -172,7 +169,7 @@ class MainW (QMainWindow, Ui_MainWindow):
                 self._download_total += m
             if v != 0:
                 self._download_current += v
-            self.statusbar.showMessage("Downloading Packages", 100)
+            self.statusbar.showMessage("Downloading Packages")
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(self._download_total)
             self.progress_bar.setValue(self._download_current)
@@ -204,6 +201,7 @@ class MainW (QMainWindow, Ui_MainWindow):
 
     def show_prefs(self):
         self.kxfed_prefs_dialog.show()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
