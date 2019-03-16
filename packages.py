@@ -145,16 +145,20 @@ class Packages(QObject):
         self.progress_label.emit(label)
 
     def install_pkgs_button(self):
+        try:
+            ts = rpm.TransactionSet()
+            if ts.dbMatch('name', 'python3-rpm').count() == 1:
+                distro = 'rpm'
+        except Exception as e:
+                distro = 'deb'
         if cfg['download'] == 'True':
             deb_links = self.download_packages()
-        if cfg['convert'] == 'True' and 'Fedora' in distro.linux_distribution():
+        if cfg['convert'] == 'True' and distro == 'rpm':
             self.convert_packages(deb_links)
         if cfg['install'] == 'True':
-            try:
-                ts = rpm.TransactionSet()
-                if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                    self._install_rpms()
-            except Exception as e:
+            if distro == 'rpm':
+                self._install_rpms()
+            else:
                 self._install_debs()
 
     def download_packages(self):
@@ -206,12 +210,9 @@ class Packages(QObject):
         process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
                                    deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        #self.progress_adjusted.emit(0, 0)
-
         self.progress_label.emit('Converting packages')
         conv = False
         while True:
-            conv = False
             nextline = process.stdout.readline().decode('utf-8')
             if 'Converted' in nextline:
                 self.progress_label.emit(nextline)
@@ -225,17 +226,19 @@ class Packages(QObject):
                         cfg['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
                     cfg['found'] = {}
                     conv = True
+                else:
+                    conv = False
             if nextline == '' and process.poll() != None:
                 break
             self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
 
-        # self.progress_adjusted.emit(0, 0)
-        # self.progress_adjusted.emit(0, 100)
         if conv is True:
+            cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
+            cfg.write()
             self.progress_label.emit('Finished Converting Packages')
             for ppa in cfg['converting']:
-                if ppa:
-                    for pkg in ppa:
+                if cfg['converting'][ppa]:
+                    for pkg in cfg['converting'][ppa]:
                         self.progress_label.emit('Error - did not convert ' + str(pkg.name))
             cfg['converting'] = {}
         else:
@@ -281,4 +284,5 @@ class Packages(QObject):
                 self.exception.emit(e)
 
     def _install_rpms(self):
+
         pass
