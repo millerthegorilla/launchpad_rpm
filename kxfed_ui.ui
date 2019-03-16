@@ -289,14 +289,15 @@
      <x>0</x>
      <y>0</y>
      <width>459</width>
-     <height>24</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuPreferences">
     <property name="title">
-     <string>Preferences...</string>
+     <string>&amp;Preferences...</string>
     </property>
     <addaction name="btn_refresh_cache"/>
+    <addaction name="btn_show_messages"/>
     <addaction name="btn_edit_config"/>
     <addaction name="separator"/>
     <addaction name="btn_quit"/>
@@ -305,7 +306,7 @@
   </widget>
   <action name="btn_edit_config">
    <property name="text">
-    <string>Edit Configuration</string>
+    <string>&amp;Edit Configuration</string>
    </property>
   </action>
   <action name="btn_quit">
@@ -315,7 +316,12 @@
   </action>
   <action name="btn_refresh_cache">
    <property name="text">
-    <string>Refresh Cache</string>
+    <string>&amp;Refresh Cache</string>
+   </property>
+  </action>
+  <action name="btn_show_messages">
+   <property name="text">
+    <string>&amp;Messages</string>
    </property>
   </action>
  </widget>
