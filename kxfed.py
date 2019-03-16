@@ -10,6 +10,7 @@ from kxfed_ui import Ui_MainWindow
 import kfconf
 from tvmodel import TVModel
 from kxfed_prefs import KxfedPrefsDialog
+from kxfedmsgsdialog import KxfedMsgsDialog
 
 
 # TODO add installed packages to config
@@ -52,6 +53,10 @@ class MainW (QMainWindow, Ui_MainWindow):
         # preferences dialog
         self.kxfed_prefs_dialog = KxfedPrefsDialog()
         self.btn_edit_config.triggered.connect(self.show_prefs)
+
+        # messages
+        self.kxfed_msgs_dialog = KxfedMsgsDialog()
+        self.btn_show_messages.triggered.connect(self.show_msgs)
 
         # signals
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
@@ -177,6 +182,7 @@ class MainW (QMainWindow, Ui_MainWindow):
     @pyqtSlot(str)
     def progress_label_change(self, s):
         self.progress_label.setText(s)
+        self.kxfed_msgs_dialog.ui.plainTextEdit.appendPlainText(s)
 
     @pyqtSlot(str)
     def message_user(self, msg):   # , timeout=0, exit=False):
@@ -195,12 +201,15 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.message_user(str(ex))
         raise type(ex)(traceback.format_exc())
 
-    @staticmethod
     def refresh_cache(self):
         kfconf.cache.invalidate(hard=True)
+        self.populate_pkgs()
 
     def show_prefs(self):
         self.kxfed_prefs_dialog.show()
+
+    def show_msgs(self):
+        self.kxfed_msgs_dialog.show()
 
 
 if __name__ == '__main__':
