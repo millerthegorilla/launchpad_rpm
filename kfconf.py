@@ -7,23 +7,23 @@ from PyQt5.QtCore import Qt
 from threading import RLock
 
 # constants
-CONFIG_DIR = '.config/kxfed/'
-CONFIG_FILE = 'kxfed.cfg'
+CONFIG_DIR = ".config/kxfed/"
+CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
 TVITEM_ROLE = Qt.UserRole + 1
 
 __this__ = sys.modules[__name__]
 
-config_dir = str(Path.home()) + '/' + CONFIG_DIR
-tmp_dir = str(Path.home()) + '/.local/share/kxfed/'
-debs_dir = tmp_dir + 'debs/'
-rpms_dir = tmp_dir + 'rpms/'
+config_dir = str(Path.home()) + "/" + CONFIG_DIR
+tmp_dir = str(Path.home()) + "/.local/share/kxfed/"
+debs_dir = tmp_dir + "debs/"
+rpms_dir = tmp_dir + "rpms/"
 
 
 def change_tmp_dir(tmpdir):
     cfg[tmp_dir] = tmpdir
-    cfg[debs_dir] = tmpdir + 'debs/'
-    cfg[rpms_dir] = tmpdir + 'rpms/'
+    cfg[debs_dir] = tmpdir + "debs/"
+    cfg[rpms_dir] = tmpdir + "rpms/"
 
 
 def mkpath(path):
@@ -34,9 +34,6 @@ def mkpath(path):
 paths = [config_dir, tmp_dir, debs_dir, rpms_dir]
 for path in paths:
     mkpath(path)
-
-#if not os.path.exists(config_dir + CACHE_FILE):
-#    Path(config_dir + CACHE_FILE).touch()
 
 if not os.path.exists(config_dir + CONFIG_FILE):
     cfg = ConfigObj()
@@ -59,12 +56,13 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['tmp_dir']                         = tmp_dir
     cfg['debs']                            = {}
     cfg['debs_dir']                        = debs_dir
-    cfg['log']                             = ''
+    cfg['log_name']                        = "kxfed.log"
     cfg['rpms_dir']                        = rpms_dir
-    cfg['arch']                            = 'amd64'
-    cfg['download']                        = 'True'
-    cfg['convert']                         = 'True'
-    cfg['install']                         = 'True'
+    cfg['arch']                            = "amd64"
+    cfg['download']                        = "True"
+    cfg['convert']                         = "True"
+    cfg['install']                         = "True"
+    cfg['log_file_path']                   = tmp_dir + cfg["log_name"]
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
