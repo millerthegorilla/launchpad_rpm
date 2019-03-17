@@ -16,7 +16,6 @@
 from PyQt5.QtCore import pyqtSignal, QObject
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
-import logging
 import re
 from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as thread_pool
@@ -24,34 +23,21 @@ from multiprocessing import Pool as mp_pool
 from kfconf import cfg, cache, config_search
 import requests
 import subprocess
-import traceback
 import threading
 import os
-import distro
 try:
-  import rpm
-except ImportError as exc:
-    if "exists" in str(exc):
-        # is fedora/centos.
-        pass
-    else:
-        # is not fedora
-        raise
+    import rpm
+except ImportError as e:
+    try:
+        import apt
+    except ImportError as ee:
+        raise Exception(e.args + " : " + ee.args)
 
 
-# TODO send exception data from stderror of rpm script and raise exception
-# TODO and add pkg to cfg from exception_message in kxfed.py
-# TODO and find out why the script is not working
-# TODO and find out how to get the working directory in the correct place
-# TODO and clean up the packages etc afterwards
-# TODO and install, adding package details to list of installed packages.
-# TODO then uninstall and preferences.
-# TODO ** REMEMBER ** to selinux installed packages.
 class Packages(QObject):
 
     progress_adjusted = pyqtSignal(int, int)
-    progress_label = pyqtSignal(str)
-    exception = pyqtSignal('PyQt_PyObject')
+    log = pyqtSignal('PyQt_PyObject')
     message = pyqtSignal(str, int)
     pkg_list_complete = pyqtSignal(list)
 
@@ -128,7 +114,7 @@ class Packages(QObject):
             # returns pkgs for sake of cache.
             return pkgs
         except HTTPError as http_error:
-            logging.log(logging.ERROR, str(http_error))
+            self.log.emit(http_error)
 
     @staticmethod
     def uninstall_pkgs(self):
@@ -148,22 +134,22 @@ class Packages(QObject):
         try:
             ts = rpm.TransactionSet()
             if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                distro = 'rpm'
+                cfg['distro_type'] = 'rpm'
         except Exception as e:
-                distro = 'deb'
+                cfg['distro_type'] = 'deb'
         if cfg['download'] == 'True':
             deb_links = self.download_packages()
-        if cfg['convert'] == 'True' and distro == 'rpm':
+        if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
             self.convert_packages(deb_links)
         if cfg['install'] == 'True':
-            if distro == 'rpm':
+            if cfg['distro_type'] == 'rpm':
                 self._install_rpms()
             else:
                 self._install_debs()
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
-        self.progress_label.emit('Downloading Packages')
+        self.log.emit('Downloading Packages')
         self.progress_adjusted.emit(0, 0)
         deb_links = []
         cfg['downloading'] = {}
@@ -206,16 +192,19 @@ class Packages(QObject):
         cfg['downloading'] = {}
 
         cfg.write()
+        try:
+            process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
+                                       deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            self.log.emit(e)
 
-        process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
-                                   deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        self.progress_label.emit('Converting packages')
+        self.log.emit('Converting packages')
+        self.log.emit('Converting packages : ' + str(deb_pkgs))
         conv = False
         while True:
             nextline = process.stdout.readline().decode('utf-8')
             if 'Converted' in nextline:
-                self.progress_label.emit(nextline)
+                self.log.emit(nextline)
                 cfg['converting'].walk(config_search, search_value=nextline[len('Converted '):nextline.index('_')])
                 if cfg['found']:
                     if not cfg['installing']:
@@ -235,14 +224,14 @@ class Packages(QObject):
         if conv is True:
             cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
             cfg.write()
-            self.progress_label.emit('Finished Converting Packages')
+            self.log.emit('Finished Converting Packages')
             for ppa in cfg['converting']:
                 if cfg['converting'][ppa]:
                     for pkg in cfg['converting'][ppa]:
-                        self.progress_label.emit('Error - did not convert ' + str(pkg.name))
+                        self.log.emit('Error - did not convert ' + str(pkg.name))
             cfg['converting'] = {}
         else:
-            raise Exception("There is an error with the bash script when converting.")
+            self.log.emit(Exception("There is an error with the bash script when converting."))
 
     def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
         # threaded function called from install_packages
@@ -274,14 +263,10 @@ class Packages(QObject):
                             self.progress_adjusted.emit(len(data), total_length)
                             total_length = 0
                 deb_links.append(fp)
+                self.log.emit("Downloaded " + str(fp))
             return deb_links
         except (requests.HTTPError, subprocess.CalledProcessError) as e:
-            if e is subprocess.CalledProcessError:
-                logging.log(logging.ERROR, e.output)
-                self.exception.emit(e.stderror)
-            else:
-                logging.log(logging.ERROR, traceback.format_exc())
-                self.exception.emit(e)
+            self.log.emit(e)
 
     def _install_rpms(self):
 

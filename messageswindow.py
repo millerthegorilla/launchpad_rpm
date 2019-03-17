@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QPlainTextEdit
 
 
+
 class MessagesWindow(QPlainTextEdit):
     def __init__(self, parent=None):
         QPlainTextEdit.__init__(self, parent)
