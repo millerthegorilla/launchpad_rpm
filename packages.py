@@ -43,10 +43,11 @@ class Packages(QObject):
 
     def __init__(self, team, arch):
         super().__init__()
-        self._lp_team = team
+        self.team = team
         self._launchpad = None
-        self._lp_arch = arch
+        self.arch = arch
         self._lp_ppa = None
+        self._lp_team = None
         self._ppa = ''
         self._pkgs = []
         self.debs = []
@@ -57,7 +58,7 @@ class Packages(QObject):
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
-        self._lp_team = self._launchpad.people[self._lp_team]
+        self._lp_team = self._launchpad.people[self.team]
 
     @property
     def lp_team(self):
@@ -75,12 +76,11 @@ class Packages(QObject):
     def pkgs(self):
         return self._pkgs
 
-    def populate_pkgs(self, ppa):
-        self._thread_pool.apply_async(self.populate_pkg_list, (ppa,), callback=self.pkg_list_complete.emit)
+    def populate_pkgs(self, ppa, arch):
+        self._thread_pool.apply_async(self.populate_pkg_list, (ppa, arch,), callback=self.pkg_list_complete.emit)
 
     @cache.cache_on_arguments()
-    def populate_pkg_list(self, ppa):
-        # ppa has to be passed in, for cache to work
+    def populate_pkg_list(self, ppa, arch):
         try:
             pkgs = []
             ubuntu = self._launchpad.distributions["ubuntu"]
@@ -94,7 +94,7 @@ class Packages(QObject):
             d_s = [ds1, ds2, ds3, ds4]
             d_a_s = []
             for i in d_s:
-                d_a_s.append(i.getDistroArchSeries(archtag=self._lp_arch))
+                d_a_s.append(i.getDistroArchSeries(archtag=arch))
             p_b_h = []
             for i in d_a_s:
                 p_b_h.append(lp_ppa.getPublishedBinaries(order_by_date=True, pocket="Release", status="Published",
@@ -198,13 +198,12 @@ class Packages(QObject):
         except Exception as e:
             self.log.emit(e)
 
-        self.log.emit('Converting packages')
         self.log.emit('Converting packages : ' + str(deb_pkgs))
         conv = False
         while True:
             nextline = process.stdout.readline().decode('utf-8')
+            self.log.emit(nextline)
             if 'Converted' in nextline:
-                self.log.emit(nextline)
                 cfg['converting'].walk(config_search, search_value=nextline[len('Converted '):nextline.index('_')])
                 if cfg['found']:
                     if not cfg['installing']:
