@@ -84,7 +84,11 @@ def add_item_to_section(section, pkg):
 
 
 def config_search(section, key, search_value=None):
-    if search_value == str(section[key]):
+    if '***' in search_value:
+        search_values = search_value.split('***')
+        if search_values[1] == str(section[key]) and search_values[0] in section.dict().values():
+            cfg['found'] = section
+    elif search_value == str(section[key]):
         cfg['found'] = section
 
 

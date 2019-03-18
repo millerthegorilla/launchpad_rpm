@@ -35,30 +35,37 @@ class TVModel(QStandardItemModel):
     def packages(self):
         return self._packages
 
-    def populate_pkg_list(self, ppa):
+    def populate_pkg_list(self, ppa, arch):
         self.list_filled.emit()
         self.removeRows(0, self.rowCount())
-        self._packages.populate_pkgs(ppa)
+        self._packages.populate_pkgs(ppa.lower(), arch.lower())
 
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
             kfconf.cfg['found'] = {}
-            kfconf.cfg['installed'].walk(kfconf.config_search, search_value=pkg.build_link)
+            kfconf.cfg['installed'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
             if kfconf.cfg['found']:
                 pkg.installed = Qt.Checked
-                self.appendRow(pkg.row)
+                self.appendRow(pkg._row)
+                kfconf.cfg['found'] = {}
                 continue
-            kfconf.cfg['tobeinstalled'].walk(kfconf.config_search, search_value=pkg.build_link)
-            kfconf.cfg['downloading'].walk(kfconf.config_search, search_value=pkg.build_link)
-            kfconf.cfg['converting'].walk(kfconf.config_search, search_value=pkg.build_link)
+            kfconf.cfg['tobeinstalled'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
+            if not kfconf.cfg['found']:
+                kfconf.cfg['downloading'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
+            if not kfconf.cfg['found']:
+                kfconf.cfg['converting'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
+            if not kfconf.cfg['found']:
+                kfconf.cfg['installing'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
             if kfconf.cfg['found']:
                 pkg.installed = Qt.PartiallyChecked
                 self.appendRow(pkg.row)
+                kfconf.cfg['found'] = {}
                 continue
-            pkg.installed = Qt.Unchecked
-            self.appendRow(pkg.row)
+            else:
+                pkg.installed = Qt.Unchecked
+                self.appendRow(pkg._row)
         self.list_filled.emit()
 
     @staticmethod
@@ -66,7 +73,7 @@ class TVModel(QStandardItemModel):
         # item is tristate
         # unchecked = not installed
         # partially checked = in the process of being installed
-        #                     ie downloaded/converted but not installed
+        #                     ie downloaded/converted/installing but not installed
         # checked = installed
         pkg = item.data(kfconf.TVITEM_ROLE)
         if item.isCheckable():
