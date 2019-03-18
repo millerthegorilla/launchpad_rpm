@@ -11,7 +11,6 @@ import kfconf
 from tvmodel import TVModel
 from kxfed_prefs import KxfedPrefsDialog
 from kxfedmsgsdialog import KxfedMsgsDialog
-import inspect
 import traceback
 
 
@@ -29,7 +28,7 @@ class MainW (QMainWindow, Ui_MainWindow):
         # config variables
         self.team_combo.addItem(self.team)
         self.arch_combo.addItem("amd64")
-        self.arch_combo.addItem("x86")
+        self.arch_combo.addItem("i386")
         self.pkg_model = TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
                                  self.team_combo.currentText().lower(),
                                  self.arch_combo.currentText().lower())
@@ -71,7 +70,12 @@ class MainW (QMainWindow, Ui_MainWindow):
 
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
+        self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs_button)
+
+        self.progress_bar.setVisible(False)
+        self._download_total = 0
+        self._download_current = 0
 
         # connect
         self.connect()
@@ -99,20 +103,6 @@ class MainW (QMainWindow, Ui_MainWindow):
                 self.log(e)
             event.accept()
 
-    def showEvent(self, ev):
-        # progress label
-        self.load_label.setMovie(self._movie)
-        self._movie.start()
-        # self.pkgs_tableView.stackUnder(self.load_label)
-        self.load_label.setAlignment(Qt.AlignCenter)
-        self.load_label.setVisible(True)
-
-        # progress bar
-        self.progress_bar.setVisible(False)
-        self._download_total = 0
-        self._download_current = 0
-        return QWidget.showEvent(self, ev)
-
     def connect(self):
         try:
             self.pkg_model.packages.connect()
@@ -137,13 +127,13 @@ class MainW (QMainWindow, Ui_MainWindow):
     def install_pkgs_button(self):
         try:
             self.pkg_model.packages.install_pkgs_button()
-            # TODO do not show the above message again option
         except Exception as e:
             self.log(e)
 
     def populate_pkgs(self):
         try:
-            self.pkg_model.populate_pkg_list(self.ppa_combo.itemData(self.ppa_combo.currentIndex()))
+            self.pkg_model.populate_pkg_list(self.ppa_combo.itemData(self.ppa_combo.currentIndex()),
+                                             self.arch_combo.currentText())
         except Exception as e:
             self.log(e)
 
@@ -191,24 +181,23 @@ class MainW (QMainWindow, Ui_MainWindow):
 
     @pyqtSlot('PyQt_PyObject')
     def log(self, e):
-        if type(e) is Exception:
+        if issubclass(type(e), Exception):
             tr = traceback.TracebackException.from_exception(e)
-            log_record = {}
-            logging.makeLogRecord(log_record)
+            log_record = logging.makeLogRecord({})
             log_record.name = tr.exc_type
             log_record.level = logging.ERROR
-            log_record.pathname = tr.filename
-            log_record.lineno = tr.lineno
-            log_record.msg = tr.msg
+            log_record.pathname = tr.stack[0].filename
+            log_record.lineno = tr.stack[0].lineno
+            log_record.msg = str(e)
             log_record.args = tr.stack.format()
             log_record.exc_info = tr.exc_type
-            log_record.func = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
+            log_record.func = tr.stack[len(tr.stack) - 1]
             log_record.sinfo = tr.exc_traceback
             self.kxfed_msgs_dialog.log(log_record=log_record)
             self.message_user("Error.  See messages.")
         else:
-            self.kxfed_msgs_dialog.log(msg=e)
-            self.message_user(e + " See messages")
+            self.kxfed_msgs_dialog.log(msg=str(e))
+            self.message_user(str(e) + " See messages")
 
 
 if __name__ == '__main__':

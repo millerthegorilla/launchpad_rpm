@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fc77272c-c997-40c2-825c-eebf32f2d6d9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kfconf.py" beforeDir="false" afterPath="$PROJECT_DIR$/kfconf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kxfed.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed_ui.ui" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.ui" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kxfedmsgsdialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfedmsgsdialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/messageswindow.py" beforeDir="false" afterPath="$PROJECT_DIR$/messageswindow.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/packages.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages.py" afterDir="false" />
@@ -17,6 +17,8 @@
       <change beforePath="$PROJECT_DIR$/rpm_maker/scripts/lynxdump.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rpm_maker/scripts/lynxdump.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" beforeDir="false" afterPath="$PROJECT_DIR$/rt-kernel-build-latest/get-kernel.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tvitem.py" beforeDir="false" afterPath="$PROJECT_DIR$/tvitem.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tvmodel.py" beforeDir="false" afterPath="$PROJECT_DIR$/tvmodel.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -32,17 +34,20 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfed.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="190">
-              <caret line="11" column="40" selection-start-line="11" selection-start-column="37" selection-end-line="11" selection-end-column="40" />
+            <state relative-caret-position="1305">
+              <caret line="179" column="37" lean-forward="true" selection-start-line="179" selection-start-column="37" selection-end-line="179" selection-end-column="37" />
+              <folding>
+                <element signature="e#19#59#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfedmsgsdialog.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="418">
-              <caret line="19" column="39" selection-start-line="14" selection-start-column="8" selection-end-line="19" selection-end-column="39" />
+            <state relative-caret-position="253">
+              <caret line="40" column="70" selection-start-line="40" selection-start-column="70" selection-end-line="40" selection-end-column="70" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
               </folding>
@@ -51,10 +56,34 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/messageswindow.py">
+        <entry file="file://$PROJECT_DIR$/tvmodel.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="242">
-              <caret line="11" selection-start-line="11" selection-end-line="11" />
+            <state relative-caret-position="266">
+              <caret line="53" selection-start-line="53" selection-end-line="53" />
+              <folding>
+                <element signature="e#23#62#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="451">
+              <caret line="36" column="96" selection-start-line="36" selection-start-column="96" selection-end-line="36" selection-end-column="96" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tvitem.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="462">
+              <caret line="24" column="35" lean-forward="true" selection-start-line="24" selection-start-column="35" selection-end-line="24" selection-end-column="35" />
+              <folding>
+                <element signature="e#22#59#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -62,8 +91,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kfconf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="73">
-              <caret line="67" lean-forward="true" selection-start-line="67" selection-end-line="67" />
+            <state relative-caret-position="1914">
+              <caret line="87" selection-start-line="87" selection-end-line="87" />
               <folding>
                 <element signature="e#12#26#0" expanded="true" />
               </folding>
@@ -72,58 +101,22 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file:///usr/lib64/python3.7/logging/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="209">
-              <caret line="1120" selection-start-line="1120" selection-end-line="1120" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$USER_HOME$/.local/lib/python3.7/site-packages/configobj.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="209">
-              <caret line="553" selection-start-line="553" selection-end-line="553" />
+            <state relative-caret-position="200">
+              <caret line="922" selection-start-line="922" selection-end-line="922" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="883">
-              <caret line="102" column="13" selection-start-line="102" selection-start-column="13" selection-end-line="102" selection-end-column="13" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/packages.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="212">
-              <caret line="198" column="28" lean-forward="true" selection-start-line="198" selection-start-column="28" selection-end-line="198" selection-end-column="28" />
+            <state relative-caret-position="315">
+              <caret line="200" selection-start-line="200" selection-end-line="200" />
               <folding>
                 <element signature="e#729#773#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/build_rpms.sh">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="506">
-              <caret line="41" column="54" selection-start-line="41" selection-start-column="54" selection-end-line="41" selection-end-column="54" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="407">
-              <caret line="26" column="12" selection-start-line="26" selection-start-column="12" selection-end-line="26" selection-end-column="12" />
             </state>
           </provider>
         </entry>
@@ -139,9 +132,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>__ppas_json</find>
-      <find>progress_</find>
-      <find>populate_pkgs</find>
       <find>Packages.message</find>
       <find>self.message(str(e))</find>
       <find>TVModel</find>
@@ -166,9 +156,12 @@
       <find>confg_search</find>
       <find>time</find>
       <find>setParent</find>
-      <find>timer</find>
       <find>log</find>
       <find>parent</find>
+      <find>timer</find>
+      <find>walk</find>
+      <find>installed</find>
+      <find>pkg._install</find>
     </findStrings>
     <replaceStrings>
       <replace>KFConf</replace>
@@ -199,7 +192,6 @@
         <option value="$PROJECT_DIR$/listmodel.py" />
         <option value="$PROJECT_DIR$/bob" />
         <option value="$PROJECT_DIR$/config_init.py" />
-        <option value="$PROJECT_DIR$/tvitem.py" />
         <option value="$PROJECT_DIR$/venv/lib64/python3.7/site-packages/rython/__init__.py" />
         <option value="$PROJECT_DIR$/temp_pkgs.py" />
         <option value="$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh" />
@@ -213,15 +205,16 @@
         <option value="$PROJECT_DIR$/build_rpms.sh" />
         <option value="$PROJECT_DIR$/dependencies" />
         <option value="$PROJECT_DIR$/helpers.py" />
-        <option value="$PROJECT_DIR$/tvmodel.py" />
         <option value="$PROJECT_DIR$/kxfed_prefs.py" />
         <option value="$PROJECT_DIR$/kxfedmsgsdialog_ui.py" />
         <option value="$PROJECT_DIR$/messageswindow.py" />
-        <option value="$PROJECT_DIR$/kfconf.py" />
-        <option value="$PROJECT_DIR$/packages.py" />
-        <option value="$PROJECT_DIR$/kxfed.py" />
         <option value="$USER_HOME$/.config/kxfed/kxfed.cfg" />
+        <option value="$PROJECT_DIR$/kxfed.py" />
         <option value="$PROJECT_DIR$/kxfedmsgsdialog.py" />
+        <option value="$PROJECT_DIR$/kfconf.py" />
+        <option value="$PROJECT_DIR$/tvmodel.py" />
+        <option value="$PROJECT_DIR$/tvitem.py" />
+        <option value="$PROJECT_DIR$/packages.py" />
       </list>
     </option>
   </component>
@@ -230,23 +223,6 @@
     <option name="y" value="27" />
     <option name="width" value="1370" />
     <option name="height" value="1021" />
-  </component>
-  <component name="ProjectInspectionProfilesVisibleTreeState">
-    <entry key="Project Default">
-      <profile-state>
-        <expanded-state>
-          <State />
-          <State>
-            <id>Python</id>
-          </State>
-        </expanded-state>
-        <selected-state>
-          <State>
-            <id>Python</id>
-          </State>
-        </selected-state>
-      </profile-state>
-    </entry>
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -276,7 +252,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$USER_HOME$/.config/kxfed/kxfed.cfg" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
@@ -395,7 +371,7 @@
       <window_info anchor="bottom" id="Run" order="2" sideWeight="0.84818137" weight="0.34497815" />
       <window_info anchor="bottom" id="Cvs" order="3" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="4" weight="0.4" />
-      <window_info anchor="bottom" id="Debug" order="5" sideWeight="0.6104375" weight="0.2849345" />
+      <window_info active="true" anchor="bottom" id="Debug" order="5" sideWeight="0.6104375" visible="true" weight="0.2849345" />
       <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.49868214" weight="0.33078602" />
       <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.38956246" side_tool="true" weight="0.4257642" />
       <window_info anchor="bottom" id="Terminal" order="8" sideWeight="0.41222984" weight="0.4257642" />
@@ -454,59 +430,62 @@
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
-        <watch expression="cfg['download']" language="Python" />
+        <watch expression="s" language="Python" />
+        <watch expression="self._install_state" language="Python" />
+        <watch expression="self.build_link" language="Python" />
+        <watch expression="pkg.build_link" language="Python" />
       </configuration>
     </watches-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
       <expression>
-        <expression-string>cfg['download']</expression-string>
+        <expression-string>pkg.build_link</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['distro_type']</expression-string>
+        <expression-string>self.build_link</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['distro']</expression-string>
+        <expression-string>self._install_state</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cf['distro']</expression-string>
+        <expression-string>s</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['installing']['apps']</expression-string>
+        <expression-string>pkg._row[0] == pkg._install_state</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['installing']</expression-string>
+        <expression-string>pkg._row[0].checkState()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['found'].parent.name</expression-string>
+        <expression-string>pkg._row</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>type(e)</expression-string>
+        <expression-string>pkg._row[0].value</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>typeof(e)</expression-string>
+        <expression-string>pkg._row[0].isCheckable()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>cfg['found']</expression-string>
+        <expression-string>section.parent.parent.name</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
@@ -560,7 +539,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/var/tmp/rpm-tmp.ZyZHor" />
     <entry file="file://$PROJECT_DIR$/var/tmp/rpm-tmp.fw6fsi" />
     <entry file="file://$PROJECT_DIR$/rpm_maker/scripts/build_rpms.sh">
       <provider selected="true" editor-type-id="text-editor">
@@ -645,16 +623,6 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/core/__init__.py" />
     <entry file="file://$PROJECT_DIR$/venv/lib64/python3.7/site-packages/dogpile/core/dogpile.py" />
-    <entry file="file://$PROJECT_DIR$/tvitem.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="440">
-          <caret line="23" column="35" selection-start-line="23" selection-start-column="35" selection-end-line="23" selection-end-column="35" />
-          <folding>
-            <element signature="e#22#59#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydevd_bundle/pydevd_exec2.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="44">
@@ -738,91 +706,111 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tvmodel.py">
+    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1210">
-          <caret line="55" column="34" selection-start-line="55" selection-start-column="34" selection-end-line="55" selection-end-column="34" />
-          <folding>
-            <element signature="e#23#62#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/.local/lib/python3.7/site-packages/configobj.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="209">
-          <caret line="553" selection-start-line="553" selection-end-line="553" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/lib64/python3.7/logging/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="209">
-          <caret line="1120" selection-start-line="1120" selection-end-line="1120" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/kfconf.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="73">
-          <caret line="67" lean-forward="true" selection-start-line="67" selection-end-line="67" />
-          <folding>
-            <element signature="e#12#26#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="2244">
+          <caret line="102" column="13" selection-start-line="102" selection-start-column="13" selection-end-line="102" selection-end-column="13" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/build_rpms.sh">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="506">
+        <state relative-caret-position="902">
           <caret line="41" column="54" selection-start-line="41" selection-start-column="54" selection-end-line="41" selection-end-column="54" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/messageswindow.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="242">
-          <caret line="11" selection-start-line="11" selection-end-line="11" />
+        <state relative-caret-position="22">
+          <caret line="1" selection-start-line="1" selection-end-line="1" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
+    <entry file="file:///usr/lib64/python3.7/logging/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="883">
-          <caret line="102" column="13" selection-start-line="102" selection-start-column="13" selection-end-line="102" selection-end-column="13" />
+        <state relative-caret-position="818">
+          <caret line="1120" selection-start-line="1120" selection-end-line="1120" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/kxfed.py">
+    <entry file="file:///usr/lib64/python3.7/json/decoder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="190">
-          <caret line="11" column="40" selection-start-line="11" selection-start-column="37" selection-end-line="11" selection-end-column="40" />
+        <state relative-caret-position="451">
+          <caret line="354" selection-start-line="354" selection-end-line="354" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
+    <entry file="file://$USER_HOME$/.local/lib/python3.7/site-packages/configobj.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="407">
-          <caret line="26" column="12" selection-start-line="26" selection-start-column="12" selection-end-line="26" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/packages.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="212">
-          <caret line="198" column="28" lean-forward="true" selection-start-line="198" selection-start-column="28" selection-end-line="198" selection-end-column="28" />
-          <folding>
-            <element signature="e#729#773#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="200">
+          <caret line="922" selection-start-line="922" selection-end-line="922" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/kxfedmsgsdialog.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="418">
-          <caret line="19" column="39" selection-start-line="14" selection-start-column="8" selection-end-line="19" selection-end-column="39" />
+        <state relative-caret-position="253">
+          <caret line="40" column="70" selection-start-line="40" selection-start-column="70" selection-end-line="40" selection-end-column="70" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kxfed.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1305">
+          <caret line="179" column="37" lean-forward="true" selection-start-line="179" selection-start-column="37" selection-end-line="179" selection-end-column="37" />
+          <folding>
+            <element signature="e#19#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="451">
+          <caret line="36" column="96" selection-start-line="36" selection-start-column="96" selection-end-line="36" selection-end-column="96" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/kfconf.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1914">
+          <caret line="87" selection-start-line="87" selection-end-line="87" />
+          <folding>
+            <element signature="e#12#26#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tvitem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="462">
+          <caret line="24" column="35" lean-forward="true" selection-start-line="24" selection-start-column="35" selection-end-line="24" selection-end-column="35" />
+          <folding>
+            <element signature="e#22#59#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tvmodel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="53" selection-start-line="53" selection-end-line="53" />
+          <folding>
+            <element signature="e#23#62#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/packages.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="315">
+          <caret line="200" selection-start-line="200" selection-end-line="200" />
+          <folding>
+            <element signature="e#729#773#0" expanded="true" />
           </folding>
         </state>
       </provider>

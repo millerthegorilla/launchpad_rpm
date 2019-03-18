@@ -24,23 +24,23 @@ class KxfedMsgsDialog(QDialog):
         level = logging.INFO
         if log_record:
             if log_record.name:
-                log_msg = "name : " + log_record.name + " : "
+                log_msg = "name : " + str(log_record.name) + " \n "
             if log_record.level:
-                log_msg += "level : " + log_record.level + " : "
+                log_msg += "level : " + str(log_record.level) + " \n "
             if log_record.pathname:
-                log_msg += "module : " + log_record.pathname + " : "
+                log_msg += "module : " + str(log_record.pathname) + " \n "
             if log_record.lineno:
-                log_msg += "line no : " + log_record.lineno + " : "
+                log_msg += "line no : " + str(log_record.lineno) + " \n "
             if log_record.msg:
-                log_msg += "message : " + log_record.msg + " : "
+                log_msg += "message : " + str(log_record.msg) + " \n "
             if log_record.args:
-                log_msg += "args : " + log_record.args + " : "
+                log_msg += "args : " + str(log_record.args) + " \n "
             if log_record.exc_info:
-                log_msg += "exc_info : " + log_record.exc_info + " : "
+                log_msg += "exc_info : " + str(log_record.exc_info) + " \n "
             if log_record.func:
-                log_msg += "function : " + log_record.func + " : "
+                log_msg += "function : " + str(log_record.func) + " \n "
             if log_record.sinfo:
-                log_msg += "stack info : " + log_record.sinfo
+                log_msg += "stack info : " + str(log_record.sinfo)
             level = log_record.level | logging.INFO
         elif msg:
             log_msg = msg
