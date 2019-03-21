@@ -14,19 +14,21 @@ class KxfedMsgsDialog(QDialog):
         self.ui.pushButton.clicked.connect(self.close)
         self.logger = logging.getLogger(__name__)
         handler = logging.handlers.RotatingFileHandler(
-            cfg["log_file_path"], maxBytes=2000, backupCount=5)
+            cfg["log_file_path"], maxBytes=50000, backupCount=5)
         format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(format)
+        self.logger.setLevel(logging.INFO)
         self.logger.addHandler(handler)
 
-    def log(self, log_record=None, msg=None):
+    def log(self, log_record=None, msg=None, level=None):
         log_msg = ""
-        level = logging.INFO
+        if level is None:
+            level = logging.INFO
         if log_record:
             if log_record.name:
                 log_msg = "name : " + str(log_record.name) + " \n "
             if log_record.level:
-                log_msg += "level : " + str(log_record.level) + " \n "
+                log_msg += "level : " + str(logging.getLevelName(log_record.level)) + " \n "
             if log_record.pathname:
                 log_msg += "module : " + str(log_record.pathname) + " \n "
             if log_record.lineno:
@@ -49,6 +51,8 @@ class KxfedMsgsDialog(QDialog):
         if log_msg != "":
             self.ui.plainTextEdit.appendPlainText(log_msg)
             self.logger.log(level=level, msg=log_msg)
+            if level < logging.INFO:
+                pass
         else:
             self.ui.plainTextEdit.appendPlainText("log function called without info")
             self.logger.log(level=logging.INFO, msg="no message")

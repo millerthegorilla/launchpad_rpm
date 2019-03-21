@@ -13,18 +13,20 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject, QCoreApplication
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
-import re
-from bs4 import BeautifulSoup
 from multiprocessing.dummy import Pool as thread_pool
 from multiprocessing import Pool as mp_pool
 from kfconf import cfg, cache, config_search
 import requests
 import subprocess
-import threading
 import os
+from bs4 import BeautifulSoup
+import re
+import time
+import logging
+
 try:
     import rpm
 except ImportError as e:
@@ -36,10 +38,12 @@ except ImportError as e:
 
 class Packages(QObject):
 
-    progress_adjusted = pyqtSignal(int, int)
-    log = pyqtSignal('PyQt_PyObject')
-    message = pyqtSignal(str, int)
+    progress_adjusted = pyqtSignal(int, int, str)
+    transaction_progress_adjusted = pyqtSignal(int, int)
+    log = pyqtSignal('PyQt_PyObject', int)
+    message_user = pyqtSignal(str)
     pkg_list_complete = pyqtSignal(list)
+    cancelled = pyqtSignal()
 
     def __init__(self, team, arch):
         super().__init__()
@@ -54,7 +58,9 @@ class Packages(QObject):
         self._thread_pool = thread_pool(10)
         self._mp_pool = mp_pool(10)
         self._result = None
-        self._lock = threading.Lock()
+        self.deb_links = None
+        self._rpmtsCallback_fd = None
+        self.cancel_process = False
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -114,7 +120,7 @@ class Packages(QObject):
             # returns pkgs for sake of cache.
             return pkgs
         except HTTPError as http_error:
-            self.log.emit(http_error)
+            self.log.emit(http_error, logging.CRITICAL)
 
     @staticmethod
     def uninstall_pkgs(self):
@@ -127,34 +133,56 @@ class Packages(QObject):
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
         cfg['tobeuninstalled'].clear()
 
-    def install_pkgs_signal_handler(self, label):
-        self.progress_label.emit(label)
-
     def install_pkgs_button(self):
         try:
             ts = rpm.TransactionSet()
             if ts.dbMatch('name', 'python3-rpm').count() == 1:
                 cfg['distro_type'] = 'rpm'
         except Exception as e:
-                cfg['distro_type'] = 'deb'
+            cfg['distro_type'] = 'deb'
         if cfg['download'] == 'True':
-            deb_links = self.download_packages()
+            deb_paths = self.download_packages()
+        # a new function is required in order for QT to resolve the
+        # dependency graph successfully, due to the multithreading
+        # lots of hassle with threading and signals
+        result = self.continue_convert(deb_paths)
+        # while result.ready() is False:
+        #
+        #
+        if result.get() is True:
+            QCoreApplication.instance().processEvents()
+            self._thread_pool.apply_async(self.finished_converting)
+
+    def finished_converting(self):
+        self.message_user.emit('Finished Converting Packages')
+        self.log.emit('Finished Converting Packages', logging.INFO)
+        time.sleep(1)
+        self.continue_install()
+
+    def continue_convert(self, deb_paths):
+        # async call convert function allows access to gui to continue
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-            self.convert_packages(deb_links)
+            self._thread_pool = thread_pool(10)
+            result = self._thread_pool.apply_async(self.convert_packages,
+                                                   (deb_paths,))
+            return result
+
+    def continue_install(self):
         if cfg['install'] == 'True':
             if cfg['distro_type'] == 'rpm':
-                self._install_rpms()
+                self._thread_pool.apply_async(self._install_rpms)
             else:
                 self._install_debs()
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
-        self.log.emit('Downloading Packages')
-        self.progress_adjusted.emit(0, 0)
+        self.log.emit('Downloading Packages', logging.INFO)
+        self.progress_adjusted.emit(0, 0, "")
         deb_links = []
         cfg['downloading'] = {}
 
         for ppa in cfg['tobeinstalled']:
+
             for pkgid in cfg['tobeinstalled'][ppa]:
                 if ppa not in cfg['installing'] and ppa not in cfg['installed']:
                     pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
@@ -163,20 +191,57 @@ class Packages(QObject):
                     cfg['downloading'][ppa][pkgid] = pkg
                     cfg.write()
                     debs_dir = cfg['debs_dir']
-                    result = self._thread_pool.apply_async(self._get_deb_links_and_download,
+                    self.message_user.emit("Downloading " + pkg.get('name'))
+                    result = self._thread_pool.apply_async(self.get_deb_links_and_download,
                                                            (ppa,
                                                             pkg,
-                                                            debs_dir,))
+                                                            debs_dir,
+                                                            self.lp_team.web_link,))
                     deb_links.append(result.get())
-        self._thread_pool.close()
-        self._thread_pool.join()
-
         return deb_links
 
-    def convert_packages(self, deb_links):
+    def get_deb_links_and_download(self, ppa, pkg, debs_dir, web_link):
+        # threaded function - gets build link from page and then parses that link
+        # to obtain the download links for the package, downloads the package
+        # and returns a path for the package deb file.
+        try:
+            html = requests.get(web_link
+                                + '/+archive/ubuntu/'
+                                + ppa
+                                + '/+build/' + pkg['build_link'].rsplit('/', 1)[-1])
+            links = BeautifulSoup(html.content, 'lxml').find_all('a',
+                                                                 href=re.compile(r''
+                                                                                 + pkg['name']
+                                                                                 + '(.*?)(all|amd64\.deb)'))
+            pkg['deb_link'] = links
+            deb_paths = []
+            self.log.emit("Downloading " + pkg.name + ' from ' + str(links), logging.INFO)
+            for link in links:
+                fn = link['href'].rsplit('/', 1)[-1]
+                fp = debs_dir + fn
+                with open(fp, "wb+") as f:
+                    response = requests.get(link['href'], stream=True)
+                    total_length = response.headers.get('content-length')
 
+                    if total_length is None:  # no content length header
+                        f.write(response.content)
+                    else:
+                        total_length = int(total_length)
+                        for data in response.iter_content(chunk_size=1024):
+                            f.write(data)
+                            self.progress_adjusted.emit(len(data), total_length, "")
+                            total_length = 0
+                deb_paths.append(fp)
+            pkg['deb_paths'] = deb_paths
+            return deb_paths
+        except requests.HTTPError as e:
+            self.log.emit(e, logging.CRITICAL)
+
+    def convert_packages(self, deb_paths):
+        self.log.emit('Converting packages : ' + str(deb_paths), logging.INFO)
+        self.progress_adjusted.emit(0, 0, "")
         deb_pkgs = []
-        for deb_list in deb_links:
+        for deb_list in deb_paths:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
 
@@ -198,12 +263,13 @@ class Packages(QObject):
         except Exception as e:
             self.log.emit(e)
 
-        self.log.emit('Converting packages : ' + str(deb_pkgs))
+        self.log.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
         conv = False
         while True:
             nextline = process.stdout.readline().decode('utf-8')
-            self.log.emit(nextline)
+            self.log.emit(nextline, logging.INFO)
             if 'Converted' in nextline:
+                # self.message_user.emit(nextline)
                 cfg['converting'].walk(config_search, search_value=nextline[len('Converted '):nextline.index('_')])
                 if cfg['found']:
                     if not cfg['installing']:
@@ -214,59 +280,67 @@ class Packages(QObject):
                         cfg['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
                     cfg['found'] = {}
                     conv = True
+                    self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100, nextline)
                 else:
                     conv = False
             if nextline == '' and process.poll() != None:
                 break
-            self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
 
         if conv is True:
             cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
             cfg.write()
-            self.log.emit('Finished Converting Packages')
             for ppa in cfg['converting']:
                 if cfg['converting'][ppa]:
                     for pkg in cfg['converting'][ppa]:
-                        self.log.emit('Error - did not convert ' + str(pkg.name))
+                        self.log.emit('Error - did not convert ' + str(pkg.name), logging.INFO)
             cfg['converting'] = {}
+            return True
         else:
-            self.log.emit(Exception("There is an error with the bash script when converting."))
-
-    def _get_deb_links_and_download(self, ppa, pkg, debs_dir):
-        # threaded function called from install_packages
-        try:
-            html = requests.get(self._lp_team.web_link
-                                + '/+archive/ubuntu/'
-                                + ppa
-                                + '/+build/' + pkg['build_link'].rsplit('/', 1)[-1])
-            links = BeautifulSoup(html.content, 'lxml').find_all('a',
-                                                                 href=re.compile(r''
-                                                                                 + pkg['name']
-                                                                                 + '(.*?)(all|amd64\.deb)'))
-            pkg['deb_link'] = links
-            deb_links = []
-            for link in links:
-                # TODO try os path basename etc out of interest
-                fn = link['href'].rsplit('/', 1)[-1]
-                fp = debs_dir + fn
-                with open(fp, "wb+") as f:
-                    response = requests.get(link['href'], stream=True)
-                    total_length = response.headers.get('content-length')
-
-                    if total_length is None:  # no content length header
-                        f.write(response.content)
-                    else:
-                        total_length = int(total_length)
-                        for data in response.iter_content(chunk_size=1024):
-                            f.write(data)
-                            self.progress_adjusted.emit(len(data), total_length)
-                            total_length = 0
-                deb_links.append(fp)
-                self.log.emit("Downloaded " + str(fp))
-            return deb_links
-        except (requests.HTTPError, subprocess.CalledProcessError) as e:
-            self.log.emit(e)
+            self.log.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
 
     def _install_rpms(self):
+        self.message_user.emit("Installing packages")
+        ts = rpm.TransactionSet()
+        for ppa in cfg['installing']:
+            for pkg in cfg['installing'][ppa]:
+                for path in pkg['deb_paths']:
+                    h = rpm.readRpmHeader(ts, path)
+                    ts.addInstall(h, path, 'u')
+        unresolved_deps = ts.check()
+        if unresolved_deps:
+            self.log.emit("Unresolved Dependencies", logging.CRITICAL)
+            for dep_failure in unresolved_deps:
+                self.log.emit(str(dep_failure))
+            self.message_user.emit("CRITICAL ERROR - packages have unmet dependencies, see messages")
+        else:
+            ts.order()
+            self.log.emit("This will install: \n", logging.INFO)
+            for te in ts:
+                self.log.emit("%s-%s-%s" % (te.N(), te.V(), te.R()))
+            ts.run(self.run_callback, ts)
 
+    def run_callback(self, reason, amount, total, key, client_data=None):
+        if self.cancelled:
+            rpm.TransactionSet(client_data).clear()
+
+        if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
+            self.log.emit("Opening file. ", reason, amount, total, key, client_data)
+            self._rpmtsCallback_fd = os.open(key, os.O_RDONLY)
+            return self._rpmtsCallback_fd
+        elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
+            self.log.emit("Closing file. ", reason, amount, total, key, client_data)
+            os.close(self._rpmtsCallback_fd)
+        elif reason == rpm.RPMCALLBACK_INST_START:
+            self.message_user.emit('Installing', key)
+        elif reason == rpm.RPMCALLBACK_INST_PROGRESS:
+            self.progress_adjusted.emit(amount, total, "")
+            if amount == total:
+                pass
+                #cfg['installing'].walk()
+        elif reason == rpm.RPMCALLBACK_TRANS_PROGRESS:
+            self.transaction_progress_adjusted.emit(amount, total)
+        elif reason == rpm.RPMCALLBACK_TRANS_STOP:
+            self.transaction_progress_adjusted.emit(0,0)
+
+    def _install_debs(self):
         pass
