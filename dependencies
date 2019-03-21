@@ -1,3 +1,5 @@
+requests
+httplib2
 launchpadlib
 beautifulsoup4
 lxml
