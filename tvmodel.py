@@ -9,14 +9,6 @@ import multiprocessing.dummy
 from PyQt5.QtCore import pyqtSlot
 
 
-# TODO separate pkg downloading, converting and installing functions into
-# TODO Packages class.  TVModel has reference to packages and Packages class
-# TODO uses pyqtSignals to let the model know that it can update
-# TODO that way the model can update when all packages are downloaded, handle
-# TODO progressbar updates more efficiently etc. whilst keeping the implementation
-# TODO details separate from the model, which is, effectively, the view.
-
-
 class TVModel(QStandardItemModel):
     list_filled = pyqtSignal()
     message = pyqtSignal(str)

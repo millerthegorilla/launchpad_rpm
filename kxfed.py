@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-import sys, requests, logging, traceback
+import sys, requests, logging
 import httplib2
 from launchpadlib.errors import HTTPError
 from PyQt5.QtWidgets import *
@@ -15,7 +15,9 @@ import traceback
 
 
 # TODO add installed packages to config
-# TODO after installing them, using rpm from bookmarked website rpm library
+# TODO lock the checkboxes of the packages that are being actioned.
+# TODO clear the tobeinstalled section of cfg on load
+# TODO change install button to cancel button during install
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -37,9 +39,9 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
 
         # status bar
-        self.label = QLabel()
-        self.label.setWordWrap(True)
-        self.statusbar.addWidget(self.label)
+        # self.label = QLabel()
+        # self.label.setWordWrap(True)
+        # self.statusbar.addWidget(self.label)
 
         # connection button
         self.reconnectBtn.setVisible(False)
@@ -65,15 +67,19 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
         self.pkg_model.message.connect(self.message_user, type=Qt.DirectConnection)
         self.pkg_model.packages.progress_adjusted.connect(self.progress_changed, type=Qt.DirectConnection)
-        self.pkg_model.packages.message.connect(self.message_user)
+        self.pkg_model.packages.message_user.connect(self.message_user)
         self.pkg_model.packages.log.connect(self.log)
+        self.pkg_model.packages.cancelled.connect(self.cancelled)
+        self.pkg_model.packages.transaction_progress_adjusted.connect(self.transaction_progress_changed)
 
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs_button)
+        self.install_btn.setText('Process Packages')
 
         self.progress_bar.setVisible(False)
+        self.transaction_progress_bar.setVisible(False)
         self._download_total = 0
         self._download_current = 0
 
@@ -126,9 +132,19 @@ class MainW (QMainWindow, Ui_MainWindow):
 
     def install_pkgs_button(self):
         try:
+            self.install_btn.setText('Cancel')
+            self.install_btn.clicked.connect(self.cancel_process_button)
             self.pkg_model.packages.install_pkgs_button()
         except Exception as e:
             self.log(e)
+
+    def cancel_process_button(self):
+        self.pkg_model.packages.cancel_process = True
+
+    @pyqtSlot()
+    def cancelled(self):
+        self.install_btn.setText('Process Packages')
+        self.install_btn.clicked.connect(self.install_pkgs_button)
 
     def populate_pkgs(self):
         try:
@@ -146,25 +162,40 @@ class MainW (QMainWindow, Ui_MainWindow):
             self._movie.stop()
             self.pkgs_tableView.resizeColumnsToContents()
 
-    @pyqtSlot(int, int)
-    def progress_changed(self, v, m):
+    @pyqtSlot(int, int, str)
+    def progress_changed(self, v, m, msg):
+        if msg:
+            self.message_user(msg)
         if m == 0 and v == 0:
             self.progress_bar.setVisible(False)
             self._download_total = 0
             self._download_current = 0
         else:
             if m != 0:
-                self._download_total += m
+                self._download_total = m
             if v != 0:
                 self._download_current += v
-            self.statusbar.showMessage("Downloading Packages")
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(self._download_total)
             self.progress_bar.setValue(self._download_current)
+        QApplication.instance().processEvents()
+
+    @pyqtSlot(int, int)
+    def transaction_progress_changed(self, amount, total):
+        if amount == 0 and total == 0:
+            self.transaction_progress_bar.setVisible(False)
+            self.transaction_progress_bar.setValue(0)
+        else:
+            self.transaction_progress_bar.setVisible(True)
+            self.transaction_progress_bar.setMaximum(total)
+            self.transaction_progress_bar.setValue(amount)
+
 
     @pyqtSlot(str)
     def message_user(self, msg):
-        self.label.setText(msg)
+        self.statusbar.showMessage(msg)
+        # if msg == "Finished Converting Packages":
+        #     self.pkg_model.packages.continue_install()
 
     def hide_message(self, ev):
         self.label.setText('')
@@ -179,25 +210,32 @@ class MainW (QMainWindow, Ui_MainWindow):
     def show_msgs(self):
         self.kxfed_msgs_dialog.show()
 
-    @pyqtSlot('PyQt_PyObject')
-    def log(self, e):
+    @pyqtSlot('PyQt_PyObject', int)
+    def log(self, e, level=None):
+        if level is None:
+            level = logging.INFO
         if issubclass(type(e), Exception):
             tr = traceback.TracebackException.from_exception(e)
             log_record = logging.makeLogRecord({})
             log_record.name = tr.exc_type
             log_record.level = logging.ERROR
-            log_record.pathname = tr.stack[0].filename
-            log_record.lineno = tr.stack[0].lineno
+            if tr.stack:
+                log_record.pathname = tr.stack[0].filename
+                log_record.lineno = tr.stack[0].lineno
+                log_record.args = tr.stack.format()
+                log_record.func = tr.stack[len(tr.stack) - 1]
+            else:
+                log_record.pathname = None
+                log_record.lineno = None
+                log_record.args = None
+                log_record.func = None
             log_record.msg = str(e)
-            log_record.args = tr.stack.format()
             log_record.exc_info = tr.exc_type
-            log_record.func = tr.stack[len(tr.stack) - 1]
             log_record.sinfo = tr.exc_traceback
             self.kxfed_msgs_dialog.log(log_record=log_record)
             self.message_user("Error.  See messages.")
         else:
-            self.kxfed_msgs_dialog.log(msg=str(e))
-            self.message_user(str(e) + " See messages")
+            self.kxfed_msgs_dialog.log(msg=str(e), level=level)
 
 
 if __name__ == '__main__':

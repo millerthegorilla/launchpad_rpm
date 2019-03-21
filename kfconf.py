@@ -80,6 +80,7 @@ def add_item_to_section(section, pkg):
         cfg[section][pkg.ppa][pkg.id]['name'] = pkg.name
         cfg[section][pkg.ppa][pkg.id]['version'] = pkg.version
         cfg[section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
+        cfg[section][pkg.ppa][pkg.id]['deb_paths'] = str(pkg.deb_paths)
         cfg[section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
 
 
