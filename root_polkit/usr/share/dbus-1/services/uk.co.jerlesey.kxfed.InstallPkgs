@@ -1,4 +1,0 @@
-[D-BUS Service]
-Name=uk.co.jerlesey.kxfed.InstallPkgs
-Exec="/home/james/Src/kxfed/install_pkgs.py"
-User=root
