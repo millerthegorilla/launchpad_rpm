@@ -22,10 +22,13 @@ from kfconf import cfg, cache, config_search
 import requests
 import subprocess
 import os
+from os.path import basename
 from bs4 import BeautifulSoup
 import re
 import time
 import logging
+from PyQt5.QtCore import QProcess, pyqtSlot
+
 
 try:
     import rpm
@@ -38,7 +41,7 @@ except ImportError as e:
 
 class Packages(QObject):
 
-    progress_adjusted = pyqtSignal(int, int, str)
+    progress_adjusted = pyqtSignal(int, int)
     transaction_progress_adjusted = pyqtSignal(int, int)
     log = pyqtSignal('PyQt_PyObject', int)
     message_user = pyqtSignal(str)
@@ -59,8 +62,8 @@ class Packages(QObject):
         self._mp_pool = mp_pool(10)
         self._result = None
         self.deb_links = None
-        self._rpmtsCallback_fd = None
         self.cancel_process = False
+        self.installing = False
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -151,7 +154,7 @@ class Packages(QObject):
         #
         if result.get() is True:
             QCoreApplication.instance().processEvents()
-            self._thread_pool.apply_async(self.finished_converting)
+            self.continue_install()
 
     def finished_converting(self):
         self.message_user.emit('Finished Converting Packages')
@@ -177,7 +180,7 @@ class Packages(QObject):
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
         self.log.emit('Downloading Packages', logging.INFO)
-        self.progress_adjusted.emit(0, 0, "")
+        self.progress_adjusted.emit(0, 0)
         deb_links = []
         cfg['downloading'] = {}
 
@@ -229,7 +232,7 @@ class Packages(QObject):
                         total_length = int(total_length)
                         for data in response.iter_content(chunk_size=1024):
                             f.write(data)
-                            self.progress_adjusted.emit(len(data), total_length, "")
+                            self.progress_adjusted.emit(len(data), total_length)
                             total_length = 0
                 deb_paths.append(fp)
             pkg['deb_paths'] = deb_paths
@@ -239,7 +242,7 @@ class Packages(QObject):
 
     def convert_packages(self, deb_paths):
         self.log.emit('Converting packages : ' + str(deb_paths), logging.INFO)
-        self.progress_adjusted.emit(0, 0, "")
+        self.progress_adjusted.emit(0, 0)
         deb_pkgs = []
         for deb_list in deb_paths:
             for filepath in deb_list:
@@ -257,20 +260,24 @@ class Packages(QObject):
         cfg['downloading'] = {}
 
         cfg.write()
+        self.log.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
+        self.message_user.emit('Converting Packages...')
         try:
             process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
                                        deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             self.log.emit(e)
 
-        self.log.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
         conv = False
+        rpm_file_names = []
         while True:
             nextline = process.stdout.readline().decode('utf-8')
             self.log.emit(nextline, logging.INFO)
+            if 'Wrote' in nextline:
+                rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
-                # self.message_user.emit(nextline)
-                cfg['converting'].walk(config_search, search_value=nextline[len('Converted '):nextline.index('_')])
+                rpm_name = nextline[len('Converted '):nextline.index('_')]
+                cfg['converting'].walk(config_search, search_value=rpm_name)
                 if cfg['found']:
                     if not cfg['installing']:
                         cfg['installing'] = {}
@@ -278,11 +285,17 @@ class Packages(QObject):
                         cfg['installing'][cfg['found'].parent.name] = {}
                     cfg['installing'][cfg['found'].parent.name][cfg['found'].name] = \
                         cfg['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
+                    for fn in rpm_file_names:
+                        if rpm_name in fn:
+                            cfg['installing'][cfg['found'].parent.name][cfg['found'].name]['rpm_path'] = \
+                                cfg['rpms_dir'] + fn.rstrip('\r\n')
                     cfg['found'] = {}
                     conv = True
-                    self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100, nextline)
+                    self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
+                    self.message_user.emit(nextline)
                 else:
                     conv = False
+
             if nextline == '' and process.poll() != None:
                 break
 
@@ -299,48 +312,37 @@ class Packages(QObject):
             self.log.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
 
     def _install_rpms(self):
-        self.message_user.emit("Installing packages")
-        ts = rpm.TransactionSet()
-        for ppa in cfg['installing']:
-            for pkg in cfg['installing'][ppa]:
-                for path in pkg['deb_paths']:
-                    h = rpm.readRpmHeader(ts, path)
-                    ts.addInstall(h, path, 'u')
-        unresolved_deps = ts.check()
-        if unresolved_deps:
-            self.log.emit("Unresolved Dependencies", logging.CRITICAL)
-            for dep_failure in unresolved_deps:
-                self.log.emit(str(dep_failure))
-            self.message_user.emit("CRITICAL ERROR - packages have unmet dependencies, see messages")
-        else:
-            ts.order()
-            self.log.emit("This will install: \n", logging.INFO)
-            for te in ts:
-                self.log.emit("%s-%s-%s" % (te.N(), te.V(), te.R()))
-            ts.run(self.run_callback, ts)
+        self.message_user.emit("Installing packages...")
 
-    def run_callback(self, reason, amount, total, key, client_data=None):
-        if self.cancelled:
-            rpm.TransactionSet(client_data).clear()
+        process = QProcess()
+        process.setParent(self)
+        process.setReadChannel(0)
+        process.setProgram('pkexec')
+        process.setArguments(['./install_rpms.py'])
+        process.finished.connect(self.catch_signal_install)
+        process.start()
+        self.installing = True
+        while self.installing:
+            line = process.readLine()
+            if line:
+                if 'kxfedlog' in line:
+                    self.log.emit(line.lstrip('kxfedlog '), logging.INFO)
+                if 'kxfedexcept' in line:
+                    self.log.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
+                if 'kxfedmsg' in line:
+                    self.message_user.emit(line.lstrip('kxfedmsg '))
+                if 'kxfedprogress' in line:
+                    sig = line.split(' ')
+                    self.progress_adjusted.emit(sig[1], sig[2])
+                if 'kxfedtransprogress' in line:
+                    sig = line.split(' ')
+                    self.transaction_progress_adjusted(sig[1], sig[2])
 
-        if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
-            self.log.emit("Opening file. ", reason, amount, total, key, client_data)
-            self._rpmtsCallback_fd = os.open(key, os.O_RDONLY)
-            return self._rpmtsCallback_fd
-        elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
-            self.log.emit("Closing file. ", reason, amount, total, key, client_data)
-            os.close(self._rpmtsCallback_fd)
-        elif reason == rpm.RPMCALLBACK_INST_START:
-            self.message_user.emit('Installing', key)
-        elif reason == rpm.RPMCALLBACK_INST_PROGRESS:
-            self.progress_adjusted.emit(amount, total, "")
-            if amount == total:
-                pass
-                #cfg['installing'].walk()
-        elif reason == rpm.RPMCALLBACK_TRANS_PROGRESS:
-            self.transaction_progress_adjusted.emit(amount, total)
-        elif reason == rpm.RPMCALLBACK_TRANS_STOP:
-            self.transaction_progress_adjusted.emit(0,0)
+    @pyqtSlot(int, QProcess.ExitStatus)
+    def catch_signal_install(self, exitcode, exitstatus):
+        self.installing = False
+        if exitcode != 0 | exitstatus != QProcess.NormalExit:
+            self.log.emit("error processing install_rpms", logging.ERROR)
 
     def _install_debs(self):
         pass
