@@ -2,23 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="58c95c4a-03d4-4ee7-a815-ef550e9b6ed7" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/install_rpms.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/KxfedMsgsDialog/KxfedMsgsDialog.pro.user" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/kfconf.py" beforeDir="false" afterPath="$PROJECT_DIR$/kfconf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kxfed_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/kxfed_ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/root_polkit/usr/share/dbus-1/interfaces/uk.co.jerlesey.kxfed.InstallPkgs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/root_polkit/usr/share/dbus-1/services/uk.co.jerlesey.kxfed.InstallPkgs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/root_polkit/usr/share/dbus-1/system.d/uk.co.jerlesey.kxfed.InstallPkgs.conf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/root_polkit/usr/share/polkit-1/actions/uk.co.jerlesey.kxfed.InstallPkgs.policy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/root_polkit/usr/share/polkit-1/rules.d/uk.co.jerlesey.kxfed.InstallPkgs.rules" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/rt-kernel-build-latest" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tvitem.py" beforeDir="false" afterPath="$PROJECT_DIR$/tvitem.py" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/venv/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -28,11 +13,11 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfed.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="88">
+            <state relative-caret-position="4268">
               <caret line="206" column="25" selection-start-line="206" selection-start-column="14" selection-end-line="206" selection-end-column="29" />
               <folding>
                 <element signature="e#19#48#0" expanded="true" />
@@ -53,7 +38,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="200">
+            <state relative-caret-position="4400">
               <caret line="200" column="74" selection-start-line="200" selection-start-column="74" selection-end-line="200" selection-end-column="74" />
             </state>
           </provider>
@@ -62,7 +47,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/install_rpms.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="12">
+            <state relative-caret-position="660">
               <caret line="32" column="53" selection-start-line="32" selection-start-column="53" selection-end-line="32" selection-end-column="53" />
               <folding>
                 <element signature="e#20#30#0" expanded="true" />
@@ -74,8 +59,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/packages.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="246">
-              <caret line="328" column="19" selection-start-line="328" selection-start-column="19" selection-end-line="328" selection-end-column="19" />
+            <state relative-caret-position="719">
+              <caret line="348" lean-forward="true" selection-start-line="348" selection-end-line="348" />
               <folding>
                 <element signature="e#729#791#0" expanded="true" />
               </folding>
@@ -86,7 +71,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/kfconf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="330">
+            <state relative-caret-position="1716">
               <caret line="83" column="64" selection-start-line="83" selection-start-column="64" selection-end-line="83" selection-end-column="64" />
             </state>
           </provider>
@@ -104,7 +89,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file:///usr/lib64/python3.7/multiprocessing/pool.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="284">
+            <state relative-caret-position="2442">
               <caret line="122" selection-start-line="122" selection-end-line="122" />
             </state>
           </provider>
@@ -113,8 +98,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="346">
-              <caret line="26" selection-start-line="26" selection-end-line="26" />
+            <state relative-caret-position="572">
+              <caret line="42" selection-start-line="42" selection-end-line="42" />
             </state>
           </provider>
         </entry>
@@ -169,6 +154,7 @@
     <option name="width" value="1370" />
     <option name="height" value="1021" />
   </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
     <navigator proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
@@ -190,7 +176,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$USER_HOME$/.config/kxfed/kxfed.cfg" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -273,6 +259,12 @@
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
     </layout>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/rpm_maker" />
+      <path value="$PROJECT_DIR$/rt-kernel-build-latest" />
+    </ignored-roots>
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -360,34 +352,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tvmodel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="88">
-          <caret line="4" selection-start-line="4" selection-end-line="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/lib64/python3.7/multiprocessing/pool.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="284">
-          <caret line="122" selection-start-line="122" selection-end-line="122" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/kxfed.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="88">
+        <state relative-caret-position="4268">
           <caret line="206" column="25" selection-start-line="206" selection-start-column="14" selection-end-line="206" selection-end-column="29" />
           <folding>
             <element signature="e#19#48#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="200">
-          <caret line="200" column="74" selection-start-line="200" selection-start-column="74" selection-end-line="200" selection-end-column="74" />
         </state>
       </provider>
     </entry>
@@ -398,9 +369,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/kxfed_ui.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4400">
+          <caret line="200" column="74" selection-start-line="200" selection-start-column="74" selection-end-line="200" selection-end-column="74" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/install_rpms.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="660">
+          <caret line="32" column="53" selection-start-line="32" selection-start-column="53" selection-end-line="32" selection-end-column="53" />
+          <folding>
+            <element signature="e#20#30#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/kfconf.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="330">
+        <state relative-caret-position="1716">
           <caret line="83" column="64" selection-start-line="83" selection-start-column="64" selection-end-line="83" selection-end-column="64" />
         </state>
       </provider>
@@ -412,27 +400,31 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/install_rpms.py">
+    <entry file="file:///usr/lib64/python3.7/multiprocessing/pool.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="12">
-          <caret line="32" column="53" selection-start-line="32" selection-start-column="53" selection-end-line="32" selection-end-column="53" />
-          <folding>
-            <element signature="e#20#30#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="2442">
+          <caret line="122" selection-start-line="122" selection-end-line="122" />
         </state>
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/.config/kxfed/kxfed.cfg">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="346">
-          <caret line="26" selection-start-line="26" selection-end-line="26" />
+        <state relative-caret-position="572">
+          <caret line="42" selection-start-line="42" selection-end-line="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tvmodel.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="88">
+          <caret line="4" selection-start-line="4" selection-end-line="4" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/packages.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="246">
-          <caret line="328" column="19" selection-start-line="328" selection-start-column="19" selection-end-line="328" selection-end-column="19" />
+        <state relative-caret-position="719">
+          <caret line="348" lean-forward="true" selection-start-line="348" selection-end-line="348" />
           <folding>
             <element signature="e#729#791#0" expanded="true" />
           </folding>
