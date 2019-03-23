@@ -15,9 +15,7 @@ import traceback
 
 
 # TODO add installed packages to config
-# TODO lock the checkboxes of the packages that are being actioned.
-# TODO clear the tobeinstalled section of cfg on load
-# TODO change install button to cancel button during install
+
 class MainW (QMainWindow, Ui_MainWindow):
     def __init__(self):
         QMainWindow.__init__(self)
@@ -37,11 +35,6 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkgs_tableView.setModel(self.pkg_model)
         self.pkgs_tableView.horizontalHeader().setStretchLastSection(True)
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
-
-        # status bar
-        # self.label = QLabel()
-        # self.label.setWordWrap(True)
-        # self.statusbar.addWidget(self.label)
 
         # connection button
         self.reconnectBtn.setVisible(False)
@@ -67,6 +60,7 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkg_model.list_filled.connect(self.toggle_pkg_list_loading)
         self.pkg_model.message.connect(self.message_user, type=Qt.DirectConnection)
         self.pkg_model.packages.progress_adjusted.connect(self.progress_changed, type=Qt.DirectConnection)
+
         self.pkg_model.packages.message_user.connect(self.message_user)
         self.pkg_model.packages.log.connect(self.log)
         self.pkg_model.packages.cancelled.connect(self.cancelled)
@@ -76,10 +70,12 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs_button)
+
         self.install_btn.setText('Process Packages')
 
         self.progress_bar.setVisible(False)
         self.transaction_progress_bar.setVisible(False)
+
         self._download_total = 0
         self._download_current = 0
 
@@ -132,6 +128,7 @@ class MainW (QMainWindow, Ui_MainWindow):
 
     def install_pkgs_button(self):
         try:
+
             self.install_btn.setText('Cancel')
             self.install_btn.clicked.connect(self.cancel_process_button)
             self.pkg_model.packages.install_pkgs_button()
@@ -162,10 +159,8 @@ class MainW (QMainWindow, Ui_MainWindow):
             self._movie.stop()
             self.pkgs_tableView.resizeColumnsToContents()
 
-    @pyqtSlot(int, int, str)
-    def progress_changed(self, v, m, msg):
-        if msg:
-            self.message_user(msg)
+    @pyqtSlot(int, int)
+    def progress_changed(self, v, m):
         if m == 0 and v == 0:
             self.progress_bar.setVisible(False)
             self._download_total = 0
@@ -189,7 +184,6 @@ class MainW (QMainWindow, Ui_MainWindow):
             self.transaction_progress_bar.setVisible(True)
             self.transaction_progress_bar.setMaximum(total)
             self.transaction_progress_bar.setValue(amount)
-
 
     @pyqtSlot(str)
     def message_user(self, msg):

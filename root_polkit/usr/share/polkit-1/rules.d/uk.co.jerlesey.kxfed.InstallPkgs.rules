@@ -1,4 +1,0 @@
-polkit.addRule(function(action, subject) {
-    if (action.id == "uk.co.jerlesey.kxfed.InstallPkgs" && subject.local && subject.active && subject.isInGroup("kxfed"))
-        return polkit.Result.AUTH_ADMIN_KEEP;
-}
