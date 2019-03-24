@@ -47,6 +47,7 @@ class Packages(QObject):
     message_user = pyqtSignal(str)
     pkg_list_complete = pyqtSignal(list)
     cancelled = pyqtSignal()
+    lock_model = pyqtSignal(bool)
 
     def __init__(self, team, arch):
         super().__init__()
@@ -153,18 +154,19 @@ class Packages(QObject):
         #
         #
         if result.get() is True:
+            self.lock_model.emit(False)
             QCoreApplication.instance().processEvents()
             self.continue_install()
 
     def finished_converting(self):
         self.message_user.emit('Finished Converting Packages')
         self.log.emit('Finished Converting Packages', logging.INFO)
-        time.sleep(1)
-        self.continue_install()
+        # time.sleep(1)
 
     def continue_convert(self, deb_paths):
         # async call convert function allows access to gui to continue
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
+            self.lock_model.emit(True)
             self._thread_pool = thread_pool(10)
             result = self._thread_pool.apply_async(self.convert_packages,
                                                    (deb_paths,))
@@ -172,10 +174,14 @@ class Packages(QObject):
 
     def continue_install(self):
         if cfg['install'] == 'True':
+            self.lock_model.emit(True)
             if cfg['distro_type'] == 'rpm':
-                self._thread_pool.apply_async(self._install_rpms)
+                self._thread_pool.apply_async(self._install_rpms, self.finish_install)
             else:
                 self._install_debs()
+
+    def finish_install(self):
+        self.lock_model.emit(False)
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
@@ -241,6 +247,7 @@ class Packages(QObject):
             self.log.emit(e, logging.CRITICAL)
 
     def convert_packages(self, deb_paths):
+
         self.log.emit('Converting packages : ' + str(deb_paths), logging.INFO)
         self.progress_adjusted.emit(0, 0)
         deb_pkgs = []
@@ -297,7 +304,8 @@ class Packages(QObject):
                     conv = False
             if nextline == '' and process.poll() is not None:
                 break
-
+        # TODO ********* delete deb file if package is successfully converted
+        # TODO ********* if preferences say so
         if conv is True:
             cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
             cfg.write()
@@ -343,8 +351,13 @@ class Packages(QObject):
                     self.transaction_progress_adjusted(sig[1], sig[2])
                 elif 'kxfedinstalled' in line:
                     self.message_user.emit('Installed ' + line.lstrip('kxfedinstalled'))
+                    # TODO move pkg in config from installing to installed
+                    # TODO set checkstate of package to installed
                 elif 'kxfeduninstalled' in line:
                     self.message_user.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                    # TODO delete package from uninstalled state
+                    # TODO change highlighted color of checkbox row to normal color
+                    # TODO delete rpm if it says so in the preferences
                 elif 'kxfedstop' in line:
                     break
                 else:

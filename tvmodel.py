@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from packages import Packages
 import kfconf
 from tvitem import TVItem
 import multiprocessing.dummy
 from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtGui import QBrush, QColor
 
 
 class TVModel(QStandardItemModel):
     list_filled = pyqtSignal()
     message = pyqtSignal(str)
     exception = pyqtSignal('PyQt_PyObject')
+    #hack
+    clear_brush = None
+    highlight_color = QColor(255, 204, 204)
+    highlight_brush = QBrush()
 
     def __init__(self, headers, team, arch):
         super().__init__()
@@ -22,6 +27,8 @@ class TVModel(QStandardItemModel):
         self.itemChanged.connect(TVModel.on_item_changed)
         self.packages.pkg_list_complete.connect(self.pkg_list_complete)
         self._pool = multiprocessing.dummy.Pool(10)
+        TVModel.highlight_brush.setColor(TVModel.highlight_color)
+        TVModel.highlight_brush.setStyle(Qt.DiagCrossPattern)
 
     @property
     def packages(self):
@@ -59,14 +66,16 @@ class TVModel(QStandardItemModel):
                 pkg.installed = Qt.Unchecked
                 self.appendRow(pkg._row)
         self.list_filled.emit()
-
-    @staticmethod
+    
+    @pyqtSlot('PyQt_PyObject')
     def on_item_changed(item):
         # item is tristate
         # unchecked = not installed
+        # unchecked but highlighted row - uninstalling
         # partially checked = in the process of being installed
         #                     ie downloaded/converted/installing but not installed
         # checked = installed
+        item = QStandardItem(item)
         pkg = item.data(kfconf.TVITEM_ROLE)
         if item.isCheckable():
             # if item is not installed
@@ -88,6 +97,10 @@ class TVModel(QStandardItemModel):
                 # or item is to be uninstalled
                 if pkg.installed == Qt.Checked:
                     kfconf.cfg.add_item_to_section('tobeuninstalled', pkg)
+                    TVModel.clear_brush = item.background()
+                    item.setBackground(TVModel.highlight_brush)
+            if item.checkState() == Qt.Checked:
+                item.setCheckState(pkg.installed)
             pkg.installed = item.checkState()
         kfconf.cfg.filename = kfconf.config_dir + kfconf.CONFIG_FILE
         kfconf.cfg.write()
