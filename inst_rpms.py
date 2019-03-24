@@ -13,6 +13,7 @@ import rpm
 rpmtsCallback_fd = None
 action = 'installing'
 
+
 def run_callback(reason, amount, total, key, client_data):
     global rpmtsCallback_fd
     if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:

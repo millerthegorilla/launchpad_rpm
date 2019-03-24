@@ -66,6 +66,8 @@ class MainW (QMainWindow, Ui_MainWindow):
         self.pkg_model.packages.cancelled.connect(self.cancelled)
         self.pkg_model.packages.transaction_progress_adjusted.connect(self.transaction_progress_changed)
 
+        self.pkg_model.packages.lock_model.connect(self.lock_model)
+
         # user signals
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
@@ -203,6 +205,10 @@ class MainW (QMainWindow, Ui_MainWindow):
 
     def show_msgs(self):
         self.kxfed_msgs_dialog.show()
+
+    @pyqtSlot(bool)
+    def lock_model(self, enabled):
+        self.pkgs_tableView.setEnabled(enabled)
 
     @pyqtSlot('PyQt_PyObject', int)
     def log(self, e, level=None):
