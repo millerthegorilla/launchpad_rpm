@@ -295,8 +295,7 @@ class Packages(QObject):
                     self.message_user.emit(nextline)
                 else:
                     conv = False
-
-            if nextline == '' and process.poll() != None:
+            if nextline == '' and process.poll() is not None:
                 break
 
         if conv is True:
@@ -313,30 +312,45 @@ class Packages(QObject):
 
     def _install_rpms(self):
         self.message_user.emit("Installing packages...")
+        rpm_links = []
+        for ppa in cfg['installing']:
+            for pkg in cfg['installing'][ppa]:
+                rpm_links.append(basename(cfg['installing'][ppa][pkg]['rpm_path']))
+        rpm_links.append('uninstalling')
+        for ppa in cfg['uninstalling']:
+            for pkg in cfg['uninstalling'][ppa]:
+                rpm_links.append(cfg['uninstalling'][ppa][pkg]['name'])
+        try:
+            process2 = subprocess.Popen(['/home/james/Src/kxfed/inst_rpms.py', cfg['rpms_dir']] + rpm_links, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            self.log.emit(e)
 
-        process = QProcess()
-        process.setParent(self)
-        process.setReadChannel(0)
-        process.setProgram('pkexec')
-        process.setArguments(['./install_rpms.py'])
-        process.finished.connect(self.catch_signal_install)
-        process.start()
-        self.installing = True
-        while self.installing:
-            line = process.readLine()
+        while True:
+            line = process2.stdout.readline().decode('utf-8')
+            self.log.emit(line, logging.INFO)
             if line:
                 if 'kxfedlog' in line:
                     self.log.emit(line.lstrip('kxfedlog '), logging.INFO)
-                if 'kxfedexcept' in line:
+                elif 'kxfedexcept' in line:
                     self.log.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
-                if 'kxfedmsg' in line:
+                elif 'kxfedmsg' in line:
                     self.message_user.emit(line.lstrip('kxfedmsg '))
-                if 'kxfedprogress' in line:
+                elif 'kxfedprogress' in line:
                     sig = line.split(' ')
                     self.progress_adjusted.emit(sig[1], sig[2])
-                if 'kxfedtransprogress' in line:
+                elif 'kxfedtransprogress' in line:
                     sig = line.split(' ')
                     self.transaction_progress_adjusted(sig[1], sig[2])
+                elif 'kxfedinstalled' in line:
+                    self.message_user.emit('Installed ' + line.lstrip('kxfedinstalled'))
+                elif 'kxfeduninstalled' in line:
+                    self.message_user.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                elif 'kxfedstop' in line:
+                    break
+                else:
+                    self.log.emit(line, logging.INFO)
+            # if line == '' and process.poll() is not None:
+            #     break
 
     @pyqtSlot(int, QProcess.ExitStatus)
     def catch_signal_install(self, exitcode, exitstatus):

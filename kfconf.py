@@ -52,6 +52,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['downloading']                     = {}
     cfg['converting']                      = {}
     cfg['installing']                      = {}
+    cfg['uninstalling']                    = {}
     cfg['installed']                       = {}
     cfg['tmp_dir']                         = tmp_dir
     cfg['debs']                            = {}

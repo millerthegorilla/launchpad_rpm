@@ -5,3 +5,4 @@ rpm_maker
 simpletreemodel.py
 cachedir
 rt-kernel-build-latest
+.idea/*
