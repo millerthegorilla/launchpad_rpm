@@ -1,21 +1,21 @@
-#!/usr/bin/python3
+#!/usr/bin/pkexec /usr/bin/python3
 
 import rpm
 import os
-from kfconf import cfg
+import sys
 
 
 class InstallRpms:
     def __init__(self):
+        self.unresolved_deps = None
         self._rpmtsCallback_fd = None
-        unresolved_deps = None
+        rpms_dir = sys.argv[1]
         ts = rpm.TransactionSet()
         try:
-            for ppa in cfg['installing']:
-                for pkg in cfg['installing'][ppa]:
-                    with open(cfg['installing'][ppa][pkg]['rpm_path'], 'rb') as headerfile:
-                        h = ts.hdrFromFdno(headerfile)
-                        ts.addInstall(h, cfg['installing'][ppa][pkg]['rpm_path'], 'u')
+            for filepath in sys.argv[2:]:
+                with open(rpms_dir + filepath, 'rb') as headerfile:
+                    h = ts.hdrFromFdno(headerfile)
+                    ts.addInstall(h, rpms_dir + filepath, 'u')
 
             unresolved_deps = ts.check()
         except Exception as e:
@@ -41,9 +41,6 @@ class InstallRpms:
         ts.run(self.run_callback, ts)
 
     def run_callback(self, reason, amount, total, key, client_data=None):
-        if self.cancelled:
-            rpm.TransactionSet(client_data).clear()
-
         if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
             print("kxfedlog Opening file. ", reason, amount, total, key, client_data)
             self._rpmtsCallback_fd = os.open(key, os.O_RDONLY)
@@ -59,8 +56,17 @@ class InstallRpms:
             print('kxfedtransprogress', amount, total)
         elif reason == rpm.RPMCALLBACK_TRANS_STOP:
             print('kxfedtransprogress', 0, 0)
+            print('kxfedstop')
             exit(0)
+        elif reason == rpm.RPMCALLBACK_CPIO_ERROR:
+            print('kxfedexcept Error getting package data')
+        else:
+            print('kxfedlog Unhandled Error!', reason)
 
+# import epdb;
+# epdb.set_trace()
+try:
+    InstallRpms()
+except Exception as e:
+    print('kxfedexcept Error getting package data', str(e))
 
-if __name__ == '__main__':
-    install_rpms = InstallRpms()
