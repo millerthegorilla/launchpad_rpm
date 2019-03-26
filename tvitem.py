@@ -24,7 +24,8 @@ class TVItem:
         self._version = QStandardItem(pkg_list[3])
         self._version.setData(self, role=TVITEM_ROLE)
         self._row = [self._install_state, self._name, self._version, self._build_link]
-        self._id = uuid.uuid4().urn
+        # self._id = uuid.uuid4().urn
+        self._id = pkg_list[4]
 
     @property
     def build_link(self):
