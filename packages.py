@@ -13,12 +13,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-from PyQt5.QtCore import pyqtSignal, QObject, QCoreApplication
+from PyQt5.QtCore import pyqtSignal, QObject, QCoreApplication, Qt
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
 from multiprocessing.dummy import Pool as thread_pool
 from multiprocessing import Pool as mp_pool
-from kfconf import cfg, cache, config_search
+from kfconf import cfg, cache, config_search, pkg_states
 import requests
 import subprocess
 import os
@@ -28,7 +28,7 @@ import re
 import time
 import logging
 from PyQt5.QtCore import QProcess, pyqtSlot
-
+import uuid
 
 try:
     import rpm
@@ -43,13 +43,11 @@ class Packages(QObject):
 
     progress_adjusted = pyqtSignal(int, int)
     transaction_progress_adjusted = pyqtSignal(int, int)
+    msg = pyqtSignal(str)
     log = pyqtSignal('PyQt_PyObject', int)
-    message_user = pyqtSignal(str)
-    pkg_list_complete = pyqtSignal(list)
-    cancelled = pyqtSignal()
     lock_model = pyqtSignal(bool)
 
-    def __init__(self, team, arch):
+    def __init__(self, team, arch, progress_signal, trans_prog_signal, msg_signal, log_signal, lock_signal):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -65,6 +63,11 @@ class Packages(QObject):
         self.deb_links = None
         self.cancel_process = False
         self.installing = False
+        self.progress_adjusted.connect(progress_signal)
+        self.transaction_progress_adjusted.connect(trans_prog_signal)
+        self.msg.connect(msg_signal)
+        self.log.connect(log_signal)
+        self.lock_model.connect(lock_signal)
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -86,8 +89,9 @@ class Packages(QObject):
     def pkgs(self):
         return self._pkgs
 
-    def populate_pkgs(self, ppa, arch):
-        self._thread_pool.apply_async(self.populate_pkg_list, (ppa, arch,), callback=self.pkg_list_complete.emit)
+    def populate_pkgs(self, ppa, arch, callback_function):
+        self._thread_pool.apply_async(self.populate_pkg_list, (ppa, arch,),
+                                      callback=callback_function)
 
     @cache.cache_on_arguments()
     def populate_pkg_list(self, ppa, arch):
@@ -115,27 +119,44 @@ class Packages(QObject):
                         pkg = [i.build_link,
                                ppa,
                                i.binary_package_name,
-                               i.binary_package_version]
+                               i.binary_package_version,
+                               uuid.uuid4().urn]
                         if pkg not in pkgs:
                             pkgs.append(pkg)
-                            # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
-                            #                        pkg)
-            # do I need to cache _pkgs in instance variable - why not use a local?
-            # returns pkgs for sake of cache.
+
+            cfg['cache']['initiated'] = time.time()
             return pkgs
         except HTTPError as http_error:
+            pass
             self.log.emit(http_error, logging.CRITICAL)
+
+    # def pkg_search(self, sections, pkg_id):
+    #     def conf_search(section, key, search_value=None):
+    #         if search_value == section[key]:
+    #             cfg['found'] = section
+    #     for sect in sections:
+    #         cfg[sect].walk(conf_search, search_value=pkg_id)
+    #         if cfg['found']:
+    #             return True
+    #     return False
+    @staticmethod
+    def pkg_search(sections, pkg_id):
+        for section in sections:
+            for ppa in pkg_states[section]:
+                if pkg_id in pkg_states[section][ppa].dict():
+                    return True
+        return False
 
     @staticmethod
     def uninstall_pkgs(self):
         # get list of packages to be uninstalled from cfg, using pop to delete
-        for ppa in cfg['tobeuninstalled']:
-            for pkg in cfg['tobeuninstalled'][ppa]:
+        for ppa in pkg_states['tobeuninstalled']:
+            for pkg in pkg_states['tobeuninstalled'][ppa]:
                 #subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
                 # TODO if success!!
-                cfg['installed'][pkg.ppa].pop(pkg.id)
+                pkg_states['installed'][pkg.ppa].pop(pkg.id)
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
-        cfg['tobeuninstalled'].clear()
+        pkg_states['tobeuninstalled'].clear()
 
     def install_pkgs_button(self):
         try:
@@ -149,36 +170,37 @@ class Packages(QObject):
         # a new function is required in order for QT to resolve the
         # dependency graph successfully, due to the multithreading
         # lots of hassle with threading and signals
-        result = self.continue_convert(deb_paths)
-        # while result.ready() is False:
-        #
-        #
-        if result.get() is True:
-            self.lock_model.emit(False)
-            QCoreApplication.instance().processEvents()
-            self.continue_install()
-
-    def finished_converting(self):
-        self.message_user.emit('Finished Converting Packages')
-        self.log.emit('Finished Converting Packages', logging.INFO)
-        # time.sleep(1)
-
-    def continue_convert(self, deb_paths):
-        # async call convert function allows access to gui to continue
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
             self.lock_model.emit(True)
             self._thread_pool = thread_pool(10)
             result = self._thread_pool.apply_async(self.convert_packages,
                                                    (deb_paths,))
-            return result
+            if result.get() is True:
+                self.lock_model.emit(False)
+                QCoreApplication.instance().processEvents()
+                if cfg['install'] == 'True':
+                    self.lock_model.emit(True)
+                    if cfg['distro_type'] == 'rpm':
+                        self._thread_pool.apply_async(self._install_rpms, self.finish_install)
+                    else:
+                        self._install_debs()
 
-    def continue_install(self):
-        if cfg['install'] == 'True':
-            self.lock_model.emit(True)
-            if cfg['distro_type'] == 'rpm':
-                self._thread_pool.apply_async(self._install_rpms, self.finish_install)
-            else:
-                self._install_debs()
+    # def continue_convert(self, deb_paths):
+    #     # async call convert function allows access to gui to continue
+    #     if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
+    #         Kxfed.lock_model_signal.emit(True)
+    #         self._thread_pool = thread_pool(10)
+    #         result = self._thread_pool.apply_async(self.convert_packages,
+    #                                                (deb_paths,))
+    #         return result
+    #
+    # def continue_install(self):
+    #     if cfg['install'] == 'True':
+    #         Kxfed.lock_model_signal.emit(True)
+    #         if cfg['distro_type'] == 'rpm':
+    #             self._thread_pool.apply_async(self._install_rpms, self.finish_install)
+    #         else:
+    #             self._install_debs()
 
     def finish_install(self):
         self.lock_model.emit(False)
@@ -188,19 +210,19 @@ class Packages(QObject):
         self.log.emit('Downloading Packages', logging.INFO)
         self.progress_adjusted.emit(0, 0)
         deb_links = []
-        cfg['downloading'] = {}
+        pkg_states['downloading'] = {}
 
-        for ppa in cfg['tobeinstalled']:
+        for ppa in pkg_states['tobeinstalled']:
 
-            for pkgid in cfg['tobeinstalled'][ppa]:
-                if ppa not in cfg['installing'] and ppa not in cfg['installed']:
-                    pkg = cfg['tobeinstalled'][ppa].pop(pkgid)
-                    if ppa not in cfg['downloading']:
-                        cfg['downloading'][ppa] = {}
-                    cfg['downloading'][ppa][pkgid] = pkg
+            for pkgid in pkg_states['tobeinstalled'][ppa]:
+                if ppa not in pkg_states['installing'] and ppa not in pkg_states['installed']:
+                    pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
+                    if ppa not in pkg_states['downloading']:
+                        pkg_states['downloading'][ppa] = {}
+                    pkg_states['downloading'][ppa][pkgid] = pkg
                     cfg.write()
                     debs_dir = cfg['debs_dir']
-                    self.message_user.emit("Downloading " + pkg.get('name'))
+                    self.msg.emit("Downloading " + pkg.get('name'))
                     result = self._thread_pool.apply_async(self.get_deb_links_and_download,
                                                            (ppa,
                                                             pkg,
@@ -256,19 +278,19 @@ class Packages(QObject):
                 deb_pkgs.append(filepath)
 
         for deb in deb_pkgs:
-            for ppa in cfg['downloading']:
-                for pkgid in cfg['downloading'][ppa]:
-                    tag = cfg['downloading'][ppa][pkgid]['deb_link'][0]
+            for ppa in pkg_states['downloading']:
+                for pkgid in pkg_states['downloading'][ppa]:
+                    tag = pkg_states['downloading'][ppa][pkgid]['deb_link'][0]
                     if os.path.basename(deb) == str(tag.contents[0]):
-                        pkg = cfg['downloading'][ppa].pop(pkgid)
-                        if ppa not in cfg['converting']:
-                            cfg['converting'][ppa] = {}
-                        cfg['converting'][ppa][pkgid] = pkg
-        cfg['downloading'] = {}
+                        pkg = pkg_states['downloading'][ppa].pop(pkgid)
+                        if ppa not in pkg_states['converting']:
+                            pkg_states['converting'][ppa] = {}
+                        pkg_states['converting'][ppa][pkgid] = pkg
+        pkg_states['downloading'] = {}
 
         cfg.write()
         self.log.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
-        self.message_user.emit('Converting Packages...')
+        self.msg.emit('Converting Packages...')
         try:
             process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
                                        deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -284,22 +306,22 @@ class Packages(QObject):
                 rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
                 rpm_name = nextline[len('Converted '):nextline.index('_')]
-                cfg['converting'].walk(config_search, search_value=rpm_name)
+                pkg_states['converting'].walk(config_search, search_value=rpm_name)
                 if cfg['found']:
-                    if not cfg['installing']:
-                        cfg['installing'] = {}
-                    if cfg['found'].parent.name not in cfg['installing']:
-                        cfg['installing'][cfg['found'].parent.name] = {}
-                    cfg['installing'][cfg['found'].parent.name][cfg['found'].name] = \
-                        cfg['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
+                    if not pkg_states['installing']:
+                        pkg_states['installing'] = {}
+                    if cfg['found'].parent.name not in pkg_states['installing']:
+                        pkg_states['installing'][cfg['found'].parent.name] = {}
+                    pkg_states['installing'][cfg['found'].parent.name][cfg['found'].name] = \
+                        pkg_states['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
                     for fn in rpm_file_names:
                         if rpm_name in fn:
-                            cfg['installing'][cfg['found'].parent.name][cfg['found'].name]['rpm_path'] = \
+                            pkg_states['installing'][cfg['found'].parent.name][cfg['found'].name]['rpm_path'] = \
                                 cfg['rpms_dir'] + fn.rstrip('\r\n')
                     cfg['found'] = {}
                     conv = True
                     self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
-                    self.message_user.emit(nextline)
+                    self.msg.emit(nextline)
                 else:
                     conv = False
             if nextline == '' and process.poll() is not None:
@@ -309,29 +331,29 @@ class Packages(QObject):
         if conv is True:
             cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
             cfg.write()
-            for ppa in cfg['converting']:
-                if cfg['converting'][ppa]:
-                    for pkg in cfg['converting'][ppa]:
-                        self.log.emit('Error - did not convert ' + str(pkg.name), logging.INFO)
-            cfg['converting'] = {}
+            for ppa in pkg_states['converting']:
+                if pkg_states['converting'][ppa]:
+                    for pkg in pkg_states['converting'][ppa]:
+                        self.log('Error - did not convert ' + str(pkg.name), logging.INFO)
+            pkg_states['converting'] = {}
             return True
         else:
-            self.log.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
+            self.log(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
 
     def _install_rpms(self):
-        self.message_user.emit("Installing packages...")
+        self.msg.emit("Installing packages...")
         rpm_links = []
-        for ppa in cfg['installing']:
-            for pkg in cfg['installing'][ppa]:
-                rpm_links.append(basename(cfg['installing'][ppa][pkg]['rpm_path']))
+        for ppa in pkg_states['installing']:
+            for pkg in pkg_states['installing'][ppa]:
+                rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
         rpm_links.append('uninstalling')
-        for ppa in cfg['uninstalling']:
-            for pkg in cfg['uninstalling'][ppa]:
-                rpm_links.append(cfg['uninstalling'][ppa][pkg]['name'])
+        for ppa in pkg_states['uninstalling']:
+            for pkg in pkg_states['uninstalling'][ppa]:
+                rpm_links.append(pkg_states['uninstalling'][ppa][pkg]['name'])
         try:
             process2 = subprocess.Popen(['/home/james/Src/kxfed/inst_rpms.py', cfg['rpms_dir']] + rpm_links, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
-            self.log.emit(e)
+            self.log.emit(e, logging.CRITICAL)
 
         while True:
             line = process2.stdout.readline().decode('utf-8')
@@ -342,7 +364,7 @@ class Packages(QObject):
                 elif 'kxfedexcept' in line:
                     self.log.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
                 elif 'kxfedmsg' in line:
-                    self.message_user.emit(line.lstrip('kxfedmsg '))
+                    self.msg.emit(line.lstrip('kxfedmsg '))
                 elif 'kxfedprogress' in line:
                     sig = line.split(' ')
                     self.progress_adjusted.emit(sig[1], sig[2])
@@ -350,11 +372,11 @@ class Packages(QObject):
                     sig = line.split(' ')
                     self.transaction_progress_adjusted(sig[1], sig[2])
                 elif 'kxfedinstalled' in line:
-                    self.message_user.emit('Installed ' + line.lstrip('kxfedinstalled'))
+                    self.msg.emit('Installed ' + line.lstrip('kxfedinstalled'))
                     # TODO move pkg in config from installing to installed
                     # TODO set checkstate of package to installed
                 elif 'kxfeduninstalled' in line:
-                    self.message_user.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                    self.msg.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     # TODO delete package from uninstalled state
                     # TODO change highlighted color of checkbox row to normal color
                     # TODO delete rpm if it says so in the preferences

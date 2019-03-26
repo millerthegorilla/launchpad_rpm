@@ -47,13 +47,15 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['cache']['expiration_time']        = "604800"
     cfg['cache']['arguments']              = {}
     cfg['cache']['arguments']['filename']  = config_dir + CACHE_FILE
-    cfg['tobeinstalled']                   = {}
-    cfg['tobeuninstalled']                 = {}
-    cfg['downloading']                     = {}
-    cfg['converting']                      = {}
-    cfg['installing']                      = {}
-    cfg['uninstalling']                    = {}
-    cfg['installed']                       = {}
+    cfg['cache']['initiated']              = {}
+    cfg['pkg_states']                      = {}
+    cfg['pkg_states']['tobeinstalled']     = {}
+    cfg['pkg_states']['tobeuninstalled']   = {}
+    cfg['pkg_states']['downloading']       = {}
+    cfg['pkg_states']['converting']        = {}
+    cfg['pkg_states']['installing']        = {}
+    cfg['pkg_states']['uninstalling']      = {}
+    cfg['pkg_states']['installed']         = {}
     cfg['tmp_dir']                         = tmp_dir
     cfg['debs']                            = {}
     cfg['debs_dir']                        = debs_dir
@@ -74,24 +76,21 @@ def delete_ppa_if_empty(section, ppa):
 
 
 def add_item_to_section(section, pkg):
-    if pkg.ppa not in cfg[section]:
-        cfg[section][pkg.ppa] = {}
-    if pkg.id not in cfg[section][pkg.ppa]:
-        cfg[section][pkg.ppa][pkg.id] = {}
-        cfg[section][pkg.ppa][pkg.id]['name'] = pkg.name
-        cfg[section][pkg.ppa][pkg.id]['version'] = pkg.version
-        cfg[section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
-        cfg[section][pkg.ppa][pkg.id]['deb_paths'] = str(pkg.deb_paths)
-        cfg[section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
-        cfg[section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+    if pkg.ppa not in cfg['pkg_states'][section]:
+        cfg['pkg_states'][section][pkg.ppa] = {}
+    if pkg.id not in cfg['pkg_states'][section][pkg.ppa]:
+        cfg['pkg_states'][section][pkg.ppa][pkg.id] = {}
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['id'] = pkg.id
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['name'] = pkg.name
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['version'] = pkg.version
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_paths'] = str(pkg.deb_paths)
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
 
 
 def config_search(section, key, search_value=None):
-    if '***' in search_value:
-        search_values = search_value.split('***')
-        if search_values[1] == str(section[key]) and search_values[0] in section.dict().values():
-            cfg['found'] = section
-    elif search_value == str(section[key]):
+    if search_value == str(section[key]):
         cfg['found'] = section
 
 
@@ -106,3 +105,4 @@ cfg.add_item_to_section = add_item_to_section
 
 __this__.cfg = cfg
 __this__.cache = cache
+__this__.pkg_states = cfg['pkg_states']
