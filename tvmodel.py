@@ -1,49 +1,56 @@
 #!/usr/bin/env python
 
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QCoreApplication
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
-from kfconf import cfg, TVITEM_ROLE, config_dir, CONFIG_FILE, pkg_states
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject
+from PyQt5.QtGui import QStandardItemModel, QBrush, QColor
+from kfconf import cfg, TVITEM_ROLE, config_dir, CONFIG_FILE
 from tvitem import TVItem
 import kfconf
 import multiprocessing.dummy
 import packages
-from kxfed import MainW
 
 
-class TVModel(QStandardItemModel):
+class TVModel(QStandardItemModel, QObject):
 
-    list_filling = pyqtSignal()
-    list_filled = pyqtSignal(list)
+    #list_filling = pyqtSignal()
+    list_filled_signal = pyqtSignal(list)
     clear_brush = None
     highlight_color = QColor(255, 204, 204)
     highlight_brush = QBrush()
+    #itemChanged = pyqtSignal(QStandardItem)
 
-    def __init__(self, headers, team, arch, progress_signal, trans_prog_signal, msg_signal, log_signal, lock_signal):
+    def __init__(self, headers, team, arch,
+                 msg_signal, log_signal, progress_signal,
+                 transaction_progress_signal,
+                 lock_model_signal, list_filling_signal, cancel_signal):
         super().__init__()
+        self.list_filling_signal = list_filling_signal
+        self.list_filled_signal.connect(self.pkg_list_complete)
         self._packages = packages.Packages(team,
                                            arch,
-                                           progress_signal,
-                                           trans_prog_signal,
                                            msg_signal,
                                            log_signal,
-                                           lock_signal)
+                                           progress_signal,
+                                           transaction_progress_signal,
+                                           lock_model_signal,
+                                           list_filling_signal,
+                                           cancel_signal,
+                                           self.list_filled_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
-        self.itemChanged.connect(TVModel.on_item_changed)
+        #self.itemChanged.connect(TVModel.on_item_changed)
+        super().itemChanged.connect(self.itemChanged)
         #kxfed.MainW.list_filled.connect(self.pkg_list_complete)
         self._pool = multiprocessing.dummy.Pool(10)
         TVModel.highlight_brush.setColor(TVModel.highlight_color)
         TVModel.highlight_brush.setStyle(Qt.DiagCrossPattern)
-        self.list_filled.connect(self.pkg_list_complete)
 
     @property
     def packages(self):
         return self._packages
 
     def populate_pkg_list(self, ppa, arch):
-        self.list_filling.emit()
         self.removeRows(0, self.rowCount())
-        self._packages.populate_pkgs(ppa.lower(), arch.lower(), self.pkg_list_complete)
+        self._packages.populate_pkgs(ppa.lower(), arch.lower())
 
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
@@ -75,12 +82,13 @@ class TVModel(QStandardItemModel):
             else:
                 pkg.installed = Qt.Unchecked
                 self.appendRow(pkg._row)
-        self.list_filling.emit()
+        self.list_filling_signal.emit()
 
-    @pyqtSlot(QStandardItem)
-    def on_item_changed(item):
+    def itemChanged(self, item):
         # I tried overloaded itemChanged, and also connecting itemChanged
         # to this function, but unless it was static it wouldn't work
+        # update - I connected to super's itemChanged, and it works properly
+        # now
         # item is tristate
         # unchecked = not installed
         # unchecked but highlighted row - uninstalling

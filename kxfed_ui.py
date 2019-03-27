@@ -45,7 +45,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.team_label)
         self.team_combo = QtWidgets.QComboBox(self.centralwidget)
         self.team_combo.setEnabled(False)
-
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
@@ -55,7 +54,6 @@ class Ui_MainWindow(object):
         self.team_combo.setObjectName("team_combo")
         self.horizontalLayout_2.addWidget(self.team_combo)
         self.horizontalLayout_2.setStretch(0, 1)
-
         self.horizontalLayout_2.setStretch(1, 10)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
@@ -66,7 +64,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3.addWidget(self.ppa_label)
         self.ppa_combo = QtWidgets.QComboBox(self.centralwidget)
         self.ppa_combo.setEnabled(True)
-
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
@@ -188,13 +185,10 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "KXFed - KXStudio on Fedora"))
-        self.lowlatency_chk.setText(_translate("MainWindow", "Lowlatency"))
-        self.reconnectBtn.setText(_translate("MainWindow", "Reconnect"))
         self.team_label.setText(_translate("MainWindow", "Team :"))
         self.ppa_label.setText(_translate("MainWindow", "PPA : "))
         self.arch_label.setText(_translate("MainWindow", "Arch : "))
         self.packages_label.setText(_translate("MainWindow", "Packages: "))
-        self.arch_label.setText(_translate("MainWindow", "Arch :"))
         self.kernelbuild_chk.setText(_translate("MainWindow", "Build and install latest RT kernel"))
         self.lowlatency_chk.setText(_translate("MainWindow", "Lowlatency"))
         self.reconnectBtn.setText(_translate("MainWindow", "Reconnect"))

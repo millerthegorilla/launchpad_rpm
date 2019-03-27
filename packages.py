@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-from PyQt5.QtCore import pyqtSignal, QObject, QCoreApplication, Qt
+from PyQt5.QtCore import pyqtSignal, QThread, QCoreApplication
 from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
 from multiprocessing.dummy import Pool as thread_pool
@@ -38,16 +38,21 @@ except ImportError as e:
     except ImportError as ee:
         raise Exception(e.args + " : " + ee.args)
 
+# TODO log messages are being written twice.
+# TODO why is it stopping?
 
-class Packages(QObject):
 
-    progress_adjusted = pyqtSignal(int, int)
-    transaction_progress_adjusted = pyqtSignal(int, int)
-    msg = pyqtSignal(str)
-    log = pyqtSignal('PyQt_PyObject', int)
-    lock_model = pyqtSignal(bool)
+class Packages(QThread):
 
-    def __init__(self, team, arch, progress_signal, trans_prog_signal, msg_signal, log_signal, lock_signal):
+    download_finished_signal = pyqtSignal('PyQt_PyObject')
+    conversion_finished_signal = pyqtSignal('PyQt_PyObject')
+    install_finished_signal = pyqtSignal()
+
+    def __init__(self, team, arch,
+                 msg_signal, log_signal, progress_signal,
+                 transaction_progress_signal,
+                 lock_model_signal, list_filling_signal,
+                 cancel_signal, list_filled_signal):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -63,11 +68,21 @@ class Packages(QObject):
         self.deb_links = None
         self.cancel_process = False
         self.installing = False
-        self.progress_adjusted.connect(progress_signal)
-        self.transaction_progress_adjusted.connect(trans_prog_signal)
-        self.msg.connect(msg_signal)
-        self.log.connect(log_signal)
-        self.lock_model.connect(lock_signal)
+
+        # signals from above
+        self.msg_signal = msg_signal
+        self.log_signal = log_signal
+        self.progress_signal = progress_signal
+        self.transaction_progress_signal = transaction_progress_signal
+        self.lock_model_signal = lock_model_signal
+        self.list_filling_signal = list_filling_signal
+        self.cancel_signal = cancel_signal
+        self.list_filled_signal = list_filled_signal
+
+        # local signals
+        self.download_finished_signal.connect(self.continue_convert)
+        self.conversion_finished_signal.connect(self.continue_install)
+        self.install_finished_signal.connect(self.finish_install)
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -89,9 +104,10 @@ class Packages(QObject):
     def pkgs(self):
         return self._pkgs
 
-    def populate_pkgs(self, ppa, arch, callback_function):
+    def populate_pkgs(self, ppa, arch):
+        self.list_filling_signal.emit()
         self._thread_pool.apply_async(self.populate_pkg_list, (ppa, arch,),
-                                      callback=callback_function)
+                                      callback=self.list_filled_signal.emit)
 
     @cache.cache_on_arguments()
     def populate_pkg_list(self, ppa, arch):
@@ -127,8 +143,7 @@ class Packages(QObject):
             cfg['cache']['initiated'] = time.time()
             return pkgs
         except HTTPError as http_error:
-            pass
-            self.log.emit(http_error, logging.CRITICAL)
+            self.log_signal.emit(http_error, logging.CRITICAL)
 
     # def pkg_search(self, sections, pkg_id):
     #     def conf_search(section, key, search_value=None):
@@ -166,69 +181,83 @@ class Packages(QObject):
         except Exception as e:
             cfg['distro_type'] = 'deb'
         if cfg['download'] == 'True':
-            deb_paths = self.download_packages()
+            self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
+            #QCoreApplication.instance().processEvents()
         # a new function is required in order for QT to resolve the
         # dependency graph successfully, due to the multithreading
         # lots of hassle with threading and signals
+        # if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
+        #     self.lock_model.emit(True)
+        #     self._thread_pool = thread_pool(10)
+        #     result = self._thread_pool.apply_async(self.convert_packages,
+        #                                            (deb_paths,))
+        #     if result.get() is True:
+        #         self.lock_model.emit(False)
+        #         QCoreApplication.instance().processEvents()
+        #         if cfg['install'] == 'True':
+        #             self.lock_model.emit(True)
+        #             if cfg['distro_type'] == 'rpm':
+        #                 self._thread_pool.apply_async(self._install_rpms, self.finish_install)
+        #             else:
+        #                 self._install_debs()
+
+    @pyqtSlot('PyQt_PyObject')
+    def continue_convert(self, deb_paths_list):
+        # async call convert function allows access to gui to continue
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-            self.lock_model.emit(True)
+            self.lock_model_signal.emit(True)
             self._thread_pool = thread_pool(10)
             result = self._thread_pool.apply_async(self.convert_packages,
-                                                   (deb_paths,))
-            if result.get() is True:
-                self.lock_model.emit(False)
-                QCoreApplication.instance().processEvents()
-                if cfg['install'] == 'True':
-                    self.lock_model.emit(True)
-                    if cfg['distro_type'] == 'rpm':
-                        self._thread_pool.apply_async(self._install_rpms, self.finish_install)
-                    else:
-                        self._install_debs()
+                                                   (deb_paths_list,), callback=self.conversion_finished_signal.emit)
+            #QCoreApplication.instance().processEvents()
+            result.wait()
 
-    # def continue_convert(self, deb_paths):
-    #     # async call convert function allows access to gui to continue
-    #     if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-    #         Kxfed.lock_model_signal.emit(True)
-    #         self._thread_pool = thread_pool(10)
-    #         result = self._thread_pool.apply_async(self.convert_packages,
-    #                                                (deb_paths,))
-    #         return result
-    #
-    # def continue_install(self):
-    #     if cfg['install'] == 'True':
-    #         Kxfed.lock_model_signal.emit(True)
-    #         if cfg['distro_type'] == 'rpm':
-    #             self._thread_pool.apply_async(self._install_rpms, self.finish_install)
-    #         else:
-    #             self._install_debs()
+    @pyqtSlot('PyQt_PyObject')
+    def continue_install(self, param):
+        if param:
+            pass
+        if cfg['install'] == 'True':
+            self.lock_model_signal.emit(True)
+            if cfg['distro_type'] == 'rpm':
+                self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
+            else:
+                self._install_debs()
 
     def finish_install(self):
-        self.lock_model.emit(False)
+        self.lock_model_signal.emit(False)
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
-        self.log.emit('Downloading Packages', logging.INFO)
-        self.progress_adjusted.emit(0, 0)
+        self.log_signal.emit('Downloading Packages', logging.INFO)
+        self.progress_signal.emit(0, 0)
         deb_links = []
         pkg_states['downloading'] = {}
 
         for ppa in pkg_states['tobeinstalled']:
-
             for pkgid in pkg_states['tobeinstalled'][ppa]:
-                if ppa not in pkg_states['installing'] and ppa not in pkg_states['installed']:
-                    pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
-                    if ppa not in pkg_states['downloading']:
-                        pkg_states['downloading'][ppa] = {}
-                    pkg_states['downloading'][ppa][pkgid] = pkg
-                    cfg.write()
-                    debs_dir = cfg['debs_dir']
-                    self.msg.emit("Downloading " + pkg.get('name'))
-                    result = self._thread_pool.apply_async(self.get_deb_links_and_download,
-                                                           (ppa,
-                                                            pkg,
-                                                            debs_dir,
-                                                            self.lp_team.web_link,))
-                    deb_links.append(result.get())
+                pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
+                if ppa in pkg_states['installing']:
+                    if pkg in pkg_states['installing'][ppa]:
+                        break
+                if ppa in pkg_states['installed']:
+                    if pkg in pkg_states['installed'][ppa]:
+                        break
+                if ppa not in pkg_states['downloading']:
+                    pkg_states['downloading'][ppa] = {}
+                pkg_states['downloading'][ppa][pkgid] = pkg
+                cfg.write()
+                debs_dir = cfg['debs_dir']
+                self.msg_signal.emit("Downloading " + pkg.get('name'))
+                deb_links.append(self.get_deb_links_and_download(ppa,
+                                                                 pkg,
+                                                                 debs_dir,
+                                                                 self.lp_team.web_link))
+                    # result = self._thread_pool.apply_async(self.get_deb_links_and_download,
+                    #                                        (ppa,
+                    #                                         pkg,
+                    #                                         debs_dir,
+                    #                                         self.lp_team.web_link,))
+                    # deb_links.append(result.get())
         return deb_links
 
     def get_deb_links_and_download(self, ppa, pkg, debs_dir, web_link):
@@ -246,7 +275,7 @@ class Packages(QObject):
                                                                                  + '(.*?)(all|amd64\.deb)'))
             pkg['deb_link'] = links
             deb_paths = []
-            self.log.emit("Downloading " + pkg.name + ' from ' + str(links), logging.INFO)
+            self.log_signal.emit("Downloading " + pkg.name + ' from ' + str(links), logging.INFO)
             for link in links:
                 fn = link['href'].rsplit('/', 1)[-1]
                 fp = debs_dir + fn
@@ -260,20 +289,23 @@ class Packages(QObject):
                         total_length = int(total_length)
                         for data in response.iter_content(chunk_size=1024):
                             f.write(data)
-                            self.progress_adjusted.emit(len(data), total_length)
+                            if total_length == 0:
+                                pass
+                            self.progress_signal.emit(len(data), total_length)
+                            QCoreApplication.instance().processEvents()
                             total_length = 0
                 deb_paths.append(fp)
             pkg['deb_paths'] = deb_paths
             return deb_paths
         except requests.HTTPError as e:
-            self.log.emit(e, logging.CRITICAL)
+            self.log_signal.emit(e, logging.CRITICAL)
 
-    def convert_packages(self, deb_paths):
+    def convert_packages(self, deb_paths_list):
 
-        self.log.emit('Converting packages : ' + str(deb_paths), logging.INFO)
-        self.progress_adjusted.emit(0, 0)
+        self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
+        self.progress_signal.emit(0, 0)
         deb_pkgs = []
-        for deb_list in deb_paths:
+        for deb_list in deb_paths_list:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
 
@@ -289,19 +321,19 @@ class Packages(QObject):
         pkg_states['downloading'] = {}
 
         cfg.write()
-        self.log.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
-        self.msg.emit('Converting Packages...')
+        self.log_signal.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
+        self.msg_signal.emit('Converting Packages...')
         try:
             process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
                                        deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
-            self.log.emit(e)
+            self.log_signal.emit(e)
 
         conv = False
         rpm_file_names = []
         while True:
             nextline = process.stdout.readline().decode('utf-8')
-            self.log.emit(nextline, logging.INFO)
+            self.log_signal.emit(nextline, logging.INFO)
             if 'Wrote' in nextline:
                 rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
@@ -320,8 +352,8 @@ class Packages(QObject):
                                 cfg['rpms_dir'] + fn.rstrip('\r\n')
                     cfg['found'] = {}
                     conv = True
-                    self.progress_adjusted.emit(round(100 / len(deb_pkgs)), 100)
-                    self.msg.emit(nextline)
+                    self.progress_signal.emit(round(100 / len(deb_pkgs)), 100)
+                    self.msg_signal.emit(nextline)
                 else:
                     conv = False
             if nextline == '' and process.poll() is not None:
@@ -334,14 +366,14 @@ class Packages(QObject):
             for ppa in pkg_states['converting']:
                 if pkg_states['converting'][ppa]:
                     for pkg in pkg_states['converting'][ppa]:
-                        self.log('Error - did not convert ' + str(pkg.name), logging.INFO)
+                        self.log_signal.emit('Error - did not convert ' + str(pkg.name), logging.INFO)
             pkg_states['converting'] = {}
-            return True
         else:
-            self.log(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
+            self.log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
 
     def _install_rpms(self):
-        self.msg.emit("Installing packages...")
+        self.log_signal.emit("Installing packages...")
+        self.msg_signal.emit("Installing packages...")
         rpm_links = []
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
@@ -353,45 +385,45 @@ class Packages(QObject):
         try:
             process2 = subprocess.Popen(['/home/james/Src/kxfed/inst_rpms.py', cfg['rpms_dir']] + rpm_links, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
-            self.log.emit(e, logging.CRITICAL)
+            self.log_signal.emit(e, logging.CRITICAL)
 
         while True:
             line = process2.stdout.readline().decode('utf-8')
-            self.log.emit(line, logging.INFO)
+            self.log_signal.emit(line, logging.INFO)
             if line:
                 if 'kxfedlog' in line:
-                    self.log.emit(line.lstrip('kxfedlog '), logging.INFO)
+                    self.log_signal.emit(line.lstrip('kxfedlog '), logging.INFO)
                 elif 'kxfedexcept' in line:
-                    self.log.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
+                    self.log_signal.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
                 elif 'kxfedmsg' in line:
-                    self.msg.emit(line.lstrip('kxfedmsg '))
+                    self.msg_signal.emit(line.lstrip('kxfedmsg '))
                 elif 'kxfedprogress' in line:
                     sig = line.split(' ')
-                    self.progress_adjusted.emit(sig[1], sig[2])
+                    self.progress_signal.emit(sig[1], sig[2])
                 elif 'kxfedtransprogress' in line:
                     sig = line.split(' ')
-                    self.transaction_progress_adjusted(sig[1], sig[2])
+                    self.transaction_progress_signal.emit(sig[1], sig[2])
                 elif 'kxfedinstalled' in line:
-                    self.msg.emit('Installed ' + line.lstrip('kxfedinstalled'))
+                    self.msg_signal.emit('Installed ' + line.lstrip('kxfedinstalled'))
                     # TODO move pkg in config from installing to installed
                     # TODO set checkstate of package to installed
                 elif 'kxfeduninstalled' in line:
-                    self.msg.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                    self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     # TODO delete package from uninstalled state
                     # TODO change highlighted color of checkbox row to normal color
                     # TODO delete rpm if it says so in the preferences
                 elif 'kxfedstop' in line:
                     break
                 else:
-                    self.log.emit(line, logging.INFO)
+                    self.log_signal.emit(line, logging.INFO)
             # if line == '' and process.poll() is not None:
             #     break
 
-    @pyqtSlot(int, QProcess.ExitStatus)
-    def catch_signal_install(self, exitcode, exitstatus):
-        self.installing = False
-        if exitcode != 0 | exitstatus != QProcess.NormalExit:
-            self.log.emit("error processing install_rpms", logging.ERROR)
+    # @pyqtSlot(int, QProcess.ExitStatus)
+    # def catch_signal_install(self, exitcode, exitstatus):
+    #     self.installing = False
+    #     if exitcode != 0 | exitstatus != QProcess.NormalExit:
+    #         self.log_signal.emit("error processing install_rpms", logging.ERROR)
 
     def _install_debs(self):
         pass
