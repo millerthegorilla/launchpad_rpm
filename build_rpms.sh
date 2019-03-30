@@ -46,7 +46,7 @@ job_pool_wait
 
 job_pool_shutdown
 
-rm -rf /home/james/.local/share/kxfed/rpmbuild
+# rm -rf /home/james/.local/share/kxfed/rpmbuild
 # check the $job_pool_nerrors for the number of jobs that exited non-zero
 #echo "job_pool_nerrors: ${job_pool_nerrors}"
 exit 0

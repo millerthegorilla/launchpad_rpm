@@ -38,6 +38,7 @@ class TVModel(QStandardItemModel, QObject):
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
         #self.itemChanged.connect(TVModel.on_item_changed)
+        # can't get overriding to work
         super().itemChanged.connect(self.itemChanged)
         #kxfed.MainW.list_filled.connect(self.pkg_list_complete)
         self._pool = multiprocessing.dummy.Pool(10)
@@ -57,27 +58,13 @@ class TVModel(QStandardItemModel, QObject):
         for pkg in pkgs:
             pkg = TVItem(pkg)
             cfg['found'] = {}
-            #kfconf.cfg['installed'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
             if self.packages.pkg_search(['installed'], pkg.id):
                 pkg.installed = Qt.Checked
-            # if kfconf.cfg['found']:
-            #     pkg.installed = Qt.Checked
                 self.appendRow(pkg._row)
-                cfg['found'] = {}
                 continue
             if self.packages.pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                 pkg.installed = Qt.PartiallyChecked
-            # kfconf.cfg['tobeinstalled'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
-            # if not kfconf.cfg['found']:
-            #     kfconf.cfg['downloading'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
-            # if not kfconf.cfg['found']:
-            #     kfconf.cfg['converting'].walk(kfconf.config_search, search_value=str(pkg.build_link) + "***" + str(pkg.name))
-            # if not kfconf.cfg['found']:
-            #     kfconf.cfg['installing'].walk(kfconf.config_search, search_value=str(pkg.id)
-            # if kfconf.cfg['found']:
-            #     pkg.installed = Qt.PartiallyChecked
                 self.appendRow(pkg.row)
-                cfg['found'] = {}
                 continue
             else:
                 pkg.installed = Qt.Unchecked

@@ -11,6 +11,7 @@ import tvmodel
 from kxfed_prefs import KxfedPrefsDialog
 from kxfedmsgsdialog import KxfedMsgsDialog
 import traceback
+from threading import RLock
 
 QTextBlock = QMetaType.type("QTextBlock")
 QTextCursor = QMetaType.type("QTextCursor")
@@ -81,6 +82,7 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
         # refresh cache button
         self.btn_refresh_cache.triggered.connect(self.refresh_cache)
 
+        self.lock = RLock()
     # def getboundmethod(self):
     #     return self.list_filling
 
@@ -110,7 +112,8 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.pkgs_tableView.resizeColumnsToContents()
             self.pkgs_tableView.resizeRowsToContents()
 
-    def progress_changed(self, amount, total):
+    def progress_change(self, amount, total):
+        #self.lock.acquire(blocking=True)
         if amount == 0 or total == 0:
             self.progress_bar.setVisible(False)
         else:
@@ -118,9 +121,10 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(total)
             self.progress_bar.setValue(amount)
-        # QApplication.instance().processEvents()
+        #self.lock.release()
 
     def transaction_progress_changed(self, amount, total):
+        #self.lock.acquire(blocking=True)
         if amount == 0 and total == 0:
             self.transaction_progress_bar.setVisible(False)
             self.transaction_progress_bar.setValue(0)
@@ -128,10 +132,14 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.transaction_progress_bar.setVisible(True)
             self.transaction_progress_bar.setMaximum(total)
             self.transaction_progress_bar.setValue(amount)
+        #self.lock.release()
 
     def message_user(self, msg):
-        self.statusbar.showMessage(msg)
+        self.lock.acquire(blocking=True)
+        self.statusbar.showMessage(msg, msecs=500)
+        self.statusbar.update()
         self.processEvents()
+        self.lock.release()
 
     def log_msg(self, e, level=None):
         if level is None:
@@ -280,7 +288,7 @@ class Kxfed(QThread):
     @pyqtSlot(int, int)
     def _progress_changed(self, amount, total):
         self.moveToThread(self.main_window.thread())
-        self.main_window.progress_changed(amount, total)
+        self.main_window.progress_change(amount, total)
 
     @pyqtSlot(int, int)
     def _transaction_progress_changed(self, amount, total):

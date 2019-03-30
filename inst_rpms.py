@@ -102,7 +102,7 @@ for filename in sys.argv[2:]:
         h = readRpmHeader(ts, filepath)
         print("kxfedlog Installing/Upgrading %s-%s-%s" % (h['name'], h['version'], h['release']))
         print("kxfedmsg Installing/Upgrading %s-%s-%s" % (h['name'], h['version'], h['release']))
-        ts.addInstall(h, filepath, 'u')
+        ts.addInstall(h, filepath, 'i')
 
 unresolved_dependencies = ts.check(check_callback)
 

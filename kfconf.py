@@ -89,11 +89,6 @@ def add_item_to_section(section, pkg):
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
 
 
-def config_search(section, key, search_value=None):
-    if search_value == str(section[key]):
-        cfg['found'] = section
-
-
 cache = make_region().configure(
             backend=cfg['cache']['backend'],
             expiration_time=int(cfg['cache']['expiration_time']),
