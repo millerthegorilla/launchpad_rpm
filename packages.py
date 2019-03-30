@@ -18,7 +18,8 @@ from launchpadlib.launchpad import Launchpad
 from launchpadlib.errors import HTTPError
 from multiprocessing.dummy import Pool as thread_pool
 from multiprocessing import Pool as mp_pool
-from kfconf import cfg, cache, config_search, pkg_states
+from threading import RLock
+from kfconf import cfg, cache, pkg_states
 import requests
 import subprocess
 import os
@@ -27,7 +28,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 import logging
-from PyQt5.QtCore import QProcess, pyqtSlot
+from PyQt5.QtCore import pyqtSlot
 import uuid
 
 try:
@@ -83,6 +84,9 @@ class Packages(QThread):
         self.download_finished_signal.connect(self.continue_convert)
         self.conversion_finished_signal.connect(self.continue_install)
         self.install_finished_signal.connect(self.finish_install)
+        self.lock = RLock()
+        self._total_length = 0
+        self._current_length = 0
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -154,12 +158,13 @@ class Packages(QThread):
     #         if cfg['found']:
     #             return True
     #     return False
-    @staticmethod
-    def pkg_search(sections, pkg_id):
+
+    def pkg_search(self, sections, search_value):
         for section in sections:
             for ppa in pkg_states[section]:
-                if pkg_id in pkg_states[section][ppa].dict():
-                    return True
+                for pkg in pkg_states[section][ppa]:
+                    if search_value in pkg_states[section][ppa][pkg].dict().values():
+                        return pkg_states[section][ppa][pkg]
         return False
 
     @staticmethod
@@ -182,7 +187,7 @@ class Packages(QThread):
             cfg['distro_type'] = 'deb'
         if cfg['download'] == 'True':
             self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
-            #QCoreApplication.instance().processEvents()
+            # QCoreApplication.instance().processEvents()
         # a new function is required in order for QT to resolve the
         # dependency graph successfully, due to the multithreading
         # lots of hassle with threading and signals
@@ -207,16 +212,20 @@ class Packages(QThread):
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
             self.lock_model_signal.emit(True)
             self._thread_pool = thread_pool(10)
+            self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
+            self.msg_signal.emit('Converting Packages...')
             result = self._thread_pool.apply_async(self.convert_packages,
-                                                   (deb_paths_list,), callback=self.conversion_finished_signal.emit)
-            #QCoreApplication.instance().processEvents()
-            result.wait()
+                                                   (deb_paths_list,))
+            self.conversion_finished_signal.emit(result.get())
+            # results.append(result)
+            # #QCoreApplication.instance().processEvents()
+            # [result.wait() for result in results]
 
     @pyqtSlot('PyQt_PyObject')
     def continue_install(self, param):
-        if param:
-            pass
         if cfg['install'] == 'True':
+            self.log_signal.emit("Installing packages...", logging.INFO)
+            self.msg_signal.emit("Installing packages...")
             self.lock_model_signal.emit(True)
             if cfg['distro_type'] == 'rpm':
                 self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
@@ -248,16 +257,18 @@ class Packages(QThread):
                 cfg.write()
                 debs_dir = cfg['debs_dir']
                 self.msg_signal.emit("Downloading " + pkg.get('name'))
-                deb_links.append(self.get_deb_links_and_download(ppa,
-                                                                 pkg,
-                                                                 debs_dir,
-                                                                 self.lp_team.web_link))
-                    # result = self._thread_pool.apply_async(self.get_deb_links_and_download,
-                    #                                        (ppa,
-                    #                                         pkg,
-                    #                                         debs_dir,
-                    #                                         self.lp_team.web_link,))
-                    # deb_links.append(result.get())
+                # deb_links.append(self.get_deb_links_and_download(ppa,
+                #                                                  pkg,
+                #                                                  debs_dir,
+                #                                                  self.lp_team.web_link))
+                result = self._thread_pool.apply_async(self.get_deb_links_and_download,
+                                                       (ppa,
+                                                        pkg,
+                                                        debs_dir,
+                                                        self.lp_team.web_link,))
+                deb_links.append(result.get())
+                self._total_length = 0
+                self._current_length = 0
         return deb_links
 
     def get_deb_links_and_download(self, ppa, pkg, debs_dir, web_link):
@@ -282,18 +293,19 @@ class Packages(QThread):
                 with open(fp, "wb+") as f:
                     response = requests.get(link['href'], stream=True)
                     total_length = response.headers.get('content-length')
-
                     if total_length is None:  # no content length header
                         f.write(response.content)
                     else:
-                        total_length = int(total_length)
+                        self.lock.acquire()
+                        self._total_length += int(total_length)
+                        self.lock.release()
+
                         for data in response.iter_content(chunk_size=1024):
                             f.write(data)
-                            if total_length == 0:
-                                pass
-                            self.progress_signal.emit(len(data), total_length)
-                            QCoreApplication.instance().processEvents()
-                            total_length = 0
+                            self.lock.acquire()
+                            self._current_length += len(data)
+                            self.progress_signal.emit(self._current_length, self._total_length)
+                            self.lock.release()
                 deb_paths.append(fp)
             pkg['deb_paths'] = deb_paths
             return deb_paths
@@ -301,14 +313,11 @@ class Packages(QThread):
             self.log_signal.emit(e, logging.CRITICAL)
 
     def convert_packages(self, deb_paths_list):
-
-        self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
-        self.progress_signal.emit(0, 0)
+        self.progress_signal.emit(0, len(deb_paths_list))  # ?
         deb_pkgs = []
         for deb_list in deb_paths_list:
             for filepath in deb_list:
                 deb_pkgs.append(filepath)
-
         for deb in deb_pkgs:
             for ppa in pkg_states['downloading']:
                 for pkgid in pkg_states['downloading'][ppa]:
@@ -321,8 +330,6 @@ class Packages(QThread):
         pkg_states['downloading'] = {}
 
         cfg.write()
-        self.log_signal.emit('Converting packages : ' + str(deb_pkgs), logging.INFO)
-        self.msg_signal.emit('Converting Packages...')
         try:
             process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
                                        deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -338,21 +345,23 @@ class Packages(QThread):
                 rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
                 rpm_name = nextline[len('Converted '):nextline.index('_')]
-                pkg_states['converting'].walk(config_search, search_value=rpm_name)
-                if cfg['found']:
+                # TODO better search function in line below
+
+                #pkg_states['converting'].walk(config_search, search_value=rpm_name)
+                found_pkg = self.pkg_search(['converting'], search_value=rpm_name)
+                if found_pkg:
                     if not pkg_states['installing']:
                         pkg_states['installing'] = {}
-                    if cfg['found'].parent.name not in pkg_states['installing']:
-                        pkg_states['installing'][cfg['found'].parent.name] = {}
-                    pkg_states['installing'][cfg['found'].parent.name][cfg['found'].name] = \
-                        pkg_states['converting'][cfg['found'].parent.name].pop(cfg['found'].name)
+                    if found_pkg.parent.name not in pkg_states['installing']:
+                        pkg_states['installing'][found_pkg.parent.name] = {}
+                    pkg_states['installing'][found_pkg.parent.name][found_pkg.name] = \
+                        pkg_states['converting'][found_pkg.parent.name].pop(found_pkg.name)
                     for fn in rpm_file_names:
                         if rpm_name in fn:
-                            pkg_states['installing'][cfg['found'].parent.name][cfg['found'].name]['rpm_path'] = \
+                            pkg_states['installing'][found_pkg.parent.name][found_pkg.name]['rpm_path'] = \
                                 cfg['rpms_dir'] + fn.rstrip('\r\n')
-                    cfg['found'] = {}
                     conv = True
-                    self.progress_signal.emit(round(100 / len(deb_pkgs)), 100)
+                    self.progress_signal.emit(len(rpm_file_names), len(deb_pkgs))
                     self.msg_signal.emit(nextline)
                 else:
                     conv = False
@@ -370,10 +379,10 @@ class Packages(QThread):
             pkg_states['converting'] = {}
         else:
             self.log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
+            return False
+        return True
 
     def _install_rpms(self):
-        self.log_signal.emit("Installing packages...")
-        self.msg_signal.emit("Installing packages...")
         rpm_links = []
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
@@ -383,12 +392,16 @@ class Packages(QThread):
             for pkg in pkg_states['uninstalling'][ppa]:
                 rpm_links.append(pkg_states['uninstalling'][ppa][pkg]['name'])
         try:
-            process2 = subprocess.Popen(['/home/james/Src/kxfed/inst_rpms.py', cfg['rpms_dir']] + rpm_links, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(['pkexec',
+                                        '/home/james/Src/kxfed/inst_rpms.py',
+                                        cfg['rpms_dir']] + rpm_links,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
         except Exception as e:
             self.log_signal.emit(e, logging.CRITICAL)
 
         while True:
-            line = process2.stdout.readline().decode('utf-8')
+            line = process.stdout.readline().decode('utf-8')
             self.log_signal.emit(line, logging.INFO)
             if line:
                 if 'kxfedlog' in line:
@@ -407,17 +420,19 @@ class Packages(QThread):
                     self.msg_signal.emit('Installed ' + line.lstrip('kxfedinstalled'))
                     # TODO move pkg in config from installing to installed
                     # TODO set checkstate of package to installed
+
                 elif 'kxfeduninstalled' in line:
                     self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     # TODO delete package from uninstalled state
                     # TODO change highlighted color of checkbox row to normal color
                     # TODO delete rpm if it says so in the preferences
+
                 elif 'kxfedstop' in line:
                     break
-                else:
-                    self.log_signal.emit(line, logging.INFO)
+
             # if line == '' and process.poll() is not None:
             #     break
+
 
     # @pyqtSlot(int, QProcess.ExitStatus)
     # def catch_signal_install(self, exitcode, exitstatus):
