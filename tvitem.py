@@ -7,8 +7,8 @@ from kfconf import TVITEM_ROLE
 
 class TVItem:
     def __init__(self, pkg_list):
-        self.deb_paths = []
-        self.rpm_path = ""
+        self._deb_path = ""
+        self._rpm_path = ""
         self._deb_link = ""
         self._build_link = QStandardItem(pkg_list[0])
         self._ppa = pkg_list[1]
@@ -61,7 +61,15 @@ class TVItem:
 
     @property
     def deb_link(self):
-        return self._deb_link
+        return self._deb_link\
+
+    @property
+    def deb_path(self):
+        return self._deb_path
+
+    @property
+    def rpm_path(self):
+        return self._rpm_path
 
     @property
     def id(self):

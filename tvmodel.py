@@ -7,16 +7,15 @@ from tvitem import TVItem
 import kfconf
 import multiprocessing.dummy
 import packages
+import os
 
 
 class TVModel(QStandardItemModel, QObject):
 
-    #list_filling = pyqtSignal()
     list_filled_signal = pyqtSignal(list)
     clear_brush = None
     highlight_color = QColor(255, 204, 204)
     highlight_brush = QBrush()
-    #itemChanged = pyqtSignal(QStandardItem)
 
     def __init__(self, headers, team, arch,
                  msg_signal, log_signal, progress_signal,
@@ -93,9 +92,34 @@ class TVModel(QStandardItemModel, QObject):
                 # if item is in the process of being installed
                 # and has been cancelled
                 if pkg.installed == Qt.PartiallyChecked:
-                    kfconf.pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
-                    cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
-                    # need further logic here to delete downloaded/converted pkgs
+                    if pkg.ppa in kfconf.pkg_states['tobeinstalled']:
+                        if pkg.id in kfconf.pkg_states['tobeinstalled'][pkg.ppa]:
+                            kfconf.pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
+                            cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
+                    if pkg.ppa in kfconf.pkg_states['downloading']:
+                        if pkg.id in kfconf.pkg_states['downloading'][pkg.ppa]:
+                            for deb_path in kfconf.pkg_states['downloading'][pkg.ppa][pkg.id]:
+                                if os.path.exists(deb_path):
+                                    os.remove(deb_path)
+                            kfconf.pkg_states['downloading'][pkg.ppa].pop(pkg.id)
+                            kfconf.delete_ppa_if_empty('downloading', pkg.ppa)
+                    if pkg.ppa in kfconf.pkg_states['converting']:
+                        if pkg.id in kfconf.pkg_states['converting'][pkg.ppa]:
+                            for deb_path in kfconf.pkg_states['converting'][pkg.ppa][pkg.id]:
+                                if os.path.exists(deb_path):
+                                    os.remove(deb_path)
+                            kfconf.pkg_states['converting'][pkg.ppa].pop(pkg.id)
+                            kfconf.delete_ppa_if_empty('converting', pkg.ppa)
+                    if pkg.ppa in kfconf.pkg_states['installing']:
+                        if pkg.id in kfconf.pkg_states['installing'][pkg.ppa]:
+                            for deb_path in kfconf.pkg_states['installing'][pkg.ppa][pkg.id]:
+                                if os.path.exists(deb_path):
+                                    os.remove(deb_path)
+                            for rpm_path in kfconf.pkg_states['installing'][pkg.ppa][pkg.id]:
+                                if os.path.exists(rpm_path):
+                                    os.remove(rpm_path)
+                            kfconf.pkg_states['installing'][pkg.ppa].pop(pkg.id)
+                            kfconf.delete_ppa_if_empty('installing', pkg.ppa)
             # item is to be downloaded/converted
             if item.checkState() == Qt.PartiallyChecked:
                 # but if the pkg wasn't downloaded/converted yet
@@ -107,7 +131,7 @@ class TVModel(QStandardItemModel, QObject):
                     TVModel.clear_brush = item.background()
                     item.setBackground(TVModel.highlight_brush)
             if item.checkState() == Qt.Checked:
-                item.setCheckState(pkg.installed)
+                item.setCheckState(Qt.Unchecked)
             pkg.installed = item.checkState()
         cfg.filename = config_dir + CONFIG_FILE
         cfg.write()

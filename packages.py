@@ -47,7 +47,7 @@ class Packages(QThread):
 
     download_finished_signal = pyqtSignal('PyQt_PyObject')
     conversion_finished_signal = pyqtSignal('PyQt_PyObject')
-    install_finished_signal = pyqtSignal()
+    install_finished_signal = pyqtSignal('PyQt_PyObject')
 
     def __init__(self, team, arch,
                  msg_signal, log_signal, progress_signal,
@@ -214,6 +214,7 @@ class Packages(QThread):
             self._thread_pool = thread_pool(10)
             self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
             self.msg_signal.emit('Converting Packages...')
+
             result = self._thread_pool.apply_async(self.convert_packages,
                                                    (deb_paths_list,))
             self.conversion_finished_signal.emit(result.get())
@@ -232,6 +233,7 @@ class Packages(QThread):
             else:
                 self._install_debs()
 
+    @pyqtSlot('PyQt_PyObject')
     def finish_install(self):
         self.lock_model_signal.emit(False)
 
@@ -261,7 +263,7 @@ class Packages(QThread):
                 #                                                  pkg,
                 #                                                  debs_dir,
                 #                                                  self.lp_team.web_link))
-                result = self._thread_pool.apply_async(self.get_deb_links_and_download,
+                result = self._thread_pool.apply_async(self.get_deb_link_and_download,
                                                        (ppa,
                                                         pkg,
                                                         debs_dir,
@@ -271,7 +273,7 @@ class Packages(QThread):
                 self._current_length = 0
         return deb_links
 
-    def get_deb_links_and_download(self, ppa, pkg, debs_dir, web_link):
+    def get_deb_link_and_download(self, ppa, pkg, debs_dir, web_link):
         # threaded function - gets build link from page and then parses that link
         # to obtain the download links for the package, downloads the package
         # and returns a path for the package deb file.
@@ -284,49 +286,51 @@ class Packages(QThread):
                                                                  href=re.compile(r''
                                                                                  + pkg['name']
                                                                                  + '(.*?)(all|amd64\.deb)'))
-            pkg['deb_link'] = links
-            deb_paths = []
+            assert len(links) == 1
+            pkg['deb_link'] = links[0]
+            link = links[0]
+            # deb_paths = []
             self.log_signal.emit("Downloading " + pkg.name + ' from ' + str(links), logging.INFO)
-            for link in links:
-                fn = link['href'].rsplit('/', 1)[-1]
-                fp = debs_dir + fn
-                with open(fp, "wb+") as f:
-                    response = requests.get(link['href'], stream=True)
-                    total_length = response.headers.get('content-length')
-                    if total_length is None:  # no content length header
-                        f.write(response.content)
-                    else:
-                        self.lock.acquire()
-                        self._total_length += int(total_length)
-                        self.lock.release()
+            # for link in links:
+            fn = link['href'].rsplit('/', 1)[-1]
+            fp = debs_dir + fn
+            with open(fp, "wb+") as f:
+                response = requests.get(link['href'], stream=True)
+                total_length = response.headers.get('content-length')
+                if total_length is None:  # no content length header
+                    f.write(response.content)
+                else:
+                    self.lock.acquire()
+                    self._total_length += int(total_length)
+                    self.lock.release()
 
-                        for data in response.iter_content(chunk_size=1024):
-                            f.write(data)
-                            self.lock.acquire()
-                            self._current_length += len(data)
-                            self.progress_signal.emit(self._current_length, self._total_length)
-                            self.lock.release()
-                deb_paths.append(fp)
-            pkg['deb_paths'] = deb_paths
-            return deb_paths
+                    for data in response.iter_content(chunk_size=1024):
+                        f.write(data)
+                        self.lock.acquire()
+                        self._current_length += len(data)
+                        self.progress_signal.emit(self._current_length, self._total_length)
+                        self.lock.release()
+            # deb_paths.append(fp)
+            pkg['deb_path'] = fp
+            cfg.write()
+            return fp
         except requests.HTTPError as e:
             self.log_signal.emit(e, logging.CRITICAL)
 
-    def convert_packages(self, deb_paths_list):
-        self.progress_signal.emit(0, len(deb_paths_list))  # ?
+    def convert_packages(self, deb_path_list):
+        self.progress_signal.emit(0, len(deb_path_list))  # ?
         deb_pkgs = []
-        for deb_list in deb_paths_list:
-            for filepath in deb_list:
-                deb_pkgs.append(filepath)
-        for deb in deb_pkgs:
+        for file_path in deb_path_list:
+            deb_pkgs.append(file_path)
+        for deb_path in deb_pkgs:
             for ppa in pkg_states['downloading']:
-                for pkgid in pkg_states['downloading'][ppa]:
-                    tag = pkg_states['downloading'][ppa][pkgid]['deb_link'][0]
-                    if os.path.basename(deb) == str(tag.contents[0]):
-                        pkg = pkg_states['downloading'][ppa].pop(pkgid)
+                for pkg_id in pkg_states['downloading'][ppa]:
+                    tag = pkg_states['downloading'][ppa][pkg_id]['deb_link']
+                    if os.path.basename(deb_path) == str(tag.contents[0]):
+                        pkg = pkg_states['downloading'][ppa].pop(pkg_id)
                         if ppa not in pkg_states['converting']:
                             pkg_states['converting'][ppa] = {}
-                        pkg_states['converting'][ppa][pkgid] = pkg
+                        pkg_states['converting'][ppa][pkg_id] = pkg
         pkg_states['downloading'] = {}
 
         cfg.write()

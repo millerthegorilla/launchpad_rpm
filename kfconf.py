@@ -71,8 +71,9 @@ else:
 
 
 def delete_ppa_if_empty(section, ppa):
-    if not cfg[section][ppa]:
-        cfg[section].pop(ppa)
+    if ppa in cfg['pkg_states'][section]:
+        if not cfg['pkg_states'][section][ppa]: # if ppa is empty
+            cfg['pkg_states'][section].pop(ppa)
 
 
 def add_item_to_section(section, pkg):
@@ -84,7 +85,7 @@ def add_item_to_section(section, pkg):
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['name'] = pkg.name
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['version'] = pkg.version
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_paths'] = str(pkg.deb_paths)
+        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
         cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
 

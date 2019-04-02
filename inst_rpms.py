@@ -6,48 +6,63 @@
 
 import os
 import sys
-
+from collections import OrderedDict
 import rpm
 
 # Global file descriptor for the callback.
-rpmtsCallback_fd = None
+fdnos = OrderedDict()
 action = 'installing'
 
 
 def run_callback(reason, amount, total, key, client_data):
-    global rpmtsCallback_fd
+    header, path = key
+    global fdnos
     if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
-        print("kxfedlog Opening file. ", reason, amount, total, key, client_data)
-        rpmtsCallback_fd = os.open(key, os.O_RDONLY)
-        return rpmtsCallback_fd
+        print("kxfedlog Opening file. ", path, client_data)
+        print("kxfedmsg Opening file. ", path, client_data)
+        nvr = '%s-%s-%s' % (header['name'], header['version'], header['release'])
+        fdnos[nvr] = os.open(path, os.O_RDONLY)
+        return fdnos[nvr]
     elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
-        print("kxfedlog Closing file. ", reason, amount, total, key, client_data)
-        os.close(rpmtsCallback_fd)
+        print("kxfedlog Closing file. ", path, client_data)
+        print("kxfedmsg Closing file. ", path, client_data)
+        nvr = '%s-%s-%s' % (header['name'], header['version'], header['release'])
+        os.close(fdnos[nvr])
     elif reason == rpm.RPMCALLBACK_INST_START:
-        print('kxfedmsg Installing', key)
+        print('kxfedlog Installing', header['NAME'])
+        print('kxfedmsg Installing', header['NAME'])
     elif reason == rpm.RPMCALLBACK_INST_PROGRESS:
         print('kxfedprogress ', amount, total)
     elif reason == rpm.RPMCALLBACK_INST_STOP:
-        print('kxfedinstalled', key)
+        print('kxfedinstalled', header['NAME'])
     elif reason == rpm.RPMCALLBACK_UNINST_START:
-        print('kxfedmsg Uninstalling', key)
+        print('kxfedlog Uninstalling', header['NAME'])
+        print('kxfedmsg Uninstalling', header['NAME'])
     elif reason == rpm.RPMCALLBACK_UNINST_PROGRESS:
         print('kxfedprogress ', amount, total)
     elif reason == rpm.RPMCALLBACK_UNINST_STOP:
         print('kxfeduninstalled', key)
     elif reason == rpm.RPMCALLBACK_TRANS_START:
+        nvr = '%s-%s-%s' % (header['name'], header['version'], header['release'])
+        keys = list(fdnos.keys())
+        amount = keys.index(nvr)
+        total = len(fdnos)
         print('kxfedtransprogress', amount, total)
     elif reason == rpm.RPMCALLBACK_TRANS_PROGRESS:
+        nvr = '%s-%s-%s' % (header['name'], header['version'], header['release'])
+        keys = list(fdnos.keys())
+        amount = keys.index(nvr)
+        total = len(fdnos)
         print('kxfedtransprogress', amount, total)
     elif reason == rpm.RPMCALLBACK_TRANS_STOP:
-        print('kxfedtransprogress', 0, 0)
+        # print('kxfedtransprogress', 0, 0)
         print('kxfedstop')
     elif reason == rpm.RPMCALLBACK_VERIFY_START:
-        print('kxfedlog Start Verify', key)
+        print('kxfedlog Start Verify', header['NAME'])
     elif reason == rpm.RPMCALLBACK_VERIFY_PROGRESS:
-        print('kxfedlog Progress Verify', key)
+        print('kxfedlog Progress Verify', header['NAME'])
     elif reason == rpm.RPMCALLBACK_VERIFY_STOP:
-        print('kxfedlog Stop Verify', key)
+        print('kxfedlog Stop Verify', header['NAME'])
     elif reason == rpm.RPMCALLBACK_SCRIPT_START:
         pass
     elif reason == rpm.RPMCALLBACK_SCRIPT_STOP:
@@ -58,23 +73,21 @@ def run_callback(reason, amount, total, key, client_data):
         print('kxfedlog Unhandled Error!', reason)
 
 
-def check_callback(ts, TagN, N, EVR, Flags):
-    if TagN == rpm.RPMTAG_REQUIRENAME:
-        prev = ""
-    Nh = None
-
-    if N[0] == '/':
-        dbitag = 'basenames'
+def check_callback(nvr, req, needsflags, suggestedpkg, sense):
+    name, version, release = nvr
+    required_name, required_version = req
+    if required_version is None:
+        filetype = "a library "
     else:
-        dbitag = 'providename'
+        filetype = "an application "
 
-    # What do you need to do.
-    if EVR:
-        print ("Must find package [", N, "-", EVR, "]")
+    if sense == rpm.RPMSENSE_CONFLICTS:
+        reason = "conflicts "
     else:
-        print ("Must find file [", N, "]")
+        reason = "requires "
 
-    return 1
+    print("kxfedmsg", name, version, release, reason, required_name, " which is ", filetype)
+    print("kxfedlog", name, version, release, reason, required_name, " which is ", filetype)
 
 
 def readRpmHeader(ts, filename):
@@ -89,20 +102,19 @@ def readRpmHeader(ts, filename):
 
 ts = rpm.TransactionSet()
 
+
 # Set to not verify DSA signatures.
 ts.setVSFlags(-1)
 
 for filename in sys.argv[2:]:
     if filename == 'uninstalling':
-        action = 'uninstalling'
-    if action == 'uninstalling':
         ts.addErase(filename)
     else:
         filepath = sys.argv[1] + filename
         h = readRpmHeader(ts, filepath)
         print("kxfedlog Installing/Upgrading %s-%s-%s" % (h['name'], h['version'], h['release']))
         print("kxfedmsg Installing/Upgrading %s-%s-%s" % (h['name'], h['version'], h['release']))
-        ts.addInstall(h, filepath, 'i')
+        ts.addInstall(h, (h, filepath), 'i')
 
 unresolved_dependencies = ts.check(check_callback)
 
@@ -112,8 +124,8 @@ if not unresolved_dependencies:
     print("kxfedmsg This upgrade will install:")
     print("kxfedlog This upgrade will install:")
     for te in ts:
-        print("kxfedmsg %s-%s-%s" % (te.N(), te.V(), te.R()))
-        print("kxfedlog %s-%s-%s" % (te.N(), te.V(), te.R()))
+        print("kxfedmsg %s-%s-%s" % (te.NEVR(), te.V(), te.R()))
+        print("kxfedlog %s-%s-%s" % (te.NEVR(), te.V(), te.R()))
 
     print("kxfedmsg Running transaction (final step)...")
     ts.run(run_callback, 1)
