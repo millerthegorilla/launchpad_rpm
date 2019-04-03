@@ -88,6 +88,9 @@ class Packages(QThread):
         self._total_length = 0
         self._current_length = 0
 
+        # process handle for the sake of cancelling
+        self.process = None
+
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
         self._lp_team = self._launchpad.people[self.team]
@@ -228,6 +231,8 @@ class Packages(QThread):
             self.log_signal.emit("Installing packages...", logging.INFO)
             self.msg_signal.emit("Installing packages...")
             self.lock_model_signal.emit(True)
+            self._thread_pool = thread_pool(10)
+
             if cfg['distro_type'] == 'rpm':
                 self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
             else:
@@ -236,6 +241,9 @@ class Packages(QThread):
     @pyqtSlot('PyQt_PyObject')
     def finish_install(self):
         self.lock_model_signal.emit(False)
+
+    def cancel(self):
+        self.process.stdin.write("cancel")
 
     def download_packages(self):
         # get list of packages to be installed from cfg, using pop to delete
@@ -335,15 +343,20 @@ class Packages(QThread):
 
         cfg.write()
         try:
-            process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', cfg['rpms_dir'], cfg['arch']] +
-                                       deb_pkgs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh',
+                                            cfg['rpms_dir'], cfg['arch']] + deb_pkgs,
+                                            bufsize=1,
+                                            stdin=subprocess.PIPE,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
         except Exception as e:
             self.log_signal.emit(e)
 
         conv = False
         rpm_file_names = []
-        while True:
-            nextline = process.stdout.readline().decode('utf-8')
+        while 1:
+            nextline = self.process.stdout.readline().decode('utf-8')
+            self.process.stdout.flush()
             self.log_signal.emit(nextline, logging.INFO)
             if 'Wrote' in nextline:
                 rpm_file_names.append(basename(nextline))
@@ -369,7 +382,7 @@ class Packages(QThread):
                     self.msg_signal.emit(nextline)
                 else:
                     conv = False
-            if nextline == '' and process.poll() is not None:
+            if nextline == '' and self.process.poll() is not None:
                 break
         # TODO ********* delete deb file if package is successfully converted
         # TODO ********* if preferences say so
@@ -396,18 +409,22 @@ class Packages(QThread):
             for pkg in pkg_states['uninstalling'][ppa]:
                 rpm_links.append(pkg_states['uninstalling'][ppa][pkg]['name'])
         try:
-            process = subprocess.Popen(['pkexec',
-                                        '/home/james/Src/kxfed/inst_rpms.py',
-                                        cfg['rpms_dir']] + rpm_links,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
+            self.process = subprocess.Popen(['pkexec',
+                                            '/home/james/Src/kxfed/inst_rpms.py',
+                                            cfg['rpms_dir']] + rpm_links,
+                                            bufsize=1,
+                                            stdin=subprocess.PIPE,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
         except Exception as e:
             self.log_signal.emit(e, logging.CRITICAL)
 
-        while True:
-            line = process.stdout.readline().decode('utf-8')
-            self.log_signal.emit(line, logging.INFO)
+        while 1:
+            line = self.process.stdout.readline().decode('utf-8')
+            self.process.stdout.flush()
+
             if line:
+                self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
                     self.log_signal.emit(line.lstrip('kxfedlog '), logging.INFO)
                 elif 'kxfedexcept' in line:
@@ -424,18 +441,17 @@ class Packages(QThread):
                     self.msg_signal.emit('Installed ' + line.lstrip('kxfedinstalled'))
                     # TODO move pkg in config from installing to installed
                     # TODO set checkstate of package to installed
-
                 elif 'kxfeduninstalled' in line:
                     self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     # TODO delete package from uninstalled state
                     # TODO change highlighted color of checkbox row to normal color
                     # TODO delete rpm if it says so in the preferences
-
                 elif 'kxfedstop' in line:
-                    break
+                    self.msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
+                    self.log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
 
-            # if line == '' and process.poll() is not None:
-            #     break
+                if line == '' and self.process.poll() is not None:
+                    break
 
 
     # @pyqtSlot(int, QProcess.ExitStatus)

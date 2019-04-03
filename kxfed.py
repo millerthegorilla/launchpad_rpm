@@ -4,7 +4,7 @@ import httplib2
 from launchpadlib.errors import HTTPError
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QMovie
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QThread, QMetaType
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QThread, QMetaType, QTimer
 from kxfed_ui import Ui_MainWindow
 from kfconf import cfg, cache, pkg_states
 import tvmodel
@@ -184,7 +184,7 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.log_signal.emit(e, logging.ERROR)
 
     def cancel_process_button(self):
-        self.kxfed.pkg_model.packages.cancel_process = True
+        self.kxfed.pkg_model.packages.cancel()
 
     def closeEvent(self, event):
         """
@@ -327,4 +327,9 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     myapp = MainW()
     myapp.show()
+
+    timer = QTimer()
+    timer.timeout.connect(lambda: None)
+    timer.start(100)
+
     sys.exit(app.exec_())
