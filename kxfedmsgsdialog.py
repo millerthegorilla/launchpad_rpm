@@ -46,14 +46,13 @@ class KxfedMsgsDialog(QDialog):
             level = log_record.level | logging.INFO
         elif msg:
             log_msg = msg
-            level = logging.INFO
+            if not level:
+                level = logging.INFO
 
         if log_msg != "":
             self.ui.plainTextEdit.appendPlainText(log_msg)
             self.logger.log(level=level, msg=log_msg)
-            if level < logging.INFO:
-                pass
         else:
             self.ui.plainTextEdit.appendPlainText("log function called without info")
-            self.logger.log(level=logging.INFO, msg="no message")
+            self.logger.log(level=level, msg="no message")
 
