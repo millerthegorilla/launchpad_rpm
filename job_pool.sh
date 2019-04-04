@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Job pooling for bash shell scripts
 # This script provides a job pooling functionality where you can keep up to n
 # processes/functions running in parallel so that you don't saturate a system

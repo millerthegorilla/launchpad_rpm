@@ -1,8 +1,9 @@
 #!/usr/bin/pkexec /usr/bin/python3
 
-import rpm
 import os
 import sys
+
+import rpm
 
 
 class InstallRpms:
@@ -30,7 +31,7 @@ class InstallRpms:
         else:
             try:
                 ts.order()
-                ts.setVSFlags(-1)   # TODO necessary?
+                ts.setVSFlags(-1)  # TODO necessary?
                 print("kxfedlog This will install:")
                 for te in ts:
                     print("kxfedlog %s-%s-%s" % (te.N(), te.V(), te.R()))
@@ -63,10 +64,8 @@ class InstallRpms:
         else:
             print('kxfedlog Unhandled Error!', reason)
 
-# import epdb;
-# epdb.set_trace()
+
 try:
     InstallRpms()
 except Exception as e:
     print('kxfedexcept Error getting package data', str(e))
-

@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 
+import multiprocessing.dummy
+import os
+
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject
 from PyQt5.QtGui import QStandardItemModel, QBrush, QColor
-from kfconf import cfg, TVITEM_ROLE, config_dir, CONFIG_FILE
-from tvitem import TVItem
-import kfconf
-import multiprocessing.dummy
+
 import packages
-import os
+from kfconf import cfg, TVITEM_ROLE, \
+    config_dir, CONFIG_FILE, \
+    pkg_states, delete_ppa_if_empty, \
+    add_item_to_section
+from tvitem import TVItem
 
 
 class TVModel(QStandardItemModel, QObject):
-
     list_filled_signal = pyqtSignal(list)
     clear_brush = None
     highlight_color = QColor(255, 204, 204)
@@ -36,10 +39,10 @@ class TVModel(QStandardItemModel, QObject):
                                            self.list_filled_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
-        #self.itemChanged.connect(TVModel.on_item_changed)
+        # self.itemChanged.connect(TVModel.on_item_changed)
         # can't get overriding to work
         super().itemChanged.connect(self.itemChanged)
-        #kxfed.MainW.list_filled.connect(self.pkg_list_complete)
+        # kxfed.MainW.list_filled.connect(self.pkg_list_complete)
         self._pool = multiprocessing.dummy.Pool(10)
         TVModel.highlight_brush.setColor(TVModel.highlight_color)
         TVModel.highlight_brush.setStyle(Qt.DiagCrossPattern)
@@ -81,7 +84,7 @@ class TVModel(QStandardItemModel, QObject):
         # partially checked = in the process of being installed
         #                     ie downloaded/converted/installing but not installed
         # checked = installed
-        #item = QStandardItem(item)
+        # item = QStandardItem(item)
         pkg = item.data(TVITEM_ROLE)
         if item.isCheckable():
             # if item is not installed
@@ -92,34 +95,42 @@ class TVModel(QStandardItemModel, QObject):
                 # if item is in the process of being installed
                 # and has been cancelled
                 if pkg.installed == Qt.PartiallyChecked:
-                    if pkg.ppa in kfconf.pkg_states['tobeinstalled']:
-                        if pkg.id in kfconf.pkg_states['tobeinstalled'][pkg.ppa]:
-                            kfconf.pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
+                    if pkg.ppa in pkg_states['tobeinstalled']:
+                        if pkg.id in pkg_states['tobeinstalled'][pkg.ppa]:
+                            pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
                             cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
-                    if pkg.ppa in kfconf.pkg_states['downloading']:
-                        if pkg.id in kfconf.pkg_states['downloading'][pkg.ppa]:
-                            for deb_path in kfconf.pkg_states['downloading'][pkg.ppa][pkg.id]:
+                    if pkg.ppa in pkg_states['downloading']:
+                        if pkg.id in pkg_states['downloading'][pkg.ppa]:
+                            for deb_path in pkg_states['downloading'][pkg.ppa][pkg.id]:
                                 if os.path.exists(deb_path):
                                     os.remove(deb_path)
-                            kfconf.pkg_states['downloading'][pkg.ppa].pop(pkg.id)
-                            kfconf.delete_ppa_if_empty('downloading', pkg.ppa)
-                    if pkg.ppa in kfconf.pkg_states['converting']:
-                        if pkg.id in kfconf.pkg_states['converting'][pkg.ppa]:
-                            for deb_path in kfconf.pkg_states['converting'][pkg.ppa][pkg.id]:
+                            pkg_states['downloading'][pkg.ppa].pop(pkg.id)
+                            delete_ppa_if_empty('downloading', pkg.ppa)
+                    if pkg.ppa in pkg_states['converting']:
+                        if pkg.id in pkg_states['converting'][pkg.ppa]:
+                            for deb_path in pkg_states['converting'][pkg.ppa][pkg.id]:
                                 if os.path.exists(deb_path):
                                     os.remove(deb_path)
-                            kfconf.pkg_states['converting'][pkg.ppa].pop(pkg.id)
-                            kfconf.delete_ppa_if_empty('converting', pkg.ppa)
-                    if pkg.ppa in kfconf.pkg_states['installing']:
-                        if pkg.id in kfconf.pkg_states['installing'][pkg.ppa]:
-                            for deb_path in kfconf.pkg_states['installing'][pkg.ppa][pkg.id]:
-                                if os.path.exists(deb_path):
-                                    os.remove(deb_path)
-                            for rpm_path in kfconf.pkg_states['installing'][pkg.ppa][pkg.id]:
-                                if os.path.exists(rpm_path):
-                                    os.remove(rpm_path)
-                            kfconf.pkg_states['installing'][pkg.ppa].pop(pkg.id)
-                            kfconf.delete_ppa_if_empty('installing', pkg.ppa)
+                            pkg_states['converting'][pkg.ppa].pop(pkg.id)
+                            delete_ppa_if_empty('converting', pkg.ppa)
+                    if pkg.ppa in pkg_states['installing']:
+                        if pkg.id in pkg_states['installing'][pkg.ppa]:
+                            deb_path = pkg_states['installing'][pkg.ppa][pkg.id]['deb_path']
+                            if os.path.exists(deb_path) and cfg['delete_downloaded']:
+                                os.remove(deb_path)
+                            rpm_path = pkg_states['installing'][pkg.ppa][pkg.id]['rpm_path']
+                            if os.path.exists(rpm_path) and cfg['delete_converted']:
+                                os.remove(rpm_path)
+                            pkg_states['installing'][pkg.ppa].pop(pkg.id)
+                            delete_ppa_if_empty('installing', pkg.ppa)
+                # if item is being set to uninstall
+                if pkg.installed == Qt.Checked:
+                    # move from installed to uninstalling section
+                    section = self._packages.pkg_search(pkg_states['installed'])
+                    if section:
+                        pkg_states['installed'][pkg.ppa].pop(pkg.id)
+                        delete_ppa_if_empty(pkg_states['installed'], pkg.ppa)
+                        add_item_to_section(pkg_states['uninstalling'], pkg)
             # item is to be downloaded/converted
             if item.checkState() == Qt.PartiallyChecked:
                 # but if the pkg wasn't downloaded/converted yet

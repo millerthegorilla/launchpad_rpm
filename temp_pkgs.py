@@ -14,12 +14,14 @@
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
 
-from launchpadlib.launchpad import Launchpad
-from launchpadlib.errors import HTTPError
 import logging
 import re
-from bs4 import BeautifulSoup, SoupStrainer
+
 import requests
+from bs4 import BeautifulSoup, SoupStrainer
+from launchpadlib.errors import HTTPError
+from launchpadlib.launchpad import Launchpad
+
 import kfconf
 
 
@@ -83,8 +85,8 @@ class Packages:
                                i.binary_package_version]
                         if pkg not in pkgs:
                             pkgs.append(pkg)
-                            # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
-                            #                        pkg)
+                        # self.populate_pkgs.set(lp_ppa + i.binary_package_name,
+                        #                        pkg)
             # do I need to cache __pkgs in instance variable - why not use a local?
             return pkgs
         except Exception as http_error:
@@ -93,10 +95,10 @@ class Packages:
     def _get_deb_links_(self, ppa, build_link, name):
         try:
             html = requests.get(self.__lp_team.web_link
-                                         + '/+archive/ubuntu/'
-                                         + ppa
-                                         + '/+build/' + build_link)
+                                + '/+archive/ubuntu/'
+                                + ppa
+                                + '/+build/' + build_link)
             links = BeautifulSoup(html, 'lxml').find_all('a', href=re.compile(r'' + name + '(.*?)(all|amd64\.deb)'))
-            return [build_link, list(map(lambda x: x['href'], links))]
+            return [build_link, list(map(lambda x:x['href'], links))]
         except Exception as http_error:
             logging.log("error", str(http_error))

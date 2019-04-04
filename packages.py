@@ -10,26 +10,25 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-#    You should have received a copy of the GNU General Public License
-#    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
-#    (c) 2018 - James Stewart Miller
-from PyQt5.QtCore import pyqtSignal, QThread, QCoreApplication
-from launchpadlib.launchpad import Launchpad
-from launchpadlib.errors import HTTPError
-from multiprocessing.dummy import Pool as thread_pool
-from multiprocessing import Pool as mp_pool
-from threading import RLock
-from kfconf import cfg, cache, pkg_states
-import requests
-import subprocess
-import os
-from os.path import basename
-from bs4 import BeautifulSoup
-import re
-import time
 import logging
-from PyQt5.QtCore import pyqtSlot
+import os
+import re
+import subprocess
+import time
 import uuid
+from multiprocessing import Pool as mp_pool
+from multiprocessing.dummy import Pool as thread_pool
+from os.path import basename, exists
+from threading import RLock
+
+import requests
+from PyQt5.QtCore import pyqtSignal, QThread, pyqtSlot
+from PyQt5.QtGui import QGuiApplication
+from bs4 import BeautifulSoup
+from launchpadlib.errors import HTTPError
+from launchpadlib.launchpad import Launchpad
+
+from kfconf import cfg, cache, pkg_states, clean_section, add_item_to_section
 
 try:
     import rpm
@@ -39,12 +38,12 @@ except ImportError as e:
     except ImportError as ee:
         raise Exception(e.args + " : " + ee.args)
 
+
 # TODO log messages are being written twice.
 # TODO why is it stopping?
 
 
 class Packages(QThread):
-
     download_finished_signal = pyqtSignal('PyQt_PyObject')
     conversion_finished_signal = pyqtSignal('PyQt_PyObject')
     install_finished_signal = pyqtSignal('PyQt_PyObject')
@@ -162,7 +161,8 @@ class Packages(QThread):
     #             return True
     #     return False
 
-    def pkg_search(self, sections, search_value):
+    @staticmethod
+    def pkg_search(sections, search_value):
         for section in sections:
             for ppa in pkg_states[section]:
                 for pkg in pkg_states[section][ppa]:
@@ -175,7 +175,7 @@ class Packages(QThread):
         # get list of packages to be uninstalled from cfg, using pop to delete
         for ppa in pkg_states['tobeuninstalled']:
             for pkg in pkg_states['tobeuninstalled'][ppa]:
-                #subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
+                # subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
                 # TODO if success!!
                 pkg_states['installed'][pkg.ppa].pop(pkg.id)
                 cfg.delete_ppa_if_empty('installed', pkg.ppa)
@@ -189,77 +189,87 @@ class Packages(QThread):
         except Exception as e:
             cfg['distro_type'] = 'deb'
         if cfg['download'] == 'True':
-            self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
-            # QCoreApplication.instance().processEvents()
-        # a new function is required in order for QT to resolve the
-        # dependency graph successfully, due to the multithreading
-        # lots of hassle with threading and signals
-        # if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-        #     self.lock_model.emit(True)
-        #     self._thread_pool = thread_pool(10)
-        #     result = self._thread_pool.apply_async(self.convert_packages,
-        #                                            (deb_paths,))
-        #     if result.get() is True:
-        #         self.lock_model.emit(False)
-        #         QCoreApplication.instance().processEvents()
-        #         if cfg['install'] == 'True':
-        #             self.lock_model.emit(True)
-        #             if cfg['distro_type'] == 'rpm':
-        #                 self._thread_pool.apply_async(self._install_rpms, self.finish_install)
-        #             else:
-        #                 self._install_debs()
+            clean_section(pkg_states['tobeinstalled'])
+            if pkg_states['downloading']:
+                for ppa in pkg_states['downloading']:
+                    for pkg in pkg_states['downloading'][ppa]:
+                        if not pkg_states['downloading'][ppa][pkg]['deb_path']:
+                            add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkg))
+            # TODO the following code requires delete_ppa_if_empty to be used at all times
+            if pkg_states['tobeinstalled']:
+                self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
+            elif pkg_states['converting']:
+                deb_paths_list = []
+                for ppa in pkg_states['converting']:
+                    for pkg in pkg_states['converting'][ppa]:
+                        if pkg_states['converting'][ppa][pkg]['deb_path']:
+                            if exists(pkg_states['converting'][ppa][pkg]['deb_path']):
+                                deb_paths_list.append(pkg_states['converting'][ppa][pkg]['deb_path'])
+                            else:
+                                add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkg))
+                if pkg_states['tobeinstalled']:
+                    self._thread_pool.apply_async(self.download_packages, (deb_paths_list,), callback=self.download_finished_signal.emit)
+                else:
+                    self.continue_convert(deb_paths_list)
+            elif pkg_states['installing']:
+                self.continue_install(True)
 
     @pyqtSlot('PyQt_PyObject')
     def continue_convert(self, deb_paths_list):
         # async call convert function allows access to gui to continue
-        if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-            self.lock_model_signal.emit(True)
-            self._thread_pool = thread_pool(10)
-            self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
-            self.msg_signal.emit('Converting Packages...')
+        if deb_paths_list:
+            if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
+                self.lock_model_signal.emit(True)
+                self._thread_pool = thread_pool(10)
+                self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
+                self.msg_signal.emit('Converting Packages...')
 
-            result = self._thread_pool.apply_async(self.convert_packages,
-                                                   (deb_paths_list,))
-            self.conversion_finished_signal.emit(result.get())
-            # results.append(result)
-            # #QCoreApplication.instance().processEvents()
-            # [result.wait() for result in results]
+                result = self._thread_pool.apply_async(self.convert_packages,
+                                                       (deb_paths_list,))
+                self.conversion_finished_signal.emit(result.get())
 
     @pyqtSlot('PyQt_PyObject')
     def continue_install(self, param):
+        # param is boolean, returned from converting_packages for the sake of result.get()
         if cfg['install'] == 'True':
-            self.log_signal.emit("Installing packages...", logging.INFO)
-            self.msg_signal.emit("Installing packages...")
-            self.lock_model_signal.emit(True)
-            self._thread_pool = thread_pool(10)
+            clean_section(pkg_states['installing'])
+            if pkg_states['installing']:
+                self.log_signal.emit("Installing packages...", logging.INFO)
+                self.msg_signal.emit("Installing packages...")
+                self.lock_model_signal.emit(True)
+                self._thread_pool = thread_pool(10)
 
-            if cfg['distro_type'] == 'rpm':
-                self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
-            else:
-                self._install_debs()
+                if cfg['distro_type'] == 'rpm':
+                    self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
+                else:
+                    self._install_debs()
 
     @pyqtSlot('PyQt_PyObject')
     def finish_install(self):
         self.lock_model_signal.emit(False)
 
     def cancel(self):
-        self.process.stdin.write("cancel")
+        if self.process is not None:
+            self.process.stdin.write("cancel")
 
-    def download_packages(self):
+    def download_packages(self, deb_links):
         # get list of packages to be installed from cfg, using pop to delete
         self.log_signal.emit('Downloading Packages', logging.INFO)
         self.progress_signal.emit(0, 0)
-        deb_links = []
+        if deb_links is None:
+            deb_links = []
         pkg_states['downloading'] = {}
 
         for ppa in pkg_states['tobeinstalled']:
             for pkgid in pkg_states['tobeinstalled'][ppa]:
                 pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
                 if ppa in pkg_states['installing']:
-                    if pkg in pkg_states['installing'][ppa]:
+                    if pkgid in pkg_states['installing'][ppa]:
                         break
                 if ppa in pkg_states['installed']:
-                    if pkg in pkg_states['installed'][ppa]:
+                    if pkgid in pkg_states['installed'][ppa]:
+                        self.msg_signal.emit(pkg['name'] + " is already installed")
+                        self.log_signal.emit(pkg['name'] + " is already installed")
                         break
                 if ppa not in pkg_states['downloading']:
                     pkg_states['downloading'][ppa] = {}
@@ -267,10 +277,6 @@ class Packages(QThread):
                 cfg.write()
                 debs_dir = cfg['debs_dir']
                 self.msg_signal.emit("Downloading " + pkg.get('name'))
-                # deb_links.append(self.get_deb_links_and_download(ppa,
-                #                                                  pkg,
-                #                                                  debs_dir,
-                #                                                  self.lp_team.web_link))
                 result = self._thread_pool.apply_async(self.get_deb_link_and_download,
                                                        (ppa,
                                                         pkg,
@@ -344,7 +350,7 @@ class Packages(QThread):
         cfg.write()
         try:
             self.process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh',
-                                            cfg['rpms_dir'], cfg['arch']] + deb_pkgs,
+                                             cfg['rpms_dir'], cfg['arch']] + deb_pkgs,
                                             bufsize=1,
                                             stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
@@ -355,6 +361,7 @@ class Packages(QThread):
         conv = False
         rpm_file_names = []
         while 1:
+            QGuiApplication.instance().processEvents()
             nextline = self.process.stdout.readline().decode('utf-8')
             self.process.stdout.flush()
             self.log_signal.emit(nextline, logging.INFO)
@@ -362,9 +369,6 @@ class Packages(QThread):
                 rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
                 rpm_name = nextline[len('Converted '):nextline.index('_')]
-                # TODO better search function in line below
-
-                #pkg_states['converting'].walk(config_search, search_value=rpm_name)
                 found_pkg = self.pkg_search(['converting'], search_value=rpm_name)
                 if found_pkg:
                     if not pkg_states['installing']:
@@ -380,12 +384,12 @@ class Packages(QThread):
                     conv = True
                     self.progress_signal.emit(len(rpm_file_names), len(deb_pkgs))
                     self.msg_signal.emit(nextline)
+                    if os.path.exists(found_pkg['deb_path']) and cfg['delete_downloaded']:
+                        os.remove(found_pkg['deb_path'])
                 else:
                     conv = False
             if nextline == '' and self.process.poll() is not None:
                 break
-        # TODO ********* delete deb file if package is successfully converted
-        # TODO ********* if preferences say so
         if conv is True:
             cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
             cfg.write()
@@ -404,14 +408,13 @@ class Packages(QThread):
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
                 rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
-        rpm_links.append('uninstalling')
         for ppa in pkg_states['uninstalling']:
             for pkg in pkg_states['uninstalling'][ppa]:
-                rpm_links.append(pkg_states['uninstalling'][ppa][pkg]['name'])
+                rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
         try:
             self.process = subprocess.Popen(['pkexec',
-                                            '/home/james/Src/kxfed/inst_rpms.py',
-                                            cfg['rpms_dir']] + rpm_links,
+                                             '/home/james/Src/kxfed/inst_rpms.py',
+                                             cfg['rpms_dir']] + rpm_links,
                                             bufsize=1,
                                             stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
@@ -420,9 +423,9 @@ class Packages(QThread):
             self.log_signal.emit(e, logging.CRITICAL)
 
         while 1:
+            QGuiApplication.instance().processEvents()
             line = self.process.stdout.readline().decode('utf-8')
             self.process.stdout.flush()
-
             if line:
                 self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
@@ -439,20 +442,19 @@ class Packages(QThread):
                     self.transaction_progress_signal.emit(sig[1], sig[2])
                 elif 'kxfedinstalled' in line:
                     self.msg_signal.emit('Installed ' + line.lstrip('kxfedinstalled'))
-                    # TODO move pkg in config from installing to installed
-                    # TODO set checkstate of package to installed
+                # TODO move pkg in config from installing to installed
+                # TODO set checkstate of package to installed
                 elif 'kxfeduninstalled' in line:
                     self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
-                    # TODO delete package from uninstalled state
-                    # TODO change highlighted color of checkbox row to normal color
-                    # TODO delete rpm if it says so in the preferences
+                # TODO delete package from uninstalled state
+                # TODO change highlighted color of checkbox row to normal color
+                # TODO delete rpm if it says so in the preferences
                 elif 'kxfedstop' in line:
                     self.msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
                     self.log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
 
                 if line == '' and self.process.poll() is not None:
                     break
-
 
     # @pyqtSlot(int, QProcess.ExitStatus)
     # def catch_signal_install(self, exitcode, exitstatus):

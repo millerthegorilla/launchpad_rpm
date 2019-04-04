@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from PyQt5.QtGui import QStandardItem
 from PyQt5.QtCore import Qt
-import uuid
+from PyQt5.QtGui import QStandardItem
+
 from kfconf import TVITEM_ROLE
 
 
@@ -61,7 +61,7 @@ class TVItem:
 
     @property
     def deb_link(self):
-        return self._deb_link\
+        return self._deb_link
 
     @property
     def deb_path(self):

@@ -1,10 +1,12 @@
 # config.py
-import os, sys
+import os
+import sys
 from pathlib import Path
+from threading import RLock
+
+from PyQt5.QtCore import Qt
 from configobj import ConfigObj
 from dogpile.cache import make_region
-from PyQt5.QtCore import Qt
-from threading import RLock
 
 # constants
 CONFIG_DIR = ".config/kxfed/"
@@ -37,63 +39,63 @@ for path in paths:
 
 if not os.path.exists(config_dir + CONFIG_FILE):
     cfg = ConfigObj()
-    cfg['config']                          = {}
-    cfg['config']['dir']                   = config_dir
-    cfg['config']['filename']              = CONFIG_FILE
-    cfg['cache']                           = {}
-    cfg['cache']['filename']               = CACHE_FILE
-    cfg['cache']['backend']                = "dogpile.cache.dbm"
-    cfg['cache']['enabled']                = "True"
-    cfg['cache']['expiration_time']        = "604800"
-    cfg['cache']['arguments']              = {}
-    cfg['cache']['arguments']['filename']  = config_dir + CACHE_FILE
-    cfg['cache']['initiated']              = {}
-    cfg['pkg_states']                      = {}
-    cfg['pkg_states']['tobeinstalled']     = {}
-    cfg['pkg_states']['tobeuninstalled']   = {}
-    cfg['pkg_states']['downloading']       = {}
-    cfg['pkg_states']['converting']        = {}
-    cfg['pkg_states']['installing']        = {}
-    cfg['pkg_states']['uninstalling']      = {}
-    cfg['pkg_states']['installed']         = {}
-    cfg['tmp_dir']                         = tmp_dir
-    cfg['debs']                            = {}
-    cfg['debs_dir']                        = debs_dir
-    cfg['log_name']                        = "kxfed.log"
-    cfg['rpms_dir']                        = rpms_dir
-    cfg['arch']                            = "amd64"
-    cfg['download']                        = "True"
-    cfg['convert']                         = "True"
-    cfg['install']                         = "True"
-    cfg['log_file_path']                   = tmp_dir + cfg["log_name"]
+    cfg['config'] = {}
+    cfg['config']['dir'] = config_dir
+    cfg['config']['filename'] = CONFIG_FILE
+    cfg['cache'] = {}
+    cfg['cache']['filename'] = CACHE_FILE
+    cfg['cache']['backend'] = "dogpile.cache.dbm"
+    cfg['cache']['enabled'] = "True"
+    cfg['cache']['expiration_time'] = "604800"
+    cfg['cache']['arguments'] = {}
+    cfg['cache']['arguments']['filename'] = config_dir + CACHE_FILE
+    cfg['cache']['initiated'] = {}
+    cfg['pkg_states'] = {}
+    cfg['pkg_states']['tobeinstalled'] = {}
+    cfg['pkg_states']['tobeuninstalled'] = {}
+    cfg['pkg_states']['downloading'] = {}
+    cfg['pkg_states']['converting'] = {}
+    cfg['pkg_states']['installing'] = {}
+    cfg['pkg_states']['uninstalling'] = {}
+    cfg['pkg_states']['installed'] = {}
+    cfg['tmp_dir'] = tmp_dir
+    cfg['debs'] = {}
+    cfg['debs_dir'] = debs_dir
+    cfg['log_name'] = "kxfed.log"
+    cfg['rpms_dir'] = rpms_dir
+    cfg['arch'] = "amd64"
+    cfg['download'] = "True"
+    cfg['convert'] = "True"
+    cfg['install'] = "True"
+    cfg['delete_converted'] = "True"
+    cfg['delete_downloaded'] = "True"
+    cfg['log_file_path'] = tmp_dir + cfg["log_name"]
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
 
 def delete_ppa_if_empty(section, ppa):
     if ppa in cfg['pkg_states'][section]:
-        if not cfg['pkg_states'][section][ppa]: # if ppa is empty
+        if not cfg['pkg_states'][section][ppa]:  # if ppa is empty
             cfg['pkg_states'][section].pop(ppa)
 
 
+def clean_section(section):
+    for ppa in section:
+        delete_ppa_if_empty(section.name, ppa)
+
+
 def add_item_to_section(section, pkg):
-    if pkg.ppa not in cfg['pkg_states'][section]:
-        cfg['pkg_states'][section][pkg.ppa] = {}
-    if pkg.id not in cfg['pkg_states'][section][pkg.ppa]:
-        cfg['pkg_states'][section][pkg.ppa][pkg.id] = {}
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['id'] = pkg.id
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['name'] = pkg.name
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['version'] = pkg.version
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
-        cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+    if pkg.parent.name not in cfg['pkg_states'][section]:
+        cfg['pkg_states'][section][pkg.parent.name] = {}
+    if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
+        cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
 
 
 cache = make_region().configure(
-            backend=cfg['cache']['backend'],
-            expiration_time=int(cfg['cache']['expiration_time']),
-            arguments={'filename': cfg['cache']['arguments']['filename']})
+    backend=cfg['cache']['backend'],
+    expiration_time=int(cfg['cache']['expiration_time']),
+    arguments={'filename':cfg['cache']['arguments']['filename']})
 
 cfg._lock = RLock()
 cfg.delete_ppa_if_empty = delete_ppa_if_empty
