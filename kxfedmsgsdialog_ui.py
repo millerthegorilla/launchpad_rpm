@@ -6,15 +6,18 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 from messageswindow import MessagesWindow
+
 
 class Ui_KxfedMsgsDialog(object):
     def setupUi(self, KxfedMsgsDialog):
         KxfedMsgsDialog.setObjectName("KxfedMsgsDialog")
         KxfedMsgsDialog.setWindowModality(QtCore.Qt.ApplicationModal)
         KxfedMsgsDialog.resize(450, 330)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                           QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(KxfedMsgsDialog.sizePolicy().hasHeightForWidth())

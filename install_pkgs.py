@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 
 import sys
+
 import dbus
-import dbus.service
 import dbus.mainloop.glib
+import dbus.service
 from gi.repository import GLib
 
 
@@ -39,7 +40,6 @@ if __name__ == '__main__':
     except dbus.exceptions.DBusException as e:
         print(str(e))
 
-
     try:
         object = InstallPkgs(session_bus_name)
         mainloop.run()
@@ -49,4 +49,3 @@ if __name__ == '__main__':
         print("unhandled exception occurred:")
     finally:
         mainloop.quit()
-

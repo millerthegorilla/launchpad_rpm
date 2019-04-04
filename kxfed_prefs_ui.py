@@ -6,7 +6,8 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
 from QLabelChanged import QLabelChanged
 
 
@@ -14,18 +15,19 @@ class Ui_prefs_dialog(object):
     def setupUi(self, prefs_dialog):
         prefs_dialog.setObjectName("prefs_dialog")
         prefs_dialog.setWindowModality(QtCore.Qt.WindowModal)
-        prefs_dialog.resize(400, 300)
+        prefs_dialog.resize(389, 346)
         self.buttonBox = QtWidgets.QDialogButtonBox(prefs_dialog)
-        self.buttonBox.setGeometry(QtCore.QRect(40, 260, 341, 32))
+        self.buttonBox.setGeometry(QtCore.QRect(40, 300, 341, 32))
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.label = QtWidgets.QLabel(prefs_dialog)
         self.label.setGeometry(QtCore.QRect(50, 130, 151, 19))
         self.label.setObjectName("label")
         self.directory_label = QLabelChanged(prefs_dialog)
         self.directory_label.setGeometry(QtCore.QRect(50, 160, 311, 19))
-        self.directory_label.setToolTip("The directories that store the deb and rpm files are located here, as well as the temporary conversion files")
+        self.directory_label.setToolTip("")
+        self.directory_label.setToolTipDuration(3)
         self.directory_label.setStatusTip("")
         self.directory_label.setWhatsThis("")
         self.directory_label.setAutoFillBackground(True)
@@ -49,6 +51,20 @@ class Ui_prefs_dialog(object):
         self.install_chkbox.setChecked(True)
         self.install_chkbox.setObjectName("install_chkbox")
         self.verticalLayout.addWidget(self.install_chkbox)
+        self.layoutWidget_2 = QtWidgets.QWidget(prefs_dialog)
+        self.layoutWidget_2.setGeometry(QtCore.QRect(50, 200, 229, 61))
+        self.layoutWidget_2.setObjectName("layoutWidget_2")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.layoutWidget_2)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.delete_downloaded_chkbox = QtWidgets.QCheckBox(self.layoutWidget_2)
+        self.delete_downloaded_chkbox.setChecked(True)
+        self.delete_downloaded_chkbox.setObjectName("delete_downloaded_chkbox")
+        self.verticalLayout_2.addWidget(self.delete_downloaded_chkbox)
+        self.delete_convert_chkbox = QtWidgets.QCheckBox(self.layoutWidget_2)
+        self.delete_convert_chkbox.setChecked(True)
+        self.delete_convert_chkbox.setObjectName("delete_convert_chkbox")
+        self.verticalLayout_2.addWidget(self.delete_convert_chkbox)
 
         self.retranslateUi(prefs_dialog)
         self.buttonBox.accepted.connect(prefs_dialog.accept)
@@ -63,5 +79,5 @@ class Ui_prefs_dialog(object):
         self.download_chkbox.setText(_translate("prefs_dialog", "Download Checked Packages"))
         self.convert_chkbox.setText(_translate("prefs_dialog", "Convert Checked Packages"))
         self.install_chkbox.setText(_translate("prefs_dialog", "Install Checked Packages"))
-
-
+        self.delete_downloaded_chkbox.setText(_translate("prefs_dialog", "Delete Downloaded Packages"))
+        self.delete_convert_chkbox.setText(_translate("prefs_dialog", "Delete Converted Packages"))

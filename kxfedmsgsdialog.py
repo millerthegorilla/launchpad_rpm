@@ -1,8 +1,10 @@
-from PyQt5.QtWidgets import QDialog
-from kxfedmsgsdialog_ui import Ui_KxfedMsgsDialog
 import logging
 import logging.handlers
+
+from PyQt5.QtWidgets import QDialog
+
 from kfconf import cfg
+from kxfedmsgsdialog_ui import Ui_KxfedMsgsDialog
 
 
 # TODO - add and sort out logging in MessagesWindow
@@ -55,4 +57,3 @@ class KxfedMsgsDialog(QDialog):
         else:
             self.ui.plainTextEdit.appendPlainText("log function called without info")
             self.logger.log(level=level, msg="no message")
-

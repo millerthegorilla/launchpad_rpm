@@ -1,28 +1,35 @@
 #!/usr/bin/python3
-import sys, requests, logging
-import httplib2
-from launchpadlib.errors import HTTPError
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QMovie
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QThread, QMetaType, QTimer
-from kxfed_ui import Ui_MainWindow
-from kfconf import cfg, cache, pkg_states
-import tvmodel
-from kxfed_prefs import KxfedPrefsDialog
-from kxfedmsgsdialog import KxfedMsgsDialog
+import logging
+import sys
 import traceback
 from threading import RLock
 
-QTextBlock = QMetaType.type("QTextBlock")
-QTextCursor = QMetaType.type("QTextCursor")
+import httplib2
+import requests
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QMetaType, QTimer
+from PyQt5.QtGui import QMovie
+from PyQt5.QtWidgets import *
+from launchpadlib.errors import HTTPError
+
+import tvmodel
+from kfconf import cfg, cache, pkg_states
+from kxfed_prefs import KxfedPrefsDialog
+from kxfed_ui import Ui_MainWindow
+from kxfedmsgsdialog import KxfedMsgsDialog
+
+# QTextBlock = QMetaType.type("QTextBlock")
+# QTextCursor = QMetaType.type("QTextCursor")
 
 
 # TODO add installed packages to config
-class MainW (QMainWindow, Ui_MainWindow, QApplication):
+# TODO send in correct path for build_rpm.sh
+# TODO to build_rpms.sh, unless relative path is ok?
+class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def __init__(self):
         QMainWindow.__init__(self)
         self.setupUi(self)
+        self.lock = RLock()
 
         self._movie = QMovie("./assets/loader.gif")
         self.load_label.setMovie(self._movie)
@@ -55,13 +62,13 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
         self.kxfed_msgs_dialog = KxfedMsgsDialog()
         self.btn_show_messages.triggered.connect(self.show_msgs)
 
+        # connection button
+        self.reconnectBtn.setVisible(False)
+
         # kxfed object - controller
         self.kxfed = Kxfed(self)
 
-        # connection button
-        self.reconnectBtn.setVisible(False)
         self.reconnectBtn.pressed.connect(self.kxfed.connect)
-
         self.pkgs_tableView.setModel(self.kxfed.pkg_model)
         self.pkgs_tableView.horizontalHeader().setStretchLastSection(True)
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
@@ -69,8 +76,8 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.install_btn.clicked.connect(self.install_pkgs_button)
-
         self.install_btn.setText('Process Packages')
+        self.btn_quit.triggered.connect(self.close)
 
         self.progress_bar.setVisible(False)
         self.transaction_progress_bar.setVisible(False)
@@ -82,7 +89,6 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
         # refresh cache button
         self.btn_refresh_cache.triggered.connect(self.refresh_cache)
 
-        self.lock = RLock()
     # def getboundmethod(self):
     #     return self.list_filling
 
@@ -113,7 +119,7 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.pkgs_tableView.resizeRowsToContents()
 
     def progress_change(self, amount, total):
-        #self.lock.acquire(blocking=True)
+        # self.lock.acquire(blocking=True)
         if amount == 0 or total == 0:
             self.progress_bar.setVisible(False)
         else:
@@ -121,10 +127,11 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(total)
             self.progress_bar.setValue(amount)
-        #self.lock.release()
+
+    # self.lock.release()
 
     def transaction_progress_changed(self, amount, total):
-        #self.lock.acquire(blocking=True)
+        # self.lock.acquire(blocking=True)
         if amount == 0 and total == 0:
             self.transaction_progress_bar.setVisible(False)
             self.transaction_progress_bar.setValue(0)
@@ -132,11 +139,12 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.transaction_progress_bar.setVisible(True)
             self.transaction_progress_bar.setMaximum(total)
             self.transaction_progress_bar.setValue(amount)
-        #self.lock.release()
+
+    # self.lock.release()
 
     def message_user(self, msg):
         self.lock.acquire(blocking=True)
-        self.statusbar.showMessage(msg, msecs=500)
+        self.statusbar.showMessage(msg, msecs=8000)
         self.statusbar.update()
         self.processEvents()
         self.lock.release()
@@ -173,7 +181,7 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
                 self.ppa_combo.itemData(self.ppa_combo.currentIndex()),
                 self.arch_combo.currentText())
         except Exception as e:
-            self.log_signal.emit(e, logging.ERROR)
+            self.log_msg(e, logging.ERROR)
 
     def install_pkgs_button(self):
         try:
@@ -181,7 +189,7 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
             self.install_btn.clicked.connect(self.cancel_process_button)
             self.kxfed.pkg_model.packages.install_pkgs_button()
         except Exception as e:
-            self.log_signal.emit(e, logging.ERROR)
+            self.log_msg(e, logging.ERROR)
 
     def cancel_process_button(self):
         self.kxfed.pkg_model.packages.cancel()
@@ -211,7 +219,6 @@ class MainW (QMainWindow, Ui_MainWindow, QApplication):
 
 
 class Kxfed(QThread):
-
     msg_signal = pyqtSignal(str)
     log_signal = pyqtSignal('PyQt_PyObject', int)
     progress_signal = pyqtSignal(int, int)
@@ -231,12 +238,12 @@ class Kxfed(QThread):
         self.main_window.arch_combo.addItem("i386")
 
         # signals
-        self.msg_signal.connect(self._message_user) #, type=Qt.DirectConnection)
-        self.log_signal.connect(self._log_msg) # type=Qt.DirectConnection)
-        self.progress_signal.connect(self._progress_changed) #, type=Qt.DirectConnection)
-        self.transaction_progress_signal.connect(self._transaction_progress_changed) #, type=Qt.DirectConnection)
-        self.lock_model_signal.connect(self._lock_model) #, type=Qt.DirectConnection)
-        self.list_filling_signal.connect(self._toggle_pkg_list_loading) #, type=Qt.DirectConnection)
+        self.msg_signal.connect(self._message_user)  # , type=Qt.DirectConnection)
+        self.log_signal.connect(self._log_msg)  # type=Qt.DirectConnection)
+        self.progress_signal.connect(self._progress_changed)  # , type=Qt.DirectConnection)
+        self.transaction_progress_signal.connect(self._transaction_progress_changed)  # , type=Qt.DirectConnection)
+        self.lock_model_signal.connect(self._lock_model)  # , type=Qt.DirectConnection)
+        self.list_filling_signal.connect(self._toggle_pkg_list_loading)  # , type=Qt.DirectConnection)
         self.cancel_signal.connect(self._cancelled)
 
         self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
@@ -256,7 +263,7 @@ class Kxfed(QThread):
     @property
     def team(self):
         return self._team
-    
+
     @property
     def pkg_model(self):
         return self._pkg_model
@@ -329,7 +336,7 @@ if __name__ == '__main__':
     myapp.show()
 
     timer = QTimer()
-    timer.timeout.connect(lambda: None)
+    timer.timeout.connect(lambda:None)
     timer.start(100)
 
     sys.exit(app.exec_())

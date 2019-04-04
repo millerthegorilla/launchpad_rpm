@@ -32,14 +32,20 @@ number_of_debs=$(($#-2))
 if [ $MAX_NUM_OF_JOBS -lt $number_of_debs ]; then
     number_of_jobs=$MAX_NUM_OF_JOBS
 else
-    number_of_jobs=$number_of_debs
+    number_of_jobs=${number_of_debs}
 fi
 
-job_pool_init $number_of_jobs 0
+job_pool_init ${number_of_jobs} 0
 
 for (( i=3; i<=$#; i++ ))
 do
-    job_pool_run /home/james/Src/kxfed/build_rpm.sh $RPM_BUILD_ROOT $RPMS_DIR $ARCH ${!i}
+    job_pool_run /home/james/Src/kxfed/build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i}
+    while IFS= read line; do
+        if $line eq "cancel"; then
+            job_pool_shutdown
+            break
+        fi
+    done
 done
 
 job_pool_wait

@@ -1,4 +1,6 @@
-import logging, threading
+import logging
+import threading
+
 
 class FuncThread(threading.Thread):
     def __init__(self, target, *args):
@@ -13,11 +15,11 @@ class FuncThread(threading.Thread):
 def log(self, msg='', level='info',
         exception=None, std_out=False, to_disk=False):
     log_level = {
-        'debug'     : logging.debug,
-        'info'      : logging.info,
-        'warning'   : logging.warning,
-        'error'     : logging.error,
-        'critical'  : logging.critical
+        'debug':logging.debug,
+        'info':logging.info,
+        'warning':logging.warning,
+        'error':logging.error,
+        'critical':logging.critical
     }.get(level, logging.debug('unable to log - check syntax'))
     if exception is not None:
         raise type(exception)(msg)
@@ -26,7 +28,7 @@ def log(self, msg='', level='info',
 
 
 def gen_dict_extract(key, var):
-    if hasattr(var,'iteritems'):
+    if hasattr(var, 'iteritems'):
         for k, v in var.iteritems():
             if k == key:
                 yield v
