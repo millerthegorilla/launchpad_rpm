@@ -2,7 +2,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QStandardItem
 
-from kfconf import TVITEM_ROLE
+TVITEM_ROLE = Qt.UserRole + 1
 
 
 class TVItem:
@@ -73,4 +73,8 @@ class TVItem:
 
     @property
     def id(self):
-        return self._id
+        return self._id    \
+
+    @property
+    def install_state(self):
+        return self._install_state

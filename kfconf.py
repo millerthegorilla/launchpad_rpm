@@ -7,12 +7,12 @@ from threading import RLock
 from PyQt5.QtCore import Qt
 from configobj import ConfigObj
 from dogpile.cache import make_region
+from tvitem import TVItem
 
 # constants
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
-TVITEM_ROLE = Qt.UserRole + 1
 
 __this__ = sys.modules[__name__]
 
@@ -86,10 +86,25 @@ def clean_section(section):
 
 
 def add_item_to_section(section, pkg):
-    if pkg.parent.name not in cfg['pkg_states'][section]:
-        cfg['pkg_states'][section][pkg.parent.name] = {}
-    if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
-        cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
+    """section is a string name of section
+       pkg is of type tvitem or a configobj section"""
+    if type(pkg) is TVItem:
+        if pkg.ppa not in cfg['pkg_states'][section]:
+            cfg['pkg_states'][section][pkg.ppa] = {}
+        if pkg.id not in cfg['pkg_states'][section][pkg.ppa]:
+            cfg['pkg_states'][section][pkg.ppa][pkg.id] = {}
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['id'] = pkg.id
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['name'] = pkg.name
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['version'] = pkg.version
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
+            cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+    else:
+        if pkg.parent.name not in cfg['pkg_states'][section]:
+            cfg['pkg_states'][section][pkg.parent.name] = {}
+        if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
+            cfg['pkg_states'][section][pkg.parent.name][pkg.id] = pkg
 
 
 cache = make_region().configure(

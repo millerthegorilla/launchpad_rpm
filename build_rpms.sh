@@ -40,12 +40,12 @@ job_pool_init ${number_of_jobs} 0
 for (( i=3; i<=$#; i++ ))
 do
     job_pool_run /home/james/Src/kxfed/build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i}
-    while IFS= read line; do
-        if $line eq "cancel"; then
-            job_pool_shutdown
-            break
-        fi
-    done
+#    while IFS= read line; do
+#        if $line eq "cancel"; then
+#            job_pool_shutdown
+#            break
+#        fi
+#    done
 done
 
 job_pool_wait

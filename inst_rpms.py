@@ -12,7 +12,7 @@ import os
 from multiprocessing.dummy import Pool as thread_pool
 
 
-class InstallRpms:
+class ActionRpms:
 
     def __init__(self):
         self.stop = False
@@ -171,11 +171,11 @@ class InstallRpms:
 
 
 if __name__ == '__main__':
-    install_rpms = InstallRpms()
+    action_rpms = ActionRpms()
     tp = thread_pool(10)
-    result = tp.apply_async(install_rpms.action)
+    result = tp.apply_async(action_rpms.action)
     while not result.ready():
-        if install_rpms.stop:
+        if action_rpms.stop:
             tp.close()
             tp.terminate()
             install_rpms = None
@@ -184,7 +184,7 @@ if __name__ == '__main__':
             break
         nextline = sys.stdin.readline().decode('utf-8')
         if 'cancel' in nextline:
-            install_rpms.stop = True
+            action_rpms.stop = True
         # for line in fileinput.input(openhook=fileinput.hook_encoded("utf-8")):
         #     if "cancel" in line.encode('utf-8').decode():
         #         install_rpms.stop = True
