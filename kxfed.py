@@ -8,10 +8,10 @@ import httplib2
 import requests
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QMetaType, QTimer
 from PyQt5.QtGui import QMovie
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 from launchpadlib.errors import HTTPError
 
-import tvmodel
+import tvmodel, packages
 from kfconf import cfg, cache, pkg_states
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
@@ -94,7 +94,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def refresh_cache(self):
         cache.invalidate(hard=True)
-        self.kxfed.populate_pkgs()
+        self.populate_pkgs()
 
     def show_prefs(self):
         self.kxfed_prefs_dialog.show()
@@ -194,6 +194,15 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def cancel_process_button(self):
         self.kxfed.pkg_model.packages.cancel()
 
+    def request_action(self, msg):
+        result = QMessageBox.question(QMessageBox(),
+                                      "Confirm Action...",
+                                      msg,
+                                      QMessageBox.Yes | QMessageBox.No)
+
+        if result == QMessageBox.Yes:
+            self.kxfed.pkg_model.packages.continue_actioning_if_ok()
+
     def closeEvent(self, event):
         """
         clean up :
@@ -226,6 +235,7 @@ class Kxfed(QThread):
     lock_model_signal = pyqtSignal(bool)
     list_filling_signal = pyqtSignal()
     cancel_signal = pyqtSignal()
+    request_action_signal = pyqtSignal(str)
 
     def __init__(self, mainw):
         super().__init__()
@@ -245,6 +255,7 @@ class Kxfed(QThread):
         self.lock_model_signal.connect(self._lock_model)  # , type=Qt.DirectConnection)
         self.list_filling_signal.connect(self._toggle_pkg_list_loading)  # , type=Qt.DirectConnection)
         self.cancel_signal.connect(self._cancelled)
+        self.request_action_signal.connect(self._request_action)
 
         self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
                                          self.main_window.team_combo.currentText().lower(),
@@ -255,7 +266,8 @@ class Kxfed(QThread):
                                          self.transaction_progress_signal,
                                          self.lock_model_signal,
                                          self.list_filling_signal,
-                                         self.cancel_signal)
+                                         self.cancel_signal,
+                                         self.request_action_signal)
 
         # connect
         self.connect()
@@ -306,6 +318,11 @@ class Kxfed(QThread):
     def _lock_model(self, enabled):
         self.moveToThread(self.main_window.thread())
         self.main_window.lock_model(enabled)
+
+    @pyqtSlot(str)
+    def _request_action(self, msg):
+        self.moveToThread(self.main_window.thread())
+        self.main_window.request_action(msg)
 
     def connect(self):
         try:

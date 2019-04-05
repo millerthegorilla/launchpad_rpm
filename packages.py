@@ -46,13 +46,14 @@ except ImportError as e:
 class Packages(QThread):
     download_finished_signal = pyqtSignal('PyQt_PyObject')
     conversion_finished_signal = pyqtSignal('PyQt_PyObject')
-    install_finished_signal = pyqtSignal('PyQt_PyObject')
+    actioning_finished_signal = pyqtSignal('PyQt_PyObject')
 
     def __init__(self, team, arch,
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
-                 cancel_signal, list_filled_signal):
+                 cancel_signal, request_action_signal,
+                 list_filled_signal):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -77,12 +78,13 @@ class Packages(QThread):
         self.lock_model_signal = lock_model_signal
         self.list_filling_signal = list_filling_signal
         self.cancel_signal = cancel_signal
+        self.request_action_signal = request_action_signal
         self.list_filled_signal = list_filled_signal
 
         # local signals
         self.download_finished_signal.connect(self.continue_convert)
-        self.conversion_finished_signal.connect(self.continue_install)
-        self.install_finished_signal.connect(self.finish_install)
+        self.conversion_finished_signal.connect(self.continue_actioning)
+        self.actioning_finished_signal.connect(self.finish_actioning)
         self.lock = RLock()
         self._total_length = 0
         self._current_length = 0
@@ -151,35 +153,16 @@ class Packages(QThread):
         except HTTPError as http_error:
             self.log_signal.emit(http_error, logging.CRITICAL)
 
-    # def pkg_search(self, sections, pkg_id):
-    #     def conf_search(section, key, search_value=None):
-    #         if search_value == section[key]:
-    #             cfg['found'] = section
-    #     for sect in sections:
-    #         cfg[sect].walk(conf_search, search_value=pkg_id)
-    #         if cfg['found']:
-    #             return True
-    #     return False
-
     @staticmethod
     def pkg_search(sections, search_value):
+        """sections is a list of strings - names of sections - to search
+           search value is content string"""
         for section in sections:
             for ppa in pkg_states[section]:
                 for pkg in pkg_states[section][ppa]:
                     if search_value in pkg_states[section][ppa][pkg].dict().values():
                         return pkg_states[section][ppa][pkg]
         return False
-
-    @staticmethod
-    def uninstall_pkgs(self):
-        # get list of packages to be uninstalled from cfg, using pop to delete
-        for ppa in pkg_states['tobeuninstalled']:
-            for pkg in pkg_states['tobeuninstalled'][ppa]:
-                # subprocess.run(['pkexec', './uninstall_pkg', pkg.binary_name], stdout=subprocess.PIPE)
-                # TODO if success!!
-                pkg_states['installed'][pkg.ppa].pop(pkg.id)
-                cfg.delete_ppa_if_empty('installed', pkg.ppa)
-        pkg_states['tobeuninstalled'].clear()
 
     def install_pkgs_button(self):
         try:
@@ -195,24 +178,26 @@ class Packages(QThread):
                     for pkg in pkg_states['downloading'][ppa]:
                         if not pkg_states['downloading'][ppa][pkg]['deb_path']:
                             add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkg))
-            # TODO the following code requires delete_ppa_if_empty to be used at all times
+        # TODO the following code requires delete_ppa_if_empty to be used at all times
+        if pkg_states['tobeinstalled']:
+            self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
+        elif pkg_states['converting']:
+            deb_paths_list = []
+            for ppa in pkg_states['converting']:
+                for pkg in pkg_states['converting'][ppa]:
+                    if pkg_states['converting'][ppa][pkg]['deb_path']:
+                        if exists(pkg_states['converting'][ppa][pkg]['deb_path']):
+                            deb_paths_list.append(pkg_states['converting'][ppa][pkg]['deb_path'])
+                        else:
+                            add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkg))
             if pkg_states['tobeinstalled']:
-                self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
-            elif pkg_states['converting']:
-                deb_paths_list = []
-                for ppa in pkg_states['converting']:
-                    for pkg in pkg_states['converting'][ppa]:
-                        if pkg_states['converting'][ppa][pkg]['deb_path']:
-                            if exists(pkg_states['converting'][ppa][pkg]['deb_path']):
-                                deb_paths_list.append(pkg_states['converting'][ppa][pkg]['deb_path'])
-                            else:
-                                add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkg))
-                if pkg_states['tobeinstalled']:
-                    self._thread_pool.apply_async(self.download_packages, (deb_paths_list,), callback=self.download_finished_signal.emit)
-                else:
-                    self.continue_convert(deb_paths_list)
-            elif pkg_states['installing']:
-                self.continue_install(True)
+                self._thread_pool.apply_async(self.download_packages,
+                                              (deb_paths_list,),
+                                              callback=self.download_finished_signal.emit)
+            else:
+                self.continue_convert(deb_paths_list)
+        elif pkg_states['installing'] or pkg_states['uninstalling']:
+            self.continue_actioning(True)
 
     @pyqtSlot('PyQt_PyObject')
     def continue_convert(self, deb_paths_list):
@@ -229,30 +214,49 @@ class Packages(QThread):
                 self.conversion_finished_signal.emit(result.get())
 
     @pyqtSlot('PyQt_PyObject')
-    def continue_install(self, param):
+    def continue_actioning(self, param):
         # param is boolean, returned from converting_packages for the sake of result.get()
-        if cfg['install'] == 'True':
+        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
             clean_section(pkg_states['installing'])
-            if pkg_states['installing']:
-                self.log_signal.emit("Installing packages...", logging.INFO)
-                self.msg_signal.emit("Installing packages...")
-                self.lock_model_signal.emit(True)
-                self._thread_pool = thread_pool(10)
+            clean_section(pkg_states['uninstalling'])
+            if pkg_states['installing'] or pkg_states['uninstalling']:
+                self.log_signal.emit("Actioning packages...", logging.INFO)
+                self.msg_signal.emit("Actioning packages...")
+                install_msg_txt = ""
+                uninstall_msg_txt = ""
+                msg_txt = ""
+                for ppa in pkg_states['installing']:
+                    for pkg in pkg_states['installing'][ppa]:
+                        install_msg_txt += pkg_states['installing'][ppa][pkg]['name'] + "\n"
+                for ppa in pkg_states['uninstalling']:
+                    for pkg in pkg_states['uninstalling'][ppa]:
+                        uninstall_msg_txt += pkg_states['uninstalling'][ppa][pkg]['name'] + "\n"
+                if install_msg_txt:
+                    msg_txt = "This will install: \n" + install_msg_txt
+                    if uninstall_msg_txt:
+                        msg_txt += "\n and will uninstall: \n" + uninstall_msg_txt
+                elif uninstall_msg_txt:
+                    msg_txt = "This will uninstall: \n" + uninstall_msg_txt
+                self.request_action_signal.emit(msg_txt)
 
-                if cfg['distro_type'] == 'rpm':
-                    self._thread_pool.apply_async(self._install_rpms, callback=self.install_finished_signal.emit)
-                else:
-                    self._install_debs()
+    def continue_actioning_if_ok(self):
+        self.lock_model_signal.emit(True)
+        self._thread_pool = thread_pool(10)
+
+        if cfg['distro_type'] == 'rpm':
+            self._thread_pool.apply_async(self._action_rpms, callback=self.actioning_finished_signal.emit)
+        else:
+            self._install_debs()
 
     @pyqtSlot('PyQt_PyObject')
-    def finish_install(self):
+    def finish_actioning(self):
         self.lock_model_signal.emit(False)
 
     def cancel(self):
         if self.process is not None:
-            self.process.stdin.write("cancel")
+            self.process.stdin.write(b"cancel")
 
-    def download_packages(self, deb_links):
+    def download_packages(self, deb_links=None):
         # get list of packages to be installed from cfg, using pop to delete
         self.log_signal.emit('Downloading Packages', logging.INFO)
         self.progress_signal.emit(0, 0)
@@ -403,7 +407,7 @@ class Packages(QThread):
             return False
         return True
 
-    def _install_rpms(self):
+    def _action_rpms(self):
         rpm_links = []
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
@@ -427,13 +431,13 @@ class Packages(QThread):
             line = self.process.stdout.readline().decode('utf-8')
             self.process.stdout.flush()
             if line:
-                self.log_signal.emit(line, logging.INFO)
+                # self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
-                    self.log_signal.emit(line.lstrip('kxfedlog '), logging.INFO)
+                    self.log_signal.emit(line.lstrip('kxfedlog'), logging.INFO)
                 elif 'kxfedexcept' in line:
-                    self.log_signal.emit(line.lstrip('kxfedexcept '), logging.CRITICAL)
+                    self.log_signal.emit(line.lstrip('kxfedexcept'), logging.CRITICAL)
                 elif 'kxfedmsg' in line:
-                    self.msg_signal.emit(line.lstrip('kxfedmsg '))
+                    self.msg_signal.emit(line.lstrip('kxfedmsg'))
                 elif 'kxfedprogress' in line:
                     sig = line.split(' ')
                     self.progress_signal.emit(sig[1], sig[2])

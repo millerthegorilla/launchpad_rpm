@@ -7,11 +7,11 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject
 from PyQt5.QtGui import QStandardItemModel, QBrush, QColor
 
 import packages
-from kfconf import cfg, TVITEM_ROLE, \
+from kfconf import cfg, \
     config_dir, CONFIG_FILE, \
     pkg_states, delete_ppa_if_empty, \
     add_item_to_section
-from tvitem import TVItem
+from tvitem import TVItem, TVITEM_ROLE
 
 
 class TVModel(QStandardItemModel, QObject):
@@ -23,7 +23,8 @@ class TVModel(QStandardItemModel, QObject):
     def __init__(self, headers, team, arch,
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
-                 lock_model_signal, list_filling_signal, cancel_signal):
+                 lock_model_signal, list_filling_signal,
+                 cancel_signal, request_action_signal):
         super().__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
@@ -36,6 +37,7 @@ class TVModel(QStandardItemModel, QObject):
                                            lock_model_signal,
                                            list_filling_signal,
                                            cancel_signal,
+                                           request_action_signal,
                                            self.list_filled_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
@@ -62,7 +64,12 @@ class TVModel(QStandardItemModel, QObject):
             cfg['found'] = {}
             if self.packages.pkg_search(['installed'], pkg.id):
                 pkg.installed = Qt.Checked
-                self.appendRow(pkg._row)
+                self.appendRow(pkg.row)
+                continue
+            if self.packages.pkg_search(['uninstalling'], pkg.id):
+                pkg.installed = Qt.Unchecked
+                pkg.install_state.setBackground(Qt.red)
+                self.appendRow(pkg.row)
                 continue
             if self.packages.pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                 pkg.installed = Qt.PartiallyChecked
@@ -126,11 +133,12 @@ class TVModel(QStandardItemModel, QObject):
                 # if item is being set to uninstall
                 if pkg.installed == Qt.Checked:
                     # move from installed to uninstalling section
-                    section = self._packages.pkg_search(pkg_states['installed'])
+                    section = self._packages.pkg_search(['installed'], pkg.id)
                     if section:
                         pkg_states['installed'][pkg.ppa].pop(pkg.id)
-                        delete_ppa_if_empty(pkg_states['installed'], pkg.ppa)
-                        add_item_to_section(pkg_states['uninstalling'], pkg)
+                        delete_ppa_if_empty('installed', pkg.ppa)
+                        add_item_to_section('uninstalling', pkg)
+                        item.setBackground(QBrush(Qt.red))
             # item is to be downloaded/converted
             if item.checkState() == Qt.PartiallyChecked:
                 # but if the pkg wasn't downloaded/converted yet
@@ -139,8 +147,8 @@ class TVModel(QStandardItemModel, QObject):
                 # or item is to be uninstalled
                 if pkg.installed == Qt.Checked:
                     cfg.add_item_to_section('tobeuninstalled', pkg)
-                    TVModel.clear_brush = item.background()
-                    item.setBackground(TVModel.highlight_brush)
+                    #TVModel.clear_brush = item.background()
+                    item.setBackground(QBrush(Qt.red))
             if item.checkState() == Qt.Checked:
                 item.setCheckState(Qt.Unchecked)
             pkg.installed = item.checkState()
