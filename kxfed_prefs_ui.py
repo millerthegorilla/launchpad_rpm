@@ -7,25 +7,24 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtWidgets
-
-from QLabelChanged import QLabelChanged
+from qlabelchanged import QLabelChanged
 
 
 class Ui_prefs_dialog(object):
     def setupUi(self, prefs_dialog):
         prefs_dialog.setObjectName("prefs_dialog")
         prefs_dialog.setWindowModality(QtCore.Qt.WindowModal)
-        prefs_dialog.resize(389, 346)
+        prefs_dialog.resize(408, 403)
         self.buttonBox = QtWidgets.QDialogButtonBox(prefs_dialog)
-        self.buttonBox.setGeometry(QtCore.QRect(40, 300, 341, 32))
+        self.buttonBox.setGeometry(QtCore.QRect(50, 350, 341, 32))
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.label = QtWidgets.QLabel(prefs_dialog)
-        self.label.setGeometry(QtCore.QRect(50, 130, 151, 19))
+        self.label.setGeometry(QtCore.QRect(50, 170, 151, 19))
         self.label.setObjectName("label")
         self.directory_label = QLabelChanged(prefs_dialog)
-        self.directory_label.setGeometry(QtCore.QRect(50, 160, 311, 19))
+        self.directory_label.setGeometry(QtCore.QRect(50, 200, 311, 19))
         self.directory_label.setToolTip("")
         self.directory_label.setToolTipDuration(3)
         self.directory_label.setStatusTip("")
@@ -34,7 +33,7 @@ class Ui_prefs_dialog(object):
         self.directory_label.setFrameShape(QtWidgets.QFrame.Box)
         self.directory_label.setObjectName("directory_label")
         self.layoutWidget = QtWidgets.QWidget(prefs_dialog)
-        self.layoutWidget.setGeometry(QtCore.QRect(50, 20, 225, 89))
+        self.layoutWidget.setGeometry(QtCore.QRect(50, 20, 225, 120))
         self.layoutWidget.setObjectName("layoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
@@ -51,8 +50,12 @@ class Ui_prefs_dialog(object):
         self.install_chkbox.setChecked(True)
         self.install_chkbox.setObjectName("install_chkbox")
         self.verticalLayout.addWidget(self.install_chkbox)
+        self.uninstall_chkbox = QtWidgets.QCheckBox(self.layoutWidget)
+        self.uninstall_chkbox.setChecked(True)
+        self.uninstall_chkbox.setObjectName("uninstall_chkbox")
+        self.verticalLayout.addWidget(self.uninstall_chkbox)
         self.layoutWidget_2 = QtWidgets.QWidget(prefs_dialog)
-        self.layoutWidget_2.setGeometry(QtCore.QRect(50, 200, 229, 61))
+        self.layoutWidget_2.setGeometry(QtCore.QRect(50, 240, 229, 61))
         self.layoutWidget_2.setObjectName("layoutWidget_2")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.layoutWidget_2)
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -79,5 +82,6 @@ class Ui_prefs_dialog(object):
         self.download_chkbox.setText(_translate("prefs_dialog", "Download Checked Packages"))
         self.convert_chkbox.setText(_translate("prefs_dialog", "Convert Checked Packages"))
         self.install_chkbox.setText(_translate("prefs_dialog", "Install Checked Packages"))
+        self.uninstall_chkbox.setText(_translate("prefs_dialog", "Uninstall Checked Packages"))
         self.delete_downloaded_chkbox.setText(_translate("prefs_dialog", "Delete Downloaded Packages"))
         self.delete_convert_chkbox.setText(_translate("prefs_dialog", "Delete Converted Packages"))

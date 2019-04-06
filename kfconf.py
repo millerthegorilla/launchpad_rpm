@@ -67,6 +67,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['download'] = "True"
     cfg['convert'] = "True"
     cfg['install'] = "True"
+    cfg['uninstall'] = "True"
     cfg['delete_converted'] = "True"
     cfg['delete_downloaded'] = "True"
     cfg['log_file_path'] = tmp_dir + cfg["log_name"]
@@ -80,9 +81,13 @@ def delete_ppa_if_empty(section, ppa):
             cfg['pkg_states'][section].pop(ppa)
 
 
-def clean_section(section):
-    for ppa in section:
-        delete_ppa_if_empty(section.name, ppa)
+def clean_section(sections):
+    # sections is a list of section objects
+    if type(sections) is not list:
+        sections = [sections]
+    for section in sections:
+        for ppa in section:
+            delete_ppa_if_empty(section.name, ppa)
 
 
 def add_item_to_section(section, pkg):
@@ -104,7 +109,7 @@ def add_item_to_section(section, pkg):
         if pkg.parent.name not in cfg['pkg_states'][section]:
             cfg['pkg_states'][section][pkg.parent.name] = {}
         if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
-            cfg['pkg_states'][section][pkg.parent.name][pkg.id] = pkg
+            cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
 
 
 cache = make_region().configure(

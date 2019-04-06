@@ -18,6 +18,7 @@ class KxfedPrefsDialog(QDialog):
         self.ui.download_chkbox.stateChanged.connect(self.download_checkbox_changed)
         self.ui.convert_chkbox.stateChanged.connect(self.convert_checkbox_changed)
         self.ui.install_chkbox.stateChanged.connect(self.install_checkbox_changed)
+        self.ui.uninstall_chkbox.stateChanged.connect(self.uninstall_checkbox_changed)
         self.ui.delete_convert_chkbox.stateChanged.connect(self.delete_converted_changed)
         self.ui.delete_downloaded_chkbox.stateChanged.connect(self.delete_downloaded_changed)
 
@@ -48,6 +49,9 @@ class KxfedPrefsDialog(QDialog):
 
     def install_checkbox_changed(self):
         kfconf.cfg['install'] = str(self.ui.install_chkbox.isChecked())
+
+    def uninstall_checkbox_changed(self):
+        kfconf.cfg['uninstall'] = str(self.ui.uninstall_chkbox.isChecked())
 
     def delete_converted_changed(self):
         kfconf.cfg['delete_converted'] = str(self.ui.delete_convert_chkbox.isChecked())
