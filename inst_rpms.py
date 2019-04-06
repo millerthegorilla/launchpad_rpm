@@ -77,6 +77,9 @@ class ActionRpms:
                 elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
                     print("kxfedlog", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
                     print("kxfedmsg", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
+                    if header['RPMTAG_INSTALLTIME']:
+                        print("kxfedlog Installed file : ", header['NAME'])
+                        print("kxfedinstalled", header['NAME'])
                     nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
                                         header['VERSION'].decode('utf-8'),
                                         header['RELEASE'].decode('utf-8'))
