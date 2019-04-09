@@ -65,74 +65,80 @@ class ActionRpms:
             if type(key) is not tuple:
                 return
             else:
-                header, path = key
-                if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
-                    print("kxfedlog", client_data, " Opening file. ", path, header['NAME'].decode('utf-8'))
-                    print("kxfedmsg", client_data, " Opening file. ", path, header['NAME'].decode('utf-8'))
-                    nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
-                                        header['VERSION'].decode('utf-8'),
-                                        header['RELEASE'].decode('utf-8'))
-                    self.fdnos[nvr] = os.open(path, os.O_RDONLY)
-                    return self.fdnos[nvr]
-                elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
-                    print("kxfedlog", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
-                    print("kxfedmsg", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
-                    if header['RPMTAG_INSTALLTIME']:
-                        print("kxfedlog Installed file : ", header['NAME'])
-                        print("kxfedinstalled", header['NAME'])
-                    nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
-                                        header['VERSION'].decode('utf-8'),
-                                        header['RELEASE'].decode('utf-8'))
-                    os.close(self.fdnos[nvr])
-                elif reason == rpm.RPMCALLBACK_INST_START:
-                    print("kxfedlog", client_data, " Installing", header['NAME'].decode('utf-8'))
-                    print("kxfedmsg", client_data, " Installing", header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_INST_PROGRESS:
-                    print("kxfedprogress ", amount, total)
-                elif reason == rpm.RPMCALLBACK_INST_STOP:
-                    print("kxfedinstalled", client_data, header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_UNINST_START:
-                    print("kxfedlog", client_data, " Uninstalling", header['NAME'].decode('utf-8'))
-                    print("kxfedmsg", client_data, " Uninstalling", header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_UNINST_PROGRESS:
-                    print("kxfedprogress", amount, total)
-                elif reason == rpm.RPMCALLBACK_UNINST_STOP:
-                    print("kxfeduninstalled", client_data, " Uninstalled ", header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_TRANS_START:
-                    nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
-                                        header['version'].decode('utf-8'),
-                                        header['release'].decode('utf-8'))
-                    keys = list(self.fdnos.keys())
-                    amount = keys.index(nvr)
-                    total = len(self.fdnos)
-                    print("kxfedtransprogress", amount, total)
-                    print("kxfedlog", client_data, " Transaction Progress Started: ", amount, total)
-                elif reason == rpm.RPMCALLBACK_TRANS_PROGRESS:
-                    nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
-                                        header['version'].decode('utf-8'),
-                                        header['release'].decode('utf-8'))
-                    keys = list(self.fdnos.keys())
-                    amount = keys.index(nvr)
-                    total = len(self.fdnos)
-                    print("kxfedtransprogress", amount, total)
-                    print("kxfedlog", client_data, " Transaction Progress Continues: ", amount, total)
-                elif reason == rpm.RPMCALLBACK_TRANS_STOP:
-                    print("kxfedstop", client_data)
-                elif reason == rpm.RPMCALLBACK_VERIFY_START:
-                    print("kxfedlog", client_data, " Start Verify", header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_VERIFY_PROGRESS:
-                    print("kxfedlog", client_data, " Progress Verify", header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_VERIFY_STOP:
-                    print('kxfedlog", client_data, " Stop Verify', header['NAME'].decode('utf-8'))
-                elif reason == rpm.RPMCALLBACK_SCRIPT_START:
-                    pass
-                elif reason == rpm.RPMCALLBACK_SCRIPT_STOP:
-                    pass
-                elif reason == rpm.RPMCALLBACK_CPIO_ERROR:
-                    print("kxfedexcept", client_data, " Error getting package data")
-                else:
-                    print("kxfedlog Unhandled Error!", client_data, reason)
-                sys.stdout.flush()
+                try:
+                    header, path = key
+                    if reason == rpm.RPMCALLBACK_INST_OPEN_FILE:
+                        print("kxfedlog", client_data, " Opening file. ", path, header['NAME'].decode('utf-8'))
+                        print("kxfedmsg", client_data, " Opening file. ", path, header['NAME'].decode('utf-8'))
+                        nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
+                                            header['VERSION'].decode('utf-8'),
+                                            header['RELEASE'].decode('utf-8'))
+                        self.fdnos[nvr] = os.open(path, os.O_RDONLY)
+                        return self.fdnos[nvr]
+                    elif reason == rpm.RPMCALLBACK_INST_CLOSE_FILE:
+                        print("kxfedlog", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
+                        print("kxfedmsg", client_data, " Closing file. ", path, header['NAME'].decode('utf-8'))
+                        if header['INSTALLTIME']:
+                            pass
+                        # if header['RPMTAG_INSTALLTIME']:
+                        #     print("kxfedlog Installed file : ", header['NAME'])
+                        #     print("kxfedinstalled", header['NAME'])
+                        nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
+                                            header['VERSION'].decode('utf-8'),
+                                            header['RELEASE'].decode('utf-8'))
+                        os.close(self.fdnos[nvr])
+                    elif reason == rpm.RPMCALLBACK_INST_START:
+                        print("kxfedlog", client_data, " Installing", header['NAME'].decode('utf-8'))
+                        print("kxfedmsg", client_data, " Installing", header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_INST_PROGRESS:
+                        print("kxfedprogress ", amount, total)
+                    elif reason == rpm.RPMCALLBACK_INST_STOP:
+                        print("kxfedinstalled", client_data, header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_UNINST_START:
+                        print("kxfedlog", client_data, " Uninstalling", header['NAME'].decode('utf-8'))
+                        print("kxfedmsg", client_data, " Uninstalling", header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_UNINST_PROGRESS:
+                        print("kxfedprogress", amount, total)
+                    elif reason == rpm.RPMCALLBACK_UNINST_STOP:
+                        print("kxfeduninstalled", client_data, " Uninstalled ", header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_TRANS_START:
+                        nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
+                                            header['version'].decode('utf-8'),
+                                            header['release'].decode('utf-8'))
+                        keys = list(self.fdnos.keys())
+                        amount = keys.index(nvr)
+                        total = len(self.fdnos)
+                        print("kxfedtransprogress", amount, total)
+                        print("kxfedlog", client_data, " Transaction Progress Started: ", amount, total)
+                    elif reason == rpm.RPMCALLBACK_TRANS_PROGRESS:
+                        nvr = '%s-%s-%s' % (header['NAME'].decode('utf-8'),
+                                            header['version'].decode('utf-8'),
+                                            header['release'].decode('utf-8'))
+                        keys = list(self.fdnos.keys())
+                        amount = keys.index(nvr)
+                        total = len(self.fdnos)
+                        print("kxfedtransprogress", amount, total)
+                        print("kxfedlog", client_data, " Transaction Progress Continues: ", amount, total)
+                    elif reason == rpm.RPMCALLBACK_TRANS_STOP:
+                        print("kxfedstop", client_data)
+                    elif reason == rpm.RPMCALLBACK_VERIFY_START:
+                        print("kxfedlog", client_data, " Start Verify", header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_VERIFY_PROGRESS:
+                        print("kxfedlog", client_data, " Progress Verify", header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_VERIFY_STOP:
+                        print('kxfedlog", client_data, " Stop Verify', header['NAME'].decode('utf-8'))
+                    elif reason == rpm.RPMCALLBACK_SCRIPT_START:
+                        pass
+                    elif reason == rpm.RPMCALLBACK_SCRIPT_STOP:
+                        pass
+                    elif reason == rpm.RPMCALLBACK_CPIO_ERROR:
+                        print("kxfedexcept", client_data, " Error getting package data")
+                    else:
+                        print("kxfedlog Unhandled Error!", client_data, reason)
+                    sys.stdout.flush()
+                except Exception as e:
+                    print("kxfedlog", str(e))
+                    exit(0)
 
     @staticmethod
     def unresolved(ts, unresolved_dependencies):
@@ -185,7 +191,7 @@ if __name__ == '__main__':
             print("kxfedlog ended in Main")
             sys.stdout.flush()
             break
-        nextline = sys.stdin.readline().decode('utf-8')
+        nextline = sys.stdin.readline()
         if 'cancel' in nextline:
             action_rpms.stop = True
         # for line in fileinput.input(openhook=fileinput.hook_encoded("utf-8")):

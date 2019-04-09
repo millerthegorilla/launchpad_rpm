@@ -195,7 +195,7 @@ class Packages(QThread):
                             self.deb_paths_list.append(pkg_states['converting'][ppa][pkgid]['deb_path'])
                         else:
                             add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
-        clean_section(pkg_states['converting'])
+        clean_section(pkg_states['installing'])
         if bool(pkg_states['installing']):
             for ppa in pkg_states['installing']:
                 for pkgid in pkg_states['installing'][ppa]:
@@ -206,17 +206,26 @@ class Packages(QThread):
                                 add_item_to_section('converting', pkg_states['installing'][ppa].pop(pkgid))
                             else:
                                 add_item_to_section('tobeinstalled', pkg_states['installing'][ppa].pop(pkgid))
-        # start install process by downloading packages
-        clean_section(pkg_states['tobeinstalled'])
-        clean_section(pkg_states['installing'])
         clean_section(pkg_states['uninstalling'])
+        if bool(pkg_states['uninstalling']):
+            for ppa in pkg_states['uninstalling']:
+                for pkgid in pkg_states['uninstalling'][ppa]:
+                    if pkg_states['uninstalling'][ppa][pkgid]['rpm_path']:
+                        if not exists(pkg_states['uninstalling'][ppa][pkgid]['rpm_path']):
+                            if exists(pkg_states['uninstalling'][ppa][pkgid]['deb_path']):
+                                self.deb_paths_list.append(pkg_states['uninstalling'][ppa][pkgid]['deb_path'])
+                                add_item_to_section('converting', pkg_states['uninstalling'][ppa].pop(pkgid))
+                            else:
+                                add_item_to_section('tobeinstalled', pkg_states['uninstalling'][ppa].pop(pkgid))
+        # start install process by downloading packages
         if bool(pkg_states['tobeinstalled']):
             if cfg['download'] == 'True':
                 self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
         elif cfg['convert'] == 'True':
             if self.deb_paths_list:
                 self.continue_convert(self.deb_paths_list)
-        elif cfg['install'] == 'True' or cfg['uninstall'] == 'True':
+
+        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
             if bool(pkg_states['installing']) or bool(['uninstalling']):
                 self.continue_actioning(True)
 
