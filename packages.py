@@ -10,6 +10,7 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
+import dnf
 import logging
 import os
 import re
@@ -28,7 +29,7 @@ from bs4 import BeautifulSoup
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
-from kfconf import cfg, cache, pkg_states, clean_section, add_item_to_section
+from kfconf import cfg, cache, pkg_states, tmp_dir, rpms_dir, clean_section, add_item_to_section
 
 try:
     import rpm
@@ -231,7 +232,8 @@ class Packages(QThread):
 
     @pyqtSlot('PyQt_PyObject')
     def append_deb_links_and_convert(self, deb_paths_list):
-        self.deb_paths_list.append(deb_paths_list)
+        if deb_paths_list:
+            self.deb_paths_list.append(deb_paths_list)
         self.continue_convert(self.deb_paths_list)
 
     def continue_convert(self, deb_paths_list):
@@ -458,6 +460,20 @@ class Packages(QThread):
         rpm_links = []
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
+                rpm_links.append(pkg_states['installing'][ppa][pkg]['rpm_path'])
+        for ppa in pkg_states['uninstalling']:
+            for pkg in pkg_states['uninstalling'][ppa]:
+                rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
+        base = dnf.Base()
+        conf = base.conf
+        conf.cachedir = tmp_dir
+
+    def _action_rpms_old(self):
+        if self.cancel_process:
+            return
+        rpm_links = []
+        for ppa in pkg_states['installing']:
+            for pkg in pkg_states['installing'][ppa]:
                 rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
         for ppa in pkg_states['uninstalling']:
             for pkg in pkg_states['uninstalling'][ppa]:
@@ -465,7 +481,7 @@ class Packages(QThread):
         try:
             self.process = subprocess.Popen(['pkexec',
                                              '/home/james/Src/kxfed/inst_rpms.py',
-                                             cfg['rpms_dir']] + rpm_links,
+                                             tmp_dir, rpms_dir, rpm_links],
                                             bufsize=1,
                                             stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
@@ -496,11 +512,16 @@ class Packages(QThread):
                 elif 'kxfedinstalled' in line:
                     name = line.lstrip('kxfedinstalled')
                     self.msg_signal.emit('Installed ' + name)
+                    self.log_signal.emit('Installed ' + name)
                     section = self.pkg_search(['installing'], name)
+                    section.parent.pop(section['name'])
                     add_item_to_section('installed', section)
                     # TODO schedule check or callback to run rpm.db_match to check install ok
                 elif 'kxfeduninstalled' in line:
                     self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                    self.log_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
+                    section = self.pkg_search(['uninstalling'], name)
+                    section.parent.pop(section['name'])
                 # TODO delete package from uninstalled state
                 # TODO change highlighted color of checkbox row to normal color
                 # TODO delete rpm if it says so in the preferences
