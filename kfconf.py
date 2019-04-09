@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 from threading import RLock
 
-from PyQt5.QtCore import Qt
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
