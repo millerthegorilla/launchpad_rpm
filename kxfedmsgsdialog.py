@@ -15,6 +15,7 @@ class KxfedMsgsDialog(QDialog):
         self.ui.setupUi(self)
         self.ui.pushButton.clicked.connect(self.close)
         self.logger = logging.getLogger(__name__)
+        self.logger.propagate = False
         handler = logging.handlers.RotatingFileHandler(
             cfg["log_file_path"], maxBytes=50000, backupCount=5)
         format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
