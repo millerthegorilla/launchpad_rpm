@@ -19,7 +19,7 @@ import time
 import uuid
 from multiprocessing import Pool as mp_pool
 from multiprocessing.dummy import Pool as thread_pool
-from os.path import basename, exists
+from os.path import basename, exists, isfile
 from threading import RLock
 
 import requests
@@ -29,7 +29,9 @@ from bs4 import BeautifulSoup
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
-from kfconf import cfg, cache, pkg_states, tmp_dir, rpms_dir, clean_section, add_item_to_section
+from kfconf import cfg, cache, pkg_states, tmp_dir, \
+                    rpms_dir, clean_section, \
+                    add_item_to_section, delete_ppa_if_empty
 
 try:
     import rpm
@@ -175,24 +177,24 @@ class Packages(QThread):
             cfg['distro_type'] = 'deb'
         # TODO NOTICE - the following code requires delete_ppa_if_empty to be used at all times
         # TODO ie if bool(pkg_states['tobeinstalled']): hence the 'clean_section' which removes dangling ppas
-        # if there is some package that was left over in one of the sections prior to the action process
-        # clean_section(pkg_states['downloading'])
+        clean_section(pkg_states['downloading'])
         if bool(pkg_states['downloading']):
             for ppa in pkg_states['downloading']:
                 for pkgid in pkg_states['downloading'][ppa]:
-                    if not pkg_states['downloading'][ppa][pkgid]['deb_path']:
-                        add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkgid))
+                    if isfile(pkg_states['downloading'][ppa][pkgid]['rpm_path']):
+                        add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkgid))
+                    elif isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
+                        add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkgid))
                     else:
-                        if not pkg_states['downloading'][ppa][pkgid]['rpm_path']:
-                            add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkgid))
-                        else:
-                            add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkgid))
+                        add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkgid))
         clean_section(pkg_states['converting'])
         if bool(pkg_states['converting']):
             for ppa in pkg_states['converting']:
                 for pkgid in pkg_states['converting'][ppa]:
-                    if pkg_states['converting'][ppa][pkgid]['deb_path']:
-                        if exists(pkg_states['converting'][ppa][pkgid]['deb_path']):
+                    if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
+                        add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
+                    elif pkg_states['converting'][ppa][pkgid]['deb_path']:
+                        if isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
                             self.deb_paths_list.append(pkg_states['converting'][ppa][pkgid]['deb_path'])
                         else:
                             add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
@@ -201,8 +203,8 @@ class Packages(QThread):
             for ppa in pkg_states['installing']:
                 for pkgid in pkg_states['installing'][ppa]:
                     if pkg_states['installing'][ppa][pkgid]['rpm_path']:
-                        if not exists(pkg_states['installing'][ppa][pkgid]['rpm_path']):
-                            if exists(pkg_states['installing'][ppa][pkgid]['deb_path']):
+                        if not isfile(pkg_states['installing'][ppa][pkgid]['rpm_path']):
+                            if isfile(pkg_states['installing'][ppa][pkgid]['deb_path']):
                                 self.deb_paths_list.append(pkg_states['installing'][ppa][pkgid]['deb_path'])
                                 add_item_to_section('converting', pkg_states['installing'][ppa].pop(pkgid))
                             else:
@@ -212,8 +214,8 @@ class Packages(QThread):
             for ppa in pkg_states['uninstalling']:
                 for pkgid in pkg_states['uninstalling'][ppa]:
                     if pkg_states['uninstalling'][ppa][pkgid]['rpm_path']:
-                        if not exists(pkg_states['uninstalling'][ppa][pkgid]['rpm_path']):
-                            if exists(pkg_states['uninstalling'][ppa][pkgid]['deb_path']):
+                        if not isfile(pkg_states['uninstalling'][ppa][pkgid]['rpm_path']):
+                            if isfile(pkg_states['uninstalling'][ppa][pkgid]['deb_path']):
                                 self.deb_paths_list.append(pkg_states['uninstalling'][ppa][pkgid]['deb_path'])
                                 add_item_to_section('converting', pkg_states['uninstalling'][ppa].pop(pkgid))
                             else:
@@ -230,70 +232,6 @@ class Packages(QThread):
             if bool(pkg_states['installing']) or bool(['uninstalling']):
                 self.continue_actioning(True)
 
-    @pyqtSlot('PyQt_PyObject')
-    def append_deb_links_and_convert(self, deb_paths_list):
-        if deb_paths_list:
-            self.deb_paths_list.append(deb_paths_list)
-        self.continue_convert(self.deb_paths_list)
-
-    def continue_convert(self, deb_paths_list):
-        # async call convert function allows access to gui to continue
-        if self.cancel_process:
-            self.conversion_finished_signal.emit(False)
-        if deb_paths_list:
-            if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
-                self.lock_model_signal.emit(True)
-                self._thread_pool = thread_pool(10)
-                self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
-                self.msg_signal.emit('Converting Packages...')
-
-                result = self._thread_pool.apply_async(self.convert_packages,
-                                                       (deb_paths_list,))
-                self.conversion_finished_signal.emit(result.get())
-
-    @pyqtSlot(bool)
-    def continue_actioning(self, param):
-        if param is not True or self.cancel_process is True:
-            return
-        # param is boolean, returned from converting_packages for the sake of result.get()
-        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
-            clean_section(pkg_states['installing'])
-            clean_section(pkg_states['uninstalling'])
-            if pkg_states['installing'] or pkg_states['uninstalling']:
-                self.log_signal.emit("Actioning packages...", logging.INFO)
-                self.msg_signal.emit("Actioning packages...")
-                install_msg_txt = ""
-                uninstall_msg_txt = ""
-                msg_txt = ""
-                for ppa in pkg_states['installing']:
-                    for pkg in pkg_states['installing'][ppa]:
-                        install_msg_txt += pkg_states['installing'][ppa][pkg]['name'] + "\n"
-                for ppa in pkg_states['uninstalling']:
-                    for pkg in pkg_states['uninstalling'][ppa]:
-                        uninstall_msg_txt += pkg_states['uninstalling'][ppa][pkg]['name'] + "\n"
-                if install_msg_txt:
-                    msg_txt = "This will install: \n" + install_msg_txt
-                    if uninstall_msg_txt:
-                        msg_txt += "\n and will uninstall: \n" + uninstall_msg_txt
-                elif uninstall_msg_txt:
-                    msg_txt = "This will uninstall: \n" + uninstall_msg_txt
-                self.request_action_signal.emit(msg_txt)
-
-    def continue_actioning_if_ok(self):
-        if self.cancel_process is True:
-            return
-        self.lock_model_signal.emit(True)
-        self._thread_pool = thread_pool(10)
-
-        if cfg['distro_type'] == 'rpm':
-            self._thread_pool.apply_async(self._action_rpms, callback=self.actioning_finished_signal.emit)
-        else:
-            self._install_debs()
-
-    @pyqtSlot()
-    def finish_actioning(self):
-        self.lock_model_signal.emit(False)
-
     def cancel(self):
         self.cancel_process = True
         if self.process is not None:
@@ -301,12 +239,13 @@ class Packages(QThread):
             self.process.terminate()
         self.cancel_signal.emit()
 
-    def download_packages(self, deb_links=None):
+    def download_packages(self, deb_paths=None):
         # get list of packages to be installed from cfg, using pop to delete
         self.log_signal.emit('Downloading Packages', logging.INFO)
         self.progress_signal.emit(0, 0)
-        if deb_links is None:
-            deb_links = []
+        deb_links = []
+        if deb_paths:
+            deb_links = deb_links + deb_paths
         pkg_states['downloading'] = {}
 
         for ppa in pkg_states['tobeinstalled']:
@@ -380,7 +319,45 @@ class Packages(QThread):
         except requests.HTTPError as e:
             self.log_signal.emit(e, logging.CRITICAL)
 
+    @pyqtSlot('PyQt_PyObject')
+    def append_deb_links_and_convert(self, deb_paths_list):
+        """
+        A bound method that is called by self.download_finished_signal
+        in case extra packages have been downloaded after some others
+        :type deb_paths_list: object
+        """
+        if deb_paths_list:
+            self.deb_paths_list = self.deb_paths_list + deb_paths_list
+        self.continue_convert(self.deb_paths_list)
+
+    def continue_convert(self, deb_paths_list):
+        """
+        A method that wraps a thread_pool.apply_async call to allow the
+        user to maintain access to the gui whilst packages are converted.
+        Conversion_finished_signal is emitted when the apply_async
+        method is done.
+        :param deb_paths_list:
+        :type deb_paths_list:
+        :return: none
+        :rtype: none
+        """
+        # async call convert function allows access to gui to continue
+        if self.cancel_process:
+            self.conversion_finished_signal.emit(False)
+        if deb_paths_list:
+            if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
+                self.lock_model_signal.emit(True)
+                self._thread_pool = thread_pool(10)
+                self.log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
+                self.msg_signal.emit('Converting Packages...')
+
+                result = self._thread_pool.apply_async(self.convert_packages,
+                                                       (deb_paths_list,))
+                self.conversion_finished_signal.emit(result.get())
+
     def convert_packages(self, deb_path_list):
+        if self.cancel_process is True:
+            return False
         self.progress_signal.emit(0, len(deb_path_list))  # ?
         deb_pkgs = []
         for file_path in deb_path_list:
@@ -397,8 +374,13 @@ class Packages(QThread):
         pkg_states['downloading'] = {}
 
         cfg.write()
+        if self.cancel_process is True:
+            return False
+        from getpass import getuser
+        username = getuser()
+        del getuser
         try:
-            self.process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh',
+            self.process = subprocess.Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', username,
                                              cfg['rpms_dir'], cfg['arch']] + deb_pkgs,
                                             bufsize=1,
                                             stdin=subprocess.PIPE,
@@ -406,9 +388,8 @@ class Packages(QThread):
                                             stderr=subprocess.PIPE)
         except Exception as e:
             self.log_signal.emit(e)
-
         conv = False
-        rpm_file_names = []
+        num_of_conv = 0
         while 1:
             if self.cancel_process:
                 return False
@@ -416,11 +397,11 @@ class Packages(QThread):
             nextline = self.process.stdout.readline().decode('utf-8')
             self.process.stdout.flush()
             self.log_signal.emit(nextline, logging.INFO)
-            if 'Wrote' in nextline:
-                rpm_file_names.append(basename(nextline))
             if 'Converted' in nextline:
-                rpm_name = nextline[len('Converted '):nextline.index('_')]
-                found_pkg = self.pkg_search(['converting'], search_value=rpm_name)
+                word_list = nextline.split(' to ')
+                rpm_name = word_list[1].rstrip('\n')
+                deb_path = word_list[0].lstrip('Converted ')
+                found_pkg = self.pkg_search(['converting'], search_value=deb_path)
                 if found_pkg:
                     if not pkg_states['installing']:
                         pkg_states['installing'] = {}
@@ -428,15 +409,14 @@ class Packages(QThread):
                         pkg_states['installing'][found_pkg.parent.name] = {}
                     pkg_states['installing'][found_pkg.parent.name][found_pkg.name] = \
                         pkg_states['converting'][found_pkg.parent.name].pop(found_pkg.name)
-                    for fn in rpm_file_names:
-                        if rpm_name in fn:
-                            pkg_states['installing'][found_pkg.parent.name][found_pkg.name]['rpm_path'] = \
-                                cfg['rpms_dir'] + fn.rstrip('\r\n')
+                    pkg_states['installing'][found_pkg.parent.name][found_pkg.name]['rpm_path'] = \
+                        cfg['rpms_dir'] + rpm_name
                     conv = True
-                    self.progress_signal.emit(len(rpm_file_names), len(deb_pkgs))
-                    self.msg_signal.emit(nextline)
-                    if os.path.exists(found_pkg['deb_path']) and cfg['delete_downloaded']:
+                    num_of_conv += 1
+                    if os.path.exists(found_pkg['deb_path']) and cfg['delete_downloaded'] == 'True':
                         os.remove(found_pkg['deb_path'])
+                    self.progress_signal.emit(num_of_conv, len(deb_pkgs))
+                    self.msg_signal.emit(nextline)
                 else:
                     conv = False
             if nextline == '' and self.process.poll() is not None:
@@ -454,38 +434,92 @@ class Packages(QThread):
             return False
         return True
 
+    @pyqtSlot(bool)
+    def continue_actioning(self, param):
+        reconvert_list = []
+        if param is not True or self.cancel_process is True:
+            return
+        # param is boolean, returned from converting_packages for the sake of result.get()
+        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
+            clean_section(pkg_states['installing'])
+            clean_section(pkg_states['uninstalling'])
+            if pkg_states['installing'] or pkg_states['uninstalling']:
+                self.log_signal.emit("Actioning packages...", logging.INFO)
+                self.msg_signal.emit("Actioning packages...")
+                install_msg_txt = ""
+                uninstall_msg_txt = ""
+                msg_txt = ""
+                for ppa in pkg_states['installing']:
+                    for pkg in pkg_states['installing'][ppa]:
+                        if isfile(pkg_states['installing'][ppa][pkg]['rpm_path']):
+                            install_msg_txt += pkg_states['installing'][ppa][pkg]['name'] + "\n"
+                        else:
+                            reconvert_list.append(pkg_states['installing'][ppa][pkg])
+                            pkg_states['installing'][ppa].pop(pkg)
+                    delete_ppa_if_empty('installing', ppa)
+                for ppa in pkg_states['uninstalling']:
+                    for pkg in pkg_states['uninstalling'][ppa]:
+                        uninstall_msg_txt += pkg_states['uninstalling'][ppa][pkg]['name'] + "\n"
+                if reconvert_list:
+                    self.msg_signal.emit("Some packages failed to convert - Reconverting")
+                    self.log_signal.emit("Some packages failed to convert - Reconverting", logging.INFO)
+                    deb_paths_list = []
+                    clean_section(pkg_states['tobeinstalled'])
+                    for pkg in reconvert_list:
+                        if pkg['deb_path'] and isfile(pkg['deb_path']):
+                            deb_paths_list.append(pkg['deb_path'])
+                        else:
+                            pkg['deb_path'] = ''
+                            add_item_to_section('tobeinstalled', pkg)
+                    self._thread_pool.apply_async(self.download_packages,
+                                                  (deb_paths_list,),
+                                                  callback=self.download_finished_signal.emit)
+                else:
+                    if install_msg_txt:
+                        msg_txt = "This will install: \n" + install_msg_txt
+                        if uninstall_msg_txt:
+                            msg_txt += "\n and will uninstall: \n" + uninstall_msg_txt
+                    elif uninstall_msg_txt:
+                        msg_txt = "This will uninstall: \n" + uninstall_msg_txt
+                    self.request_action_signal.emit(msg_txt)
+
+    def continue_actioning_if_ok(self):
+        if self.cancel_process is True:
+            return
+        self.lock_model_signal.emit(True)
+        self._thread_pool = thread_pool(10)
+
+        if cfg['distro_type'] == 'rpm':
+            self._thread_pool.apply_async(self._action_rpms, callback=self.actioning_finished_signal.emit)
+        else:
+            self._install_debs()
+
+    @pyqtSlot()
+    def finish_actioning(self):
+        self.lock_model_signal.emit(False)
+
     def _action_rpms(self):
         if self.cancel_process:
             return
         rpm_links = []
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
-                rpm_links.append(pkg_states['installing'][ppa][pkg]['rpm_path'])
-        for ppa in pkg_states['uninstalling']:
-            for pkg in pkg_states['uninstalling'][ppa]:
-                rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
-        base = dnf.Base()
-        conf = base.conf
-        conf.cachedir = tmp_dir
-
-    def _action_rpms_old(self):
-        if self.cancel_process:
-            return
-        rpm_links = []
-        for ppa in pkg_states['installing']:
-            for pkg in pkg_states['installing'][ppa]:
-                rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
+                if isfile(pkg_states['installing'][ppa][pkg]['rpm_path']):
+                    rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
         for ppa in pkg_states['uninstalling']:
             for pkg in pkg_states['uninstalling'][ppa]:
                 rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
         try:
-            self.process = subprocess.Popen(['pkexec',
-                                             '/home/james/Src/kxfed/inst_rpms.py',
-                                             tmp_dir, rpms_dir, rpm_links],
-                                            bufsize=1,
-                                            stdin=subprocess.PIPE,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE)
+            if rpm_links:
+                self.process = subprocess.Popen(['pkexec',
+                                                 '/home/james/Src/kxfed/dnf_install.py',
+                                                 tmp_dir] + rpm_links,
+                                                bufsize=1,
+                                                stdin=subprocess.PIPE,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+            else:
+                raise ValueError("Error! : rpm_paths of packages in cache may be empty")
         except Exception as e:
             self.log_signal.emit(e, logging.CRITICAL)
 

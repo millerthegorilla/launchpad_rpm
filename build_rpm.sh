@@ -4,6 +4,7 @@ RPM_BUILD_ROOT=$1
 RPMS_DIR=$2
 ARCH=$3
 DEB_PATH=$4
+USER=$5
 
 RPM_BUILD_ROOT=${RPM_BUILD_ROOT}$(basename ${DEB_PATH})/
 if [ ! -d "$RPM_BUILD_ROOT" ]; then
@@ -12,31 +13,66 @@ fi
 
 cd "$RPM_BUILD_ROOT"
 
-sudo alien -r -g -v "$DEB_PATH"
+sudo alien -r -g -k -v "${DEB_PATH}"
+# perl -e 'use Privileges::Drop; drop_privileges(${USER});'
+DEBFN=$(basename ${DEB_PATH})
 
-aliendir=$(find . -maxdepth 1 -type d -name '[^.]?*' -printf %f -quit)
+ALIENDIR=$(echo ${DEBFN%_*})
 
-specfilename=$(find "$RPM_BUILD_ROOT$aliendir" -type f -name \*.spec)
-specfilename=$(basename "$specfilename")
+SPECFILEPATH=$(find ${RPM_BUILD_ROOT} -type f -name \*.spec)
+SPECFILENAME=$(basename ${SPECFILENAME})
 
-if [ "$ARCH"=='amd64' ] || [ "$ARCH"=='x86_64' ]; then
-    adir=$(echo "$specfilename" | sed 's/spec/x86_64\//')
-else
-    adir=$(echo "$specfilename" | sed 's/spec/x386\//')
-fi
+sed -i '/^%dir/ d' "${SPECFILEPATH}"
 
-mv "$RPM_BUILD_ROOT$aliendir" "$RPM_BUILD_ROOT$adir"
-mv "$RPM_BUILD_ROOT$adir/usr" "$RPM_BUILD_ROOT"
+LINE=$(grep '%define _rpmfilename' ${SPECFILEPATH})
+LINE=${LINE#'%define _rpmfilename '}
+NAME=$(grep 'Name: ' ${SPECFILEPATH})
+NAME=${NAME#'Name: '}
+VERSION=$(grep 'Version: ' ${SPECFILEPATH})
+VERSION=${VERSION#'Version: '}
+RELEASE=$(grep 'Release: ' ${SPECFILEPATH})
+RELEASE=${RELEASE#'Release: '}
+ARCH=$(rpm --eval '%{_arch}')
+RPMFILENAME=$(echo ${LINE} | sed 's/%%{NAME}/'${NAME}'/' | sed 's/%%{VERSION}/'${VERSION}'/' \
+           | sed 's/%%{RELEASE}/'${RELEASE}'/' | sed 's/%%{ARCH}/'${ARCH}'/')
 
-specfilepath="$RPM_BUILD_ROOT$adir$specfilename"
+echo debfn is ${DEBFN}
+echo rpmbuild_root is ${RPM_BUILD_ROOT}
+echo aliendir is ${ALIENDIR}
+echo adir is ${ADIR}
+echo specfilename is ${SPECFILENAME}
+echo SPECFILEPATH is ${SPECFILEPATH}
+echo line is ${LINE}
+echo name is ${NAME}
+echo version is ${VERSION}
+echo release is ${RELEASE}
+echo arch is ${ARCH}
+echo rpmfilename is ${RPMFILENAME}
+echo id is $(id -u)
+echo id group is $(id -u)
+user is ${USER}
 
-# edit spec file to remove unnecessary prefixes
-sed -i '/^%dir/ d' "$specfilepath"
+# TODO need to get NAME VERSION RELEASE and ARCH from specfile
+# TODO to be certain about the rpm filename
+# TODO so find the following line in specfile:
+# TODO %define _rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
+# and parse the name replacing the variables
 
-cd "$adir"
 # --buildroot "$RPM_BUILD_ROOT"
-rpmbuild --bb --rebuild --noclean --buildroot ${RPM_BUILD_ROOT} "$specfilepath"
+rpmbuild --bb --rebuild --noclean --buildroot ${RPM_BUILD_ROOT} "$SPECFILEPATH"
 
-mv ${RPM_BUILD_ROOT}*.rpm ${RPMS_DIR}
+#FILENAME=$(basename ${DEB_PATH})
+#FILENAME=${FILENAME/'_'/'-'}
+#if [ ${ARCH} = 'amd64' ]; then
+#    FILENAME=${FILENAME%_amd64.deb}-2.x86_64.rpm
+#elif [ ${ARCH} = 'i386' ]; then
+#    FILENAME=${FILENAME%_i386.deb}-2.i386.rpm  # untested
+#fi
 
-echo -e "Converted $(basename ${DEB_PATH})\n"
+# TODO need to make below work
+echo moving ${RPM_BUILD_ROOT}${RPMFILENAME} to ${RPMS_DIR}${RPMFILENAME}
+# mv ${RPM_BUILD_ROOT}${RPMFILENAME} ${RPMS_DIR}
+# mv ${RPM_BUILD_ROOT}*.rpm ${RPMS_DIR}
+
+echo -e "Converted ${DEB_PATH} to ${RPMFILENAME}\n"
+
