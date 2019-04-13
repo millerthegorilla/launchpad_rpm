@@ -2,7 +2,7 @@
 
 import multiprocessing.dummy
 import os
-
+import logging
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject
 from PyQt5.QtGui import QStandardItemModel, QBrush, QColor
 
@@ -101,35 +101,38 @@ class TVModel(QStandardItemModel, QObject):
             if item.checkState() == Qt.Unchecked:
                 # if item is in the process of being installed
                 # and has been cancelled
-                if pkg.installed == Qt.PartiallyChecked:
-                    if pkg.ppa in pkg_states['tobeinstalled']:
-                        if pkg.id in pkg_states['tobeinstalled'][pkg.ppa]:
-                            pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
-                            cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
-                    if pkg.ppa in pkg_states['downloading']:
-                        if pkg.id in pkg_states['downloading'][pkg.ppa]:
-                            for deb_path in pkg_states['downloading'][pkg.ppa][pkg.id]:
-                                if os.path.exists(deb_path):
+                try:
+                    if pkg.installed == Qt.PartiallyChecked:
+                        if pkg.ppa in pkg_states['tobeinstalled']:
+                            if pkg.id in pkg_states['tobeinstalled'][pkg.ppa]:
+                                pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
+                                cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
+                        if pkg.ppa in pkg_states['downloading']:
+                            if pkg.id in pkg_states['downloading'][pkg.ppa]:
+                                for deb_path in pkg_states['downloading'][pkg.ppa][pkg.id]:
+                                    if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
+                                        os.remove(deb_path)
+                                pkg_states['downloading'][pkg.ppa].pop(pkg.id)
+                                delete_ppa_if_empty('downloading', pkg.ppa)
+                        if pkg.ppa in pkg_states['converting']:
+                            if pkg.id in pkg_states['converting'][pkg.ppa]:
+                                for deb_path in pkg_states['converting'][pkg.ppa][pkg.id]:
+                                    if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
+                                        os.remove(deb_path)
+                                pkg_states['converting'][pkg.ppa].pop(pkg.id)
+                                delete_ppa_if_empty('converting', pkg.ppa)
+                        if pkg.ppa in pkg_states['installing']:
+                            if pkg.id in pkg_states['installing'][pkg.ppa]:
+                                deb_path = pkg_states['installing'][pkg.ppa][pkg.id]['deb_path']
+                                if os.path.isfile(deb_path) and cfg['delete_downloaded'] == 'True':
                                     os.remove(deb_path)
-                            pkg_states['downloading'][pkg.ppa].pop(pkg.id)
-                            delete_ppa_if_empty('downloading', pkg.ppa)
-                    if pkg.ppa in pkg_states['converting']:
-                        if pkg.id in pkg_states['converting'][pkg.ppa]:
-                            for deb_path in pkg_states['converting'][pkg.ppa][pkg.id]:
-                                if os.path.exists(deb_path):
-                                    os.remove(deb_path)
-                            pkg_states['converting'][pkg.ppa].pop(pkg.id)
-                            delete_ppa_if_empty('converting', pkg.ppa)
-                    if pkg.ppa in pkg_states['installing']:
-                        if pkg.id in pkg_states['installing'][pkg.ppa]:
-                            deb_path = pkg_states['installing'][pkg.ppa][pkg.id]['deb_path']
-                            if os.path.exists(deb_path) and cfg['delete_downloaded']:
-                                os.remove(deb_path)
-                            rpm_path = pkg_states['installing'][pkg.ppa][pkg.id]['rpm_path']
-                            if os.path.exists(rpm_path) and cfg['delete_converted']:
-                                os.remove(rpm_path)
-                            pkg_states['installing'][pkg.ppa].pop(pkg.id)
-                            delete_ppa_if_empty('installing', pkg.ppa)
+                                rpm_path = pkg_states['installing'][pkg.ppa][pkg.id]['rpm_path']
+                                if os.path.isfile(rpm_path) and cfg['delete_converted'] == 'True':
+                                    os.remove(rpm_path)
+                                pkg_states['installing'][pkg.ppa].pop(pkg.id)
+                                delete_ppa_if_empty('installing', pkg.ppa)
+                except IsADirectoryError as e:
+                    self.packages.log_signal.emit('Error in config ' + str(e), logging.CRITICAL)
                 # if item is being set to uninstall
                 if pkg.installed == Qt.Checked:
                     # move from installed to uninstalling section

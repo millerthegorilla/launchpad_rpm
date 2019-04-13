@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # config.py
 import os
 import sys
@@ -7,6 +8,9 @@ from threading import RLock
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
+
+# TODO when the program installs the line below must be added to ~/.rpmmacros
+# %_topdir /home/data/rpmbuild
 
 # constants
 CONFIG_DIR = ".config/kxfed/"
@@ -75,6 +79,7 @@ else:
 
 
 def delete_ppa_if_empty(section, ppa):
+    # section is string, ppa is string
     if ppa in cfg['pkg_states'][section]:
         if not cfg['pkg_states'][section][ppa]:  # if ppa is empty
             cfg['pkg_states'][section].pop(ppa)

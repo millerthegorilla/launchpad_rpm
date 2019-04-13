@@ -11,14 +11,11 @@ from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 from launchpadlib.errors import HTTPError
 
-import tvmodel, packages
+import tvmodel
 from kfconf import cfg, cache, pkg_states
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
 from kxfedmsgsdialog import KxfedMsgsDialog
-
-# QTextBlock = QMetaType.type("QTextBlock")
-# QTextCursor = QMetaType.type("QTextCursor")
 
 
 # TODO add installed packages to config
@@ -297,6 +294,7 @@ class Kxfed(QThread):
     @pyqtSlot()
     def _cancelled(self):
         self.moveToThread(self.main_window.thread())
+        self.pkg_model.packages.cancel_process = True
         self.main_window.cancelled()
 
     @pyqtSlot()

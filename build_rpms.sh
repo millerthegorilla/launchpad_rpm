@@ -14,9 +14,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with rpm_maker.  If not, see <https://www.gnu.org/licenses/>.
 #    (c) 2018 - James Stewart Miller
-
-RPMS_DIR=$1
-ARCH=$2
+USER=$1
+RPMS_DIR=$2
+ARCH=$3
 
 RPM_BUILD_ROOT=/home/james/.local/share/kxfed/rpmbuild/BUILDROOT/
 MAX_NUM_OF_JOBS=10
@@ -27,7 +27,7 @@ fi
 
 . /home/james/Src/kxfed/job_pool.sh
 
-number_of_debs=$(($#-2))
+number_of_debs=$(($#-3))
 
 if [ $MAX_NUM_OF_JOBS -lt $number_of_debs ]; then
     number_of_jobs=$MAX_NUM_OF_JOBS
@@ -37,22 +37,20 @@ fi
 
 job_pool_init ${number_of_jobs} 0
 
-for (( i=3; i<=$#; i++ ))
+for (( i=4; i<=$#; i++ ))
 do
-    job_pool_run /home/james/Src/kxfed/build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i}
-#    while IFS= read line; do
-#        if $line eq "cancel"; then
-#            job_pool_shutdown
-#            break
-#        fi
-#    done
+    job_pool_run /home/james/Src/kxfed/build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i} ${USER}
 done
 
 job_pool_wait
 
 job_pool_shutdown
 
-# rm -rf /home/james/.local/share/kxfed/rpmbuild
+function finish {
+    # rm -rf /home/james/.local/share/kxfed/rpmbuild
+}
+
+trap finish EXIT
 # check the $job_pool_nerrors for the number of jobs that exited non-zero
 #echo "job_pool_nerrors: ${job_pool_nerrors}"
 exit 0
