@@ -54,7 +54,6 @@ class Progress(callback.TransactionProgress):
 
 
 class ActionRpms:
-
     def __init__(self):
         self.stop = False
         self.base = Base()
@@ -65,22 +64,29 @@ class ActionRpms:
         self.progress = Progress()
 
     def action(self):
-
         for filename in sys.argv[2:]:
             if "uninstalling" in filename:
                 name = filename.replace('uninstalling', '')
+                print('kxfedmsg Uninstalling ', name)
+                sys.stdout.flush()
                 q = self.base.sack.query()
                 i = q.installed()
                 i = i.filter(name=name)
-                pkg = i[0]
-                self.base.transaction.add_erase(pkg)
+                if len(i):
+                    pkg = i[0]
+                    self.base.transaction.add_erase(pkg)
+                else:
+                    print('kxfedexcept', 'Error uninstalling ', name, ' It\'s not installed...')
+                    sys.stdout.flush()
             else:
+                print('kxfedmsg Installing ', filename)
+                sys.stdout.flush()
                 pkgs = self.base.add_remote_rpms([filename])
                 self.base.transaction.add_install(pkgs[0])
         try:
             self.base.do_transaction(self.progress)
         except (exceptions.Error, exceptions.TransactionCheckError) as e:
-            print('kxfedexcept', str(e))
+            print('kxfedexcept', str(e).replace('\n', ' '))
             sys.stdout.flush()
 
 
@@ -88,7 +94,7 @@ if __name__ == '__main__':
     action_rpms = ActionRpms()
     tp = thread_pool(10)
     result = tp.apply_async(action_rpms.action)
-    bob = result.wait()
+    bob = result.get()
     # while not result.ready():
     #     if action_rpms.stop:
     #         tp.close()

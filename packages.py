@@ -229,7 +229,7 @@ class Packages(QThread):
                 self.continue_convert(self.deb_paths_list)
 
         if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
-            if bool(pkg_states['installing']) or bool(['uninstalling']):
+            if bool(pkg_states['installing']) or bool(pkg_states['uninstalling']):
                 self.continue_actioning(True)
 
     def cancel(self):
@@ -352,8 +352,9 @@ class Packages(QThread):
                 self.msg_signal.emit('Converting Packages...')
 
                 result = self._thread_pool.apply_async(self.convert_packages,
-                                                       (deb_paths_list,))
-                self.conversion_finished_signal.emit(result.get())
+                                                       (deb_paths_list,),
+                                                       callback=self.conversion_finished_signal.emit)
+                #self.conversion_finished_signal.emit(result.get())
 
     def convert_packages(self, deb_path_list):
         if self.cancel_process is True:
@@ -505,7 +506,7 @@ class Packages(QThread):
         for ppa in pkg_states['installing']:
             for pkg in pkg_states['installing'][ppa]:
                 if isfile(pkg_states['installing'][ppa][pkg]['rpm_path']):
-                    rpm_links.append(basename(pkg_states['installing'][ppa][pkg]['rpm_path']))
+                    rpm_links.append(pkg_states['installing'][ppa][pkg]['rpm_path'])
         for ppa in pkg_states['uninstalling']:
             for pkg in pkg_states['uninstalling'][ppa]:
                 rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
@@ -514,7 +515,6 @@ class Packages(QThread):
                 self.process = subprocess.Popen(['pkexec',
                                                  '/home/james/Src/kxfed/dnf_install.py',
                                                  tmp_dir] + rpm_links,
-                                                bufsize=1,
                                                 stdin=subprocess.PIPE,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.PIPE)
@@ -535,6 +535,7 @@ class Packages(QThread):
                     self.log_signal.emit(line.lstrip('kxfedlog'), logging.INFO)
                 elif 'kxfedexcept' in line:
                     self.log_signal.emit(line.lstrip('kxfedexcept'), logging.CRITICAL)
+                    self.msg_signal.emit('Error Installing! Check messages...')
                 elif 'kxfedmsg' in line:
                     self.msg_signal.emit(line.lstrip('kxfedmsg'))
                 elif 'kxfedprogress' in line:
@@ -542,11 +543,13 @@ class Packages(QThread):
                     self.progress_signal.emit(sig[1], sig[2])
                 elif 'kxfedtransprogress' in line:
                     sig = line.split(' ')
+                    if sig[1] == sig[2]:
+                        self.msg_signal.emit('Verifying package, please wait...')
                     self.transaction_progress_signal.emit(sig[1], sig[2])
                 elif 'kxfedinstalled' in line:
-                    name = line.lstrip('kxfedinstalled')
+                    name = line.lstrip('kxfedinstalled').replace('\n', '').strip()
                     self.msg_signal.emit('Installed ' + name)
-                    self.log_signal.emit('Installed ' + name)
+                    self.log_signal.emit('Installed ' + name, logging.INFO)
                     section = self.pkg_search(['installing'], name)
                     section.parent.pop(section['name'])
                     add_item_to_section('installed', section)

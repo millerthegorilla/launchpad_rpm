@@ -47,7 +47,8 @@ job_pool_wait
 job_pool_shutdown
 
 function finish {
-    # rm -rf /home/james/.local/share/kxfed/rpmbuild
+    # TODO need to specify the paths using a variable throughout
+    rm -rf /home/james/.local/share/kxfed/rpmbuild
 }
 
 trap finish EXIT

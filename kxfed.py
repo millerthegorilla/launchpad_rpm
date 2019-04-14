@@ -104,6 +104,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def cancelled(self):
         self.install_btn.setText('Process Packages')
+        self.install_btn.clicked.disconnect()
         self.install_btn.clicked.connect(self.install_pkgs_button)
 
     def toggle_pkg_list_loading(self):
@@ -183,6 +184,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def install_pkgs_button(self):
         try:
             self.install_btn.setText('Cancel')
+            self.install_btn.clicked.disconnect()
             self.install_btn.clicked.connect(self.cancel_process_button)
             self.kxfed.pkg_model.packages.install_pkgs_button()
         except Exception as e:
