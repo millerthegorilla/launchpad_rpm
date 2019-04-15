@@ -10,7 +10,7 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-import dnf
+from pathlib import Path
 import logging
 import os
 import re
@@ -19,8 +19,9 @@ import time
 import uuid
 from multiprocessing import Pool as mp_pool
 from multiprocessing.dummy import Pool as thread_pool
-from os.path import basename, exists, isfile
+from os.path import isfile, basename
 from threading import RLock
+from fuzzywuzzy import fuzz
 
 import requests
 from PyQt5.QtCore import pyqtSignal, QThread, pyqtSlot
@@ -30,7 +31,7 @@ from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
 from kfconf import cfg, cache, pkg_states, tmp_dir, \
-                    rpms_dir, clean_section, \
+                    clean_section, debs_dir, \
                     add_item_to_section, delete_ppa_if_empty
 
 try:
@@ -39,7 +40,7 @@ except ImportError as e:
     try:
         import apt
     except ImportError as ee:
-        raise Exception(e.args + " : " + ee.args)
+        raise Exception(str(e.args) + " : " + str(ee.args))
 
 
 # TODO log messages are being written twice.
@@ -251,6 +252,21 @@ class Packages(QThread):
         for ppa in pkg_states['tobeinstalled']:
             for pkgid in pkg_states['tobeinstalled'][ppa]:
                 pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
+                paths = list(Path(debs_dir).glob(pkg['name'] + '*'))
+                if paths and fuzz.token_set_ratio(pkg['version'],
+                                                  basename(str(paths[0]).
+                                                  replace(pkg['name'] + '_', '')).
+                                                  rsplit('_', 1)[0]) > 90:
+                    self.msg_signal.emit('Package' +
+                                         pkg['name'] +
+                                         'has already been downloaded, moving to conversion list')
+                    self.log_signal.emit('Package' +
+                                         pkg['name'] +
+                                         'has already been downloaded, moving to conversion list',
+                                         level=logging.INFO)
+                    pkg['deb_path'] = str(paths[0])
+                    add_item_to_section('converting', pkg)
+                    continue
                 # some housekeeping?
                 if ppa in pkg_states['installing']:
                     if pkgid in pkg_states['installing'][ppa] and\
@@ -270,7 +286,6 @@ class Packages(QThread):
                     pkg_states['downloading'][ppa] = {}
                 pkg_states['downloading'][ppa][pkgid] = pkg
                 cfg.write()
-                debs_dir = cfg['debs_dir']
                 if isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
                     deb_links.append(pkg_states['downloading'][ppa][pkgid]['deb_path'])
                 else:

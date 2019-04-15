@@ -23,7 +23,7 @@ class KxfedMsgsDialog(QDialog):
         handler.setFormatter(format)
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(handler)
-       # self.logger.addHandler(dnf.base.logger)
+        self.logger.addHandler(dnf.base.logger)
 
     def log(self, log_record=None, msg=None, level=None):
         log_msg = ""
