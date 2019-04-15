@@ -251,10 +251,17 @@ class Packages(QThread):
         for ppa in pkg_states['tobeinstalled']:
             for pkgid in pkg_states['tobeinstalled'][ppa]:
                 pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
+                # some housekeeping?
                 if ppa in pkg_states['installing']:
-                    if pkgid in pkg_states['installing'][ppa]:
-                        break
+                    if pkgid in pkg_states['installing'][ppa] and\
+                            pkg_states['installing'][ppa][pkgid]['rpm_path']:
+                        if isfile(pkg_states['installing'][ppa][pkgid]['rpm_path']):
+                            break
+                        else:
+                            pkg_states['installing'][ppa][pkgid]['rpm_path'] = ''
+                            add_item_to_section('tobeinstalled', pkg_states['installing'][ppa].pop(pkgid))
                 if ppa in pkg_states['installed']:
+                    # needed because there are sometimes the same package in different ppas
                     if pkgid in pkg_states['installed'][ppa]:
                         self.msg_signal.emit(pkg['name'] + " is already installed")
                         self.log_signal.emit(pkg['name'] + " is already installed")
@@ -264,13 +271,15 @@ class Packages(QThread):
                 pkg_states['downloading'][ppa][pkgid] = pkg
                 cfg.write()
                 debs_dir = cfg['debs_dir']
-                self.msg_signal.emit("Downloading " + pkg.get('name'))
-                result = self._thread_pool.apply_async(self.get_deb_link_and_download,
-                                                       (ppa,
-                                                        pkg,
-                                                        debs_dir,
-                                                        self.lp_team.web_link,))
-                deb_links.append(result.get())
+                if isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
+                    deb_links.append(pkg_states['downloading'][ppa][pkgid]['deb_path'])
+                else:
+                    result = self._thread_pool.apply_async(self.get_deb_link_and_download,
+                                                           (ppa,
+                                                            pkg,
+                                                            debs_dir,
+                                                            self.lp_team.web_link,))
+                    deb_links.append(result.get())
                 self._total_length = 0
                 self._current_length = 0
         return deb_links
@@ -292,27 +301,29 @@ class Packages(QThread):
             pkg['deb_link'] = links[0]
             link = links[0]
             # deb_paths = []
-            self.log_signal.emit("Downloading " + pkg.name + ' from ' + str(links), logging.INFO)
             # for link in links:
             fn = link['href'].rsplit('/', 1)[-1]
             fp = debs_dir + fn
-            with open(fp, "wb+") as f:
-                response = requests.get(link['href'], stream=True)
-                total_length = response.headers.get('content-length')
-                if total_length is None:  # no content length header
-                    f.write(response.content)
-                else:
-                    self.lock.acquire()
-                    self._total_length += int(total_length)
-                    self.lock.release()
-
-                    for data in response.iter_content(chunk_size=1024):
-                        f.write(data)
+            if not isfile(fp):
+                self.log_signal.emit("Downloading " + pkg['name'] + ' from ' + str(link['href']), logging.INFO)
+                self.msg_signal.emit("Downloading " + pkg['name'])
+                with open(fp, "wb+") as f:
+                    response = requests.get(link['href'], stream=True)
+                    total_length = response.headers.get('content-length')
+                    if total_length is None:  # no content length header
+                        f.write(response.content)
+                    else:
                         self.lock.acquire()
-                        self._current_length += len(data)
-                        self.progress_signal.emit(self._current_length, self._total_length)
+                        self._total_length += int(total_length)
                         self.lock.release()
-            # deb_paths.append(fp)
+
+                        for data in response.iter_content(chunk_size=1024):
+                            f.write(data)
+                            self.lock.acquire()
+                            self._current_length += len(data)
+                            self.progress_signal.emit(self._current_length, self._total_length)
+                            self.lock.release()
+                # deb_paths.append(fp)
             pkg['deb_path'] = fp
             cfg.write()
             return fp
