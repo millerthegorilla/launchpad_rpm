@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QFileDialog
-
-import kfconf
+from PyQt5.QtCore import Qt
+from kfconf import tmp_dir, cfg
 from kxfed_prefs_ui import Ui_prefs_dialog
 
 
@@ -12,14 +12,28 @@ class KxfedPrefsDialog(QDialog):
         self.ui = Ui_prefs_dialog()
         self.ui.setupUi(self)
         self.ui.directory_label.setToolTip(
-            "The directories that store the deb and rpm files are located here, as well as the temporary conversion files")
-        self.ui.directory_label.setText(kfconf.tmp_dir)
+            "The directories that store the deb and rpm files are located here, \
+            as well as the temporary conversion files and the log files.  Click to change...")
+        self.ui.directory_label.setText(tmp_dir)
+        self.ui.download_chkbox.setTristate(False)
+        self.ui.convert_chkbox.setTristate(False)
+        self.ui.install_chkbox.setTristate(False)
+        self.ui.uninstall_chkbox.setTristate(False)
+        self.ui.delete_downloaded_chkbox.setTristate(False)
+        self.ui.delete_converted_chkbox.setTristate(False)
+        self.ui.download_chkbox.setCheckState(2 if cfg.as_bool('download') else 0)
+        self.ui.convert_chkbox.setCheckState(2 if cfg.as_bool('convert') else 0)
+        self.ui.install_chkbox.setCheckState(2 if cfg.as_bool('install') else 0)
+        self.ui.uninstall_chkbox.setCheckState(2 if cfg.as_bool('uninstall') else 0)
+        self.ui.delete_downloaded_chkbox.setCheckState(2 if cfg.as_bool('delete_downloaded') else 0)
+        self.ui.delete_converted_chkbox.setCheckState(2 if cfg.as_bool('delete_converted') else 0)
+        # signals
         self.ui.directory_label.clicked.connect(self.openFileNameDialog)
         self.ui.download_chkbox.stateChanged.connect(self.download_checkbox_changed)
         self.ui.convert_chkbox.stateChanged.connect(self.convert_checkbox_changed)
         self.ui.install_chkbox.stateChanged.connect(self.install_checkbox_changed)
         self.ui.uninstall_chkbox.stateChanged.connect(self.uninstall_checkbox_changed)
-        self.ui.delete_convert_chkbox.stateChanged.connect(self.delete_converted_changed)
+        self.ui.delete_converted_chkbox.stateChanged.connect(self.delete_converted_changed)
         self.ui.delete_downloaded_chkbox.stateChanged.connect(self.delete_downloaded_changed)
 
     def accept(self):
@@ -29,6 +43,7 @@ class KxfedPrefsDialog(QDialog):
         self.hide()
 
     def openFileNameDialog(self):
+        global tmp_dir
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         filename = str(QFileDialog.getExistingDirectory(self, "Select Directory", options=options))
@@ -36,25 +51,24 @@ class KxfedPrefsDialog(QDialog):
         #                                           "All Files (*);;Python Files (*.py)", options=options)
         if filename != '':
             self.ui.directory_label.setText(filename)
-            kfconf.tmp_dir = filename
-            kfconf.set_dirs()
+            tmp_dir = filename
         else:
-            self.ui.directory_label.setText(kfconf.tmp_dir)
+            self.ui.directory_label.setText(tmp_dir)
 
     def download_checkbox_changed(self):
-        kfconf.cfg['download'] = str(self.ui.download_chkbox.isChecked())
+        cfg['download'] = str(self.ui.download_chkbox.isChecked())
 
     def convert_checkbox_changed(self):
-        kfconf.cfg['convert'] = str(self.ui.convert_chkbox.isChecked())
+        cfg['convert'] = str(self.ui.convert_chkbox.isChecked())
 
     def install_checkbox_changed(self):
-        kfconf.cfg['install'] = str(self.ui.install_chkbox.isChecked())
+        cfg['install'] = str(self.ui.install_chkbox.isChecked())
 
     def uninstall_checkbox_changed(self):
-        kfconf.cfg['uninstall'] = str(self.ui.uninstall_chkbox.isChecked())
+        cfg['uninstall'] = str(self.ui.uninstall_chkbox.isChecked())
 
     def delete_converted_changed(self):
-        kfconf.cfg['delete_converted'] = str(self.ui.delete_convert_chkbox.isChecked())
+        cfg['delete_converted'] = str(self.ui.delete_convert_chkbox.isChecked())
 
     def delete_downloaded_changed(self):
-        kfconf.cfg['delete_downloaded'] = str(self.ui.delete_downloaded_chkbox.isChecked())
+        cfg['delete_downloaded'] = str(self.ui.delete_downloaded_chkbox.isChecked())
