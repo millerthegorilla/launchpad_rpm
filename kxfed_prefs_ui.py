@@ -6,8 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtWidgets
-from qlabelchanged import QLabelChanged
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_prefs_dialog(object):
@@ -64,10 +63,10 @@ class Ui_prefs_dialog(object):
         self.delete_downloaded_chkbox.setChecked(True)
         self.delete_downloaded_chkbox.setObjectName("delete_downloaded_chkbox")
         self.verticalLayout_2.addWidget(self.delete_downloaded_chkbox)
-        self.delete_convert_chkbox = QtWidgets.QCheckBox(self.layoutWidget_2)
-        self.delete_convert_chkbox.setChecked(True)
-        self.delete_convert_chkbox.setObjectName("delete_convert_chkbox")
-        self.verticalLayout_2.addWidget(self.delete_convert_chkbox)
+        self.delete_converted_chkbox = QtWidgets.QCheckBox(self.layoutWidget_2)
+        self.delete_converted_chkbox.setChecked(True)
+        self.delete_converted_chkbox.setObjectName("delete_converted_chkbox")
+        self.verticalLayout_2.addWidget(self.delete_converted_chkbox)
 
         self.retranslateUi(prefs_dialog)
         self.buttonBox.accepted.connect(prefs_dialog.accept)
@@ -84,4 +83,7 @@ class Ui_prefs_dialog(object):
         self.install_chkbox.setText(_translate("prefs_dialog", "Install Checked Packages"))
         self.uninstall_chkbox.setText(_translate("prefs_dialog", "Uninstall Checked Packages"))
         self.delete_downloaded_chkbox.setText(_translate("prefs_dialog", "Delete Downloaded Packages"))
-        self.delete_convert_chkbox.setText(_translate("prefs_dialog", "Delete Converted Packages"))
+        self.delete_converted_chkbox.setText(_translate("prefs_dialog", "Delete Converted Packages"))
+
+
+from qlabelchanged import QLabelChanged

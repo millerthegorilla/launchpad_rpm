@@ -149,7 +149,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QCheckBox" name="delete_convert_chkbox">
+     <widget class="QCheckBox" name="delete_converted_chkbox">
       <property name="text">
        <string>Delete Converted Packages</string>
       </property>

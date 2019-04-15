@@ -252,21 +252,6 @@ class Packages(QThread):
         for ppa in pkg_states['tobeinstalled']:
             for pkgid in pkg_states['tobeinstalled'][ppa]:
                 pkg = pkg_states['tobeinstalled'][ppa].pop(pkgid)
-                paths = list(Path(debs_dir).glob(pkg['name'] + '*'))
-                if paths and fuzz.token_set_ratio(pkg['version'],
-                                                  basename(str(paths[0]).
-                                                  replace(pkg['name'] + '_', '')).
-                                                  rsplit('_', 1)[0]) > 90:
-                    self.msg_signal.emit('Package' +
-                                         pkg['name'] +
-                                         'has already been downloaded, moving to conversion list')
-                    self.log_signal.emit('Package' +
-                                         pkg['name'] +
-                                         'has already been downloaded, moving to conversion list',
-                                         level=logging.INFO)
-                    pkg['deb_path'] = str(paths[0])
-                    add_item_to_section('converting', pkg)
-                    continue
                 # some housekeeping?
                 if ppa in pkg_states['installing']:
                     if pkgid in pkg_states['installing'][ppa] and\
@@ -282,10 +267,27 @@ class Packages(QThread):
                         self.msg_signal.emit(pkg['name'] + " is already installed")
                         self.log_signal.emit(pkg['name'] + " is already installed")
                         break
+                clean_section(pkg_states['downloading'])
                 if ppa not in pkg_states['downloading']:
                     pkg_states['downloading'][ppa] = {}
-                pkg_states['downloading'][ppa][pkgid] = pkg
                 cfg.write()
+                paths = list(Path(debs_dir).glob(pkg['name'] + '*'))
+                if paths and fuzz.token_set_ratio(pkg['version'],
+                                                  basename(str(paths[0]).
+                                                                   replace(pkg['name'] + '_', '')).
+                                                          rsplit('_', 1)[0]) > 90:
+                    self.msg_signal.emit('Package' +
+                                         pkg['name'] +
+                                         'has already been downloaded, moving to conversion list')
+                    self.log_signal.emit('Package' +
+                                         pkg['name'] +
+                                         'has already been downloaded, moving to conversion list',
+                                         logging.INFO)
+                    pkg['deb_path'] = str(paths[0])
+                    add_item_to_section('converting', pkg)
+                    cfg.write()
+                    continue
+                pkg_states['downloading'][ppa][pkgid] = pkg
                 if isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
                     deb_links.append(pkg_states['downloading'][ppa][pkgid]['deb_path'])
                 else:
@@ -382,6 +384,12 @@ class Packages(QThread):
                                                        callback=self.conversion_finished_signal.emit)
                 #self.conversion_finished_signal.emit(result.get())
 
+    # TODO this needs to be refactored.  the loop for deb_path at 395 is inefficient.
+    # TODO I'm sure I can rewrite with isfile(path), or similar.
+    # TODO also all functions, ie download, convert, install, should be classes
+    # TODO with the appropriate process internal, so that they can be disposed of
+    # TODO safely, for memory management.  Once that is the case, then each class can
+    # TODO handle the positioning of the package in the config's cache.
     def convert_packages(self, deb_path_list):
         if self.cancel_process is True:
             return False
@@ -581,6 +589,7 @@ class Packages(QThread):
                     add_item_to_section('installed', section)
                     # TODO schedule check or callback to run rpm.db_match to check install ok
                 elif 'kxfeduninstalled' in line:
+                    name = line.lstrip('kxfeduninstalled').replace('\n', '').strip()
                     self.msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     self.log_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     section = self.pkg_search(['uninstalling'], name)
