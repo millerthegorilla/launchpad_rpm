@@ -79,7 +79,7 @@ else:
 
 
 def delete_ppa_if_empty(section, ppa):
-    # section is string, ppa is string
+    """section is string, ppa is string"""
     if ppa in cfg['pkg_states'][section]:
         if not cfg['pkg_states'][section][ppa]:  # if ppa is empty
             cfg['pkg_states'][section].pop(ppa)
