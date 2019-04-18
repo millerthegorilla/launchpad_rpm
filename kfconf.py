@@ -61,6 +61,9 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['pkg_states']['installing'] = {}
     cfg['pkg_states']['uninstalling'] = {}
     cfg['pkg_states']['installed'] = {}
+    cfg['pkg_states']['failed_download'] = {}
+    cfg['pkg_states']['failed_conversion'] = {}
+    cfg['pkg_states']['failed_installation'] = {}
     cfg['tmp_dir'] = tmp_dir
     cfg['debs'] = {}
     cfg['debs_dir'] = debs_dir
@@ -114,6 +117,17 @@ def add_item_to_section(section, pkg):
             cfg['pkg_states'][section][pkg.parent.name] = {}
         if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
             cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
+
+
+def pkg_search(sections, search_value):
+    """sections is a list of strings - names of sections - to search
+       search value is content string"""
+    for section in sections:
+        for ppa in cfg['pkg_states'][section]:
+            for pkgid in cfg['pkg_states'][section][ppa]:
+                if search_value in cfg['pkg_states'][section][ppa][pkgid].dict().values():
+                    return cfg['pkg_states'][section][ppa][pkgid]
+    return False
 
 
 cache = make_region().configure(

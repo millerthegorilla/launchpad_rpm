@@ -13,7 +13,8 @@ class DownloadProcess(PackageProcess, list):
     def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
         assert(team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
         super(DownloadProcess, self).__init__(args)
-        self._section = 'downloading'
+        self._section = "downloading"
+        self._error_section = "failed_download"
         self._team_link = team_link
         self._lock = RLock()
         self._thread_pool = ThreadPool(10)
@@ -38,11 +39,11 @@ class DownloadProcess(PackageProcess, list):
                           ".read_section()"
         pkgs_complete = 0
         pkgs_success = 0
-        for ppa, pkg in self:
-            if not self.check_installed(pkg['name']):
+        for i in self:
+            if not self.check_installed(i.pkg['name']):
                 result = self._thread_pool.apply_async(self.__get_deb_link_and_download,
-                                                       (ppa,
-                                                        pkg,
+                                                       (i.ppa,
+                                                        i.pkg,
                                                         debs_dir,
                                                         self._team_link,))
                 success, name = result.get()
@@ -50,12 +51,14 @@ class DownloadProcess(PackageProcess, list):
                 if success:
                     pkgs_success += 1
                 else:
-                    if pkg['name'] == name:
+                    if i.pkg['name'] == name:
                         self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
         while 1:
             if pkgs_complete == len(self):
                 cfg.write()
-                return pkgs_success
+                return 0, pkgs_success
+            else:
+                return -1, pkgs_success
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link

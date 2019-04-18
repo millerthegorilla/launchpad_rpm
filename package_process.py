@@ -11,6 +11,9 @@ class PackageProcess(list):
     def __init__(self, *args):
         super(PackageProcess, self).__init__(args)
         self._section = ""
+        self._error_section = ""
+        self._next_section = ""
+        self._path_name = ""
         self._pkg_tuple = namedtuple("pkg_tuple", ["ppa", "pkg"])
 
     def read_section(self):
@@ -25,17 +28,16 @@ class PackageProcess(list):
             before it continues"""
         pass
 
-    @staticmethod
-    def move_cache_section(origin_section, dest_section):
-        """dest_section is a string"""
-        for ppa in pkg_states[origin_section]:
-            for pkg_id in pkg_states[origin_section][ppa]:
-                if isfile(pkg_states[origin_section][ppa][pkg_id]['deb_path']):
-                    add_item_to_section(dest_section, pkg_states[origin_section][ppa].pop(pkg_id))
+    def move_cache(self):
+        """"""
+        for ppa in pkg_states[self._section]:
+            for pkg_id in pkg_states[self._section][ppa]:
+                if isfile(pkg_states[self._section][ppa][pkg_id][self._path_type]):
+                    add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
                 else:
-                    add_item_to_section('tobeinstalled', pkg_states[origin_section][ppa].pop(pkg_id))
+                    add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
         cfg.write()
-        delete_ppa_if_empty(origin_section)
+        delete_ppa_if_empty(self._section)
 
     @staticmethod
     def check_installed(name):

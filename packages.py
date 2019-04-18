@@ -34,6 +34,8 @@ from kfconf import cfg, cache, pkg_states, tmp_dir, \
                     clean_section, debs_dir, \
                     add_item_to_section, delete_ppa_if_empty
 from download_process import DownloadProcess
+from conversion_process import ConversionProcess
+from installation_process import InstallationProcess
 try:
     import rpm
 except ImportError as e:
@@ -169,10 +171,79 @@ class Packages(QThread):
         return False
 
     def install_pkgs_button(self):
-        pkgs = DownloadProcess(team_link=self.lp_team.web_link)
-        pkgs.read_section()
-        bob = pkgs.state_change()
-        pass
+        try:
+            ts = rpm.TransactionSet()
+            if ts.dbMatch('name', 'python3-rpm').count() == 1:
+                cfg['distro_type'] = 'rpm'
+        except Exception as e:
+            cfg['distro_type'] = 'deb'
+        # TODO NOTICE - the following code can be refactored to use a function, I think
+        clean_section(pkg_states['downloading'])
+        if bool(pkg_states['downloading']):
+            for ppa in pkg_states['downloading']:
+                for pkgid in pkg_states['downloading'][ppa]:
+                    if isfile(pkg_states['downloading'][ppa][pkgid]['rpm_path']):
+                        add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkgid))
+                    elif isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
+                        add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkgid))
+                    else:
+                        add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkgid))
+        clean_section(pkg_states['converting'])
+        if bool(pkg_states['converting']):
+            for ppa in pkg_states['converting']:
+                for pkgid in pkg_states['converting'][ppa]:
+                    if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
+                        add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
+                    elif pkg_states['converting'][ppa][pkgid]['deb_path']:
+                        if isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
+                            self.deb_paths_list.append(pkg_states['converting'][ppa][pkgid]['deb_path'])
+                        else:
+                            add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
+        clean_section(pkg_states['installing'])
+        if bool(pkg_states['installing']):
+            for ppa in pkg_states['installing']:
+                for pkgid in pkg_states['installing'][ppa]:
+                    if pkg_states['installing'][ppa][pkgid]['rpm_path']:
+                        if isfile(pkg_states['installing'][ppa][pkgid]['rpm_path']):
+                            if pkg_states['installed'][ppa]:
+                                if pkg_states['installed'][ppa][pkgid]:
+                                    continue
+                        elif isfile(pkg_states['installing'][ppa][pkgid]['deb_path']):
+                            self.deb_paths_list.append(pkg_states['installing'][ppa][pkgid]['deb_path'])
+                            add_item_to_section('converting', pkg_states['installing'][ppa].pop(pkgid))
+                        else:
+                            add_item_to_section('tobeinstalled', pkg_states['installing'][ppa].pop(pkgid))
+        clean_section(pkg_states['uninstalling'])
+        if bool(pkg_states['uninstalling']):
+            for ppa in pkg_states['uninstalling']:
+                for pkgid in pkg_states['uninstalling'][ppa]:
+                    ts = rpm.TransactionSet()
+                    if not len(ts.dbMatch('name', pkg_states['uninstalling'][ppa][pkgid]['name'])):
+                        self.msg_signal.emit("there is an error in the cache. ",
+                                             pkg_states['uninstalling'][ppa][pkgid]['name'],
+                                             "is not installed.")
+                        self.log_signal.emit("there is an error in the cache. ",
+                                             pkg_states['uninstalling'][ppa][pkgid]['name'],
+                                             "is not installed.  Find the cache section in the config file,"
+                                             " at USERHOME/.config/kxfed/kxfed.cfg",
+                                             " and delete the package from the uninstalling section.")
+        pkg_processes = [DownloadProcess(team_link=self.lp_team.web_link,
+                                         msg_signal=self.msg_signal,
+                                         log_signal=self.log_signal,
+                                         progress_signal=self.progress_signal),
+                         ConversionProcess(msg_signal=self.msg_signal,
+                                           log_signal=self.log_signal,
+                                           progress_signal=self.progress_signal),
+                         InstallationProcess(msg_signal=self.msg_signal,
+                                             log_signal=self.log_signal,
+                                             progress_signal=self.progress_signal,
+                                             transaction_progress_signal=self.transaction_progress_signal,
+                                             request_action_signal=self.request_action_signal)]
+        for pkg_process in pkg_processes:
+            pkg_process.read_section()
+            pkg_process.state_change()
+            pkg_process.move_cache()
+
         # self.deb_paths_list = []
         # try:
         #     ts = rpm.TransactionSet()
