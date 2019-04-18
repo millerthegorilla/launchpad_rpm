@@ -193,14 +193,14 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def cancel_process_button(self):
         self.kxfed.pkg_model.packages.cancel()
 
-    def request_action(self, msg):
+    def request_action(self, msg, callback):
         result = QMessageBox.question(QMessageBox(),
                                       "Confirm Action...",
                                       msg,
                                       QMessageBox.Yes | QMessageBox.No)
 
         if result == QMessageBox.Yes:
-            self.kxfed.pkg_model.packages.continue_actioning_if_ok()
+            callback()
 
     def closeEvent(self, event):
         """
@@ -234,7 +234,7 @@ class Kxfed(QThread):
     lock_model_signal = pyqtSignal(bool)
     list_filling_signal = pyqtSignal()
     cancel_signal = pyqtSignal()
-    request_action_signal = pyqtSignal(str)
+    request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
 
     def __init__(self, mainw):
         super().__init__()
@@ -319,10 +319,10 @@ class Kxfed(QThread):
         self.moveToThread(self.main_window.thread())
         self.main_window.lock_model(enabled)
 
-    @pyqtSlot(str)
-    def _request_action(self, msg):
+    @pyqtSlot(str, 'PyQt_PyObject')
+    def _request_action(self, msg, callback):
         self.moveToThread(self.main_window.thread())
-        self.main_window.request_action(msg)
+        self.main_window.request_action(msg, callback)
 
     def connect(self):
         try:
