@@ -1,0 +1,26 @@
+Refactor Notes
+
+The packages class, can contain four classes:
+download_process
+convert_process
+install_process
+uninstall_process
+
+each of these classes is a process that one adds packages to.  Each class inherits from a class:
+Process
+
+each process has a state change of one kind or another.  It has a before and after ie:
+not downloaded/downloaded
+not converted/converted
+not installed/installed
+not uninstalled/uninstalled
+
+So Process can be an abstract base class that defines an interface.  The interface should contain:
+state_change
+move_cache_section
+
+the latter moves the package from one area of cache to another.  So downloaded etc should be iterables,
+so an abc containing state_change, move_cache, and __iter__
+
+on the other hand, I can just extend a super class from list or deque
+

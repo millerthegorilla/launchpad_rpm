@@ -33,7 +33,7 @@ from launchpadlib.launchpad import Launchpad
 from kfconf import cfg, cache, pkg_states, tmp_dir, \
                     clean_section, debs_dir, \
                     add_item_to_section, delete_ppa_if_empty
-
+from download_process import DownloadProcess
 try:
     import rpm
 except ImportError as e:
@@ -169,69 +169,79 @@ class Packages(QThread):
         return False
 
     def install_pkgs_button(self):
-        self.deb_paths_list = []
-        try:
-            ts = rpm.TransactionSet()
-            if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                cfg['distro_type'] = 'rpm'
-        except Exception as e:
-            cfg['distro_type'] = 'deb'
-        # TODO NOTICE - the following code requires delete_ppa_if_empty to be used at all times
-        # TODO ie if bool(pkg_states['tobeinstalled']): hence the 'clean_section' which removes dangling ppas
-        clean_section(pkg_states['downloading'])
-        if bool(pkg_states['downloading']):
-            for ppa in pkg_states['downloading']:
-                for pkgid in pkg_states['downloading'][ppa]:
-                    if isfile(pkg_states['downloading'][ppa][pkgid]['rpm_path']):
-                        add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkgid))
-                    elif isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
-                        add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkgid))
-                    else:
-                        add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkgid))
-        clean_section(pkg_states['converting'])
-        if bool(pkg_states['converting']):
-            for ppa in pkg_states['converting']:
-                for pkgid in pkg_states['converting'][ppa]:
-                    if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
-                        add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
-                    elif pkg_states['converting'][ppa][pkgid]['deb_path']:
-                        if isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
-                            self.deb_paths_list.append(pkg_states['converting'][ppa][pkgid]['deb_path'])
-                        else:
-                            add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
-        clean_section(pkg_states['installing'])
-        if bool(pkg_states['installing']):
-            for ppa in pkg_states['installing']:
-                for pkgid in pkg_states['installing'][ppa]:
-                    if pkg_states['installing'][ppa][pkgid]['rpm_path']:
-                        if not isfile(pkg_states['installing'][ppa][pkgid]['rpm_path']):
-                            if isfile(pkg_states['installing'][ppa][pkgid]['deb_path']):
-                                self.deb_paths_list.append(pkg_states['installing'][ppa][pkgid]['deb_path'])
-                                add_item_to_section('converting', pkg_states['installing'][ppa].pop(pkgid))
-                            else:
-                                add_item_to_section('tobeinstalled', pkg_states['installing'][ppa].pop(pkgid))
-        clean_section(pkg_states['uninstalling'])
-        if bool(pkg_states['uninstalling']):
-            for ppa in pkg_states['uninstalling']:
-                for pkgid in pkg_states['uninstalling'][ppa]:
-                    if pkg_states['uninstalling'][ppa][pkgid]['rpm_path']:
-                        if not isfile(pkg_states['uninstalling'][ppa][pkgid]['rpm_path']):
-                            if isfile(pkg_states['uninstalling'][ppa][pkgid]['deb_path']):
-                                self.deb_paths_list.append(pkg_states['uninstalling'][ppa][pkgid]['deb_path'])
-                                add_item_to_section('converting', pkg_states['uninstalling'][ppa].pop(pkgid))
-                            else:
-                                add_item_to_section('tobeinstalled', pkg_states['uninstalling'][ppa].pop(pkgid))
-        # start install process by downloading packages
-        if bool(pkg_states['tobeinstalled']):
-            if cfg['download'] == 'True':
-                self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
-        elif cfg['convert'] == 'True':
-            if self.deb_paths_list:
-                self.continue_convert(self.deb_paths_list)
-
-        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
-            if bool(pkg_states['installing']) or bool(pkg_states['uninstalling']):
-                self.continue_actioning(True)
+        pkgs = DownloadProcess(team_link=self.lp_team.web_link)
+        pkgs.read_section()
+        bob = pkgs.state_change()
+        pass
+        # self.deb_paths_list = []
+        # try:
+        #     ts = rpm.TransactionSet()
+        #     if ts.dbMatch('name', 'python3-rpm').count() == 1:
+        #         cfg['distro_type'] = 'rpm'
+        # except Exception as e:
+        #     cfg['distro_type'] = 'deb'
+        # # TODO NOTICE - the following code requires delete_ppa_if_empty to be used at all times
+        # # TODO ie if bool(pkg_states['tobeinstalled']): hence the 'clean_section' which removes dangling ppas
+        # clean_section(pkg_states['downloading'])
+        # if bool(pkg_states['downloading']):
+        #     for ppa in pkg_states['downloading']:
+        #         for pkgid in pkg_states['downloading'][ppa]:
+        #             if isfile(pkg_states['downloading'][ppa][pkgid]['rpm_path']):
+        #                 add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkgid))
+        #             elif isfile(pkg_states['downloading'][ppa][pkgid]['deb_path']):
+        #                 add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkgid))
+        #             else:
+        #                 add_item_to_section('tobeinstalled', pkg_states['downloading'][ppa].pop(pkgid))
+        # clean_section(pkg_states['converting'])
+        # if bool(pkg_states['converting']):
+        #     for ppa in pkg_states['converting']:
+        #         for pkgid in pkg_states['converting'][ppa]:
+        #             if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
+        #                 add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
+        #             elif pkg_states['converting'][ppa][pkgid]['deb_path']:
+        #                 if isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
+        #                     self.deb_paths_list.append(pkg_states['converting'][ppa][pkgid]['deb_path'])
+        #                 else:
+        #                     add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
+        # clean_section(pkg_states['installing'])
+        # if bool(pkg_states['installing']):
+        #     for ppa in pkg_states['installing']:
+        #         for pkgid in pkg_states['installing'][ppa]:
+        #             if pkg_states['installing'][ppa][pkgid]['rpm_path']:
+        #                 if isfile(pkg_states['installing'][ppa][pkgid]['rpm_path']):
+        #                     if pkg_states['installed'][ppa]:
+        #                         if pkg_states['installed'][ppa][pkgid]:
+        #                             continue
+        #                 elif isfile(pkg_states['installing'][ppa][pkgid]['deb_path']):
+        #                     self.deb_paths_list.append(pkg_states['installing'][ppa][pkgid]['deb_path'])
+        #                     add_item_to_section('converting', pkg_states['installing'][ppa].pop(pkgid))
+        #                 else:
+        #                     add_item_to_section('tobeinstalled', pkg_states['installing'][ppa].pop(pkgid))
+        # clean_section(pkg_states['uninstalling'])
+        # if bool(pkg_states['uninstalling']):
+        #     for ppa in pkg_states['uninstalling']:
+        #         for pkgid in pkg_states['uninstalling'][ppa]:
+        #             ts = rpm.TransactionSet()
+        #             if not len(ts.dbMatch('name', pkg_states['uninstalling'][ppa][pkgid]['name'])):
+        #                 self.msg_signal.emit("there is an error in the cache. ",
+        #                                      pkg_states['uninstalling'][ppa][pkgid]['name'],
+        #                                      "is not installed.")
+        #                 self.log_signal.emit("there is an error in the cache. ",
+        #                                      pkg_states['uninstalling'][ppa][pkgid]['name'],
+        #                                      "is not installed.  Find the cache section in the config file,"
+        #                                      " at USERHOME/.config/kxfed/kxfed.cfg",
+        #                                      " and delete the package from the uninstalling section.")
+        # # start install process by downloading packages
+        # if bool(pkg_states['tobeinstalled']):
+        #     if cfg['download'] == 'True':
+        #         self._thread_pool.apply_async(self.download_packages, callback=self.download_finished_signal.emit)
+        # elif cfg['convert'] == 'True':
+        #     if self.deb_paths_list:
+        #         self.continue_convert(self.deb_paths_list)
+        #
+        # if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
+        #     if bool(pkg_states['installing']) or bool(pkg_states['uninstalling']):
+        #         self.continue_actioning(True)
 
     def cancel(self):
         self.cancel_process = True
@@ -274,8 +284,8 @@ class Packages(QThread):
                 paths = list(Path(debs_dir).glob(pkg['name'] + '*'))
                 if paths and fuzz.token_set_ratio(pkg['version'],
                                                   basename(str(paths[0]).
-                                                                   replace(pkg['name'] + '_', '')).
-                                                          rsplit('_', 1)[0]) > 90:
+                                                  replace(pkg['name'] + '_', '')).
+                                                  rsplit('_', 1)[0]) > 90:
                     self.msg_signal.emit('Package' +
                                          pkg['name'] +
                                          'has already been downloaded, moving to conversion list')
