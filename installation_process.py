@@ -8,6 +8,9 @@ class InstallationProcess(PackageProcess):
     def __init__(self, *args):
         super(InstallationProcess, self).__init__(args)
         self._section = 'installing'
+        self._next_section = 'installed'
+        self._error_section = 'failed_installing'
+        self._path_name = 'name'
         self._thread_pool = ThreadPool(10)
 
     def prepare_action(self):
@@ -28,10 +31,10 @@ class InstallationProcess(PackageProcess):
         cfg.write()
 
     def state_change(self):
-        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
+        install_msg_txt = ""
+        if cfg['install'] == 'True':
             clean_section(pkg_states[self._section])
             if pkg_states[self._section]:
-                install_msg_txt = ""
                 for ppa in pkg_states[self._section]:
                     for pkg in pkg_states[self._section][ppa]:
                         if isfile(pkg_states[self._section][ppa][pkg]['rpm_path']):
@@ -49,6 +52,17 @@ class InstallationProcess(PackageProcess):
                 if isfile(pkg_states['installing'][ppa][pkg]['rpm_path']):
                     rpm_links.append(pkg_states['installing'][ppa][pkg]['rpm_path'])
         return rpm_links
+
+    def move_cache(self):
+        """"""
+        for ppa in pkg_states[self._section]:
+            for pkg_id in pkg_states[self._section][ppa]:
+                if self.check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
+                    add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
+                else:
+                    add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
+            delete_ppa_if_empty(self._section, ppa)
+        cfg.write()
 
     def _install_debs(self):
         pass

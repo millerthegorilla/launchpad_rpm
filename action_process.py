@@ -1,7 +1,7 @@
 from package_process import PackageProcess
 from installation_process import InstallationProcess
 from uninstallation_process import UninstallationProcess
-from kfconf import cfg, tmp_dir, add_item_to_section, pkg_search
+from kfconf import cfg, tmp_dir, add_item_to_section, pkg_search, has_pending
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import logging
@@ -25,19 +25,23 @@ class ActionProcess(PackageProcess):
         self._transaction_progress_signal = transaction_progress_signal
         self._processes = []
         if cfg.as_bool('install'):
-            self._installation_process = InstallationProcess()
-            self._processes.append(self._installation_process)
+            if has_pending('installing'):
+                self._installation_process = InstallationProcess()
+                self._processes.append(self._installation_process)
         if cfg.as_bool('uninstall'):
-            self._uninstallation_process = UninstallationProcess()
-            self._processes.append(self._uninstallation_process)
+            if has_pending('uninstalling'):
+                self._uninstallation_process = UninstallationProcess()
+                self._processes.append(self._uninstallation_process)
 
     def prepare_action(self):
         for process in self._processes:
             process.prepare_action()
 
     def read_section(self):
+        len = 0
         for process in self._processes:
-            process.read_section()
+            len += process.read_section()
+        return len
 
     def state_change(self):
         self._log_signal.emit("Actioning packages...", logging.INFO)
@@ -119,4 +123,3 @@ class ActionProcess(PackageProcess):
     def move_cache(self):
         for process in self._processes:
             process.move_cache()
-

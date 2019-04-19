@@ -19,7 +19,7 @@ from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
-from kfconf import cfg, cache, clean_section
+from kfconf import cfg, cache, clean_section, has_pending
 from download_process import DownloadProcess
 from conversion_process import ConversionProcess
 from action_process import ActionProcess
@@ -136,19 +136,22 @@ class Packages(QThread):
         except Exception as e:
             cfg['distro_type'] = 'deb'
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
-        pkg_processes = [DownloadProcess(team_link=self.lp_team.web_link,
-                                         msg_signal=self._msg_signal,
-                                         log_signal=self._log_signal,
-                                         progress_signal=self._progress_signal) if cfg['download'] else None,
-                         ConversionProcess(msg_signal=self._msg_signal,
-                                           log_signal=self._log_signal,
-                                           progress_signal=self._progress_signal) if cfg['convert'] else None,
-                         ActionProcess(msg_signal=self._msg_signal,
-                                       log_signal=self._log_signal,
-                                       progress_signal=self._progress_signal,
-                                       transaction_progress_signal=self._transaction_progress_signal,
-                                       request_action_signal=self._request_action_signal)
-                         if cfg.as_bool('install') or cfg.as_bool('uninstall') else None]
+        pkg_processes = []
+        if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
+            pkg_processes.append(DownloadProcess(team_link=self.lp_team.web_link,
+                                                 msg_signal=self._msg_signal,
+                                                 log_signal=self._log_signal,
+                                                 progress_signal=self._progress_signal))
+        if has_pending('converting') and cfg.as_bool('convert'):
+            pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+                                                   log_signal=self._log_signal,
+                                                   progress_signal=self._progress_signal))
+        if has_pending('installing') or has_pending('uninstalling'):
+            pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
+                                               log_signal=self._log_signal,
+                                               progress_signal=self._progress_signal,
+                                               transaction_progress_signal=self._transaction_progress_signal,
+                                               request_action_signal=self._request_action_signal))
         for pkg_process in pkg_processes:
             pkg_process.prepare_action()
             if pkg_process.read_section():
@@ -165,4 +168,4 @@ class Packages(QThread):
         if self.process is not None:
             self.process.stdin.write(b"cancel")
             self.process.terminate()
-        self.cancel_signal.emit()
+        self._cancel_signal.emit()

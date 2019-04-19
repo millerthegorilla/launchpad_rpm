@@ -1,5 +1,5 @@
 from package_process import PackageProcess
-from kfconf import cfg, clean_section, pkg_states, add_item_to_section
+from kfconf import cfg, clean_section, pkg_states, add_item_to_section, delete_ppa_if_empty
 from multiprocessing.dummy import Pool as ThreadPool
 from rpm import TransactionSet
 
@@ -8,6 +8,8 @@ class UninstallationProcess(PackageProcess):
     def __init__(self, *args):
         super(UninstallationProcess, self).__init__(args)
         self._section = 'uninstalling'
+        self._error_section = 'failed_uninstalling'
+        self._path_name = 'name'
         self._thread_pool = ThreadPool(10)
 
     def prepare_action(self):
@@ -28,10 +30,10 @@ class UninstallationProcess(PackageProcess):
         cfg.write()
 
     def state_change(self):
-        if cfg['install'] == 'True' or cfg['uninstall'] == 'True':
+        uninstall_msg_txt = ""
+        if cfg['uninstall'] == 'True':
             clean_section(pkg_states[self._section])
             if pkg_states[self._section]:
-                uninstall_msg_txt = ""
                 for ppa in pkg_states[self._section]:
                     for pkg in pkg_states[self._section][ppa]:
                         uninstall_msg_txt += pkg_states[self._section][ppa][pkg]['name'] + "\n"
@@ -46,6 +48,17 @@ class UninstallationProcess(PackageProcess):
             for pkg in pkg_states['uninstalling'][ppa]:
                 rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
         return rpm_links
+
+    def move_cache(self):
+        """"""
+        for ppa in pkg_states[self._section]:
+            for pkg_id in pkg_states[self._section][ppa]:
+                if not self.check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
+                    pkg_states[self._section][ppa].pop(pkg_id)
+                else:
+                    add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
+            delete_ppa_if_empty(self._section, ppa)
+        cfg.write()
 
     def _install_debs(self):
         pass
