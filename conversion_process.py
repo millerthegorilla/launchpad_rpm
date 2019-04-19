@@ -1,6 +1,6 @@
 from package_process import PackageProcess
 from multiprocessing.dummy import Pool as ThreadPool
-from kfconf import pkg_states, cfg, rpms_dir, add_item_to_section
+from kfconf import pkg_states, cfg, rpms_dir, add_item_to_section, clean_section
 from os.path import isfile
 from os import remove
 import logging
@@ -8,7 +8,7 @@ from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 
 
-class ConversionProcess(PackageProcess, list):
+class ConversionProcess(PackageProcess):
     def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None):
         super(ConversionProcess, self).__init__(args)
         self._section = "converting"
@@ -19,6 +19,16 @@ class ConversionProcess(PackageProcess, list):
         self._msg_signal = msg_signal
         self._log_signal = log_signal
         self._progress_signal = progress_signal
+
+    def prepare_action(self):
+        clean_section(pkg_states['converting'])
+        if bool(pkg_states['converting']):
+            for ppa in pkg_states['converting']:
+                for pkgid in pkg_states['converting'][ppa]:
+                    if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
+                        add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
+                    elif not isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
+                        add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
 
     def state_change(self):
         deb_paths_list = []
@@ -42,7 +52,7 @@ class ConversionProcess(PackageProcess, list):
                 else:
                     self._msg_signal("Some packages were not converted.")
                     self._log_signal("Some packages were not converted.", logging.INFO)
-                    return -1, result.get()
+                    return -1, len(deb_paths_list) - result.get()
             else:
                 return -1, len(deb_paths_list) - result.get()
 
@@ -65,7 +75,7 @@ class ConversionProcess(PackageProcess, list):
             QGuiApplication.instance().processEvents()
             nextline = self.process.stdout.readline().decode('utf-8')
             self.process.stdout.flush()
-            self.log_signal.emit(nextline, logging.INFO)
+            self._log_signal.emit(nextline, logging.INFO)
             if 'Converted' in nextline:
                 word_list = nextline.split(' to ')
                 rpm_name = word_list[1].rstrip('\n')

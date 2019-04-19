@@ -10,7 +10,7 @@ import packages
 from kfconf import cfg, \
     config_dir, CONFIG_FILE, \
     pkg_states, delete_ppa_if_empty, \
-    add_item_to_section
+    add_item_to_section, pkg_search
 from tvitem import TVItem, TVITEM_ROLE
 
 
@@ -62,16 +62,16 @@ class TVModel(QStandardItemModel, QObject):
         for pkg in pkgs:
             pkg = TVItem(pkg)
             cfg['found'] = {}
-            if self.packages.pkg_search(['installed'], pkg.id):
+            if pkg_search(['installed'], pkg.id):
                 pkg.installed = Qt.Checked
                 self.appendRow(pkg.row)
                 continue
-            if self.packages.pkg_search(['uninstalling'], pkg.id):
+            if pkg_search(['uninstalling'], pkg.id):
                 pkg.installed = Qt.Unchecked
                 pkg.install_state.setBackground(Qt.red)
                 self.appendRow(pkg.row)
                 continue
-            if self.packages.pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
+            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                 pkg.installed = Qt.PartiallyChecked
                 self.appendRow(pkg.row)
                 continue

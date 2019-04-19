@@ -10,17 +10,28 @@ class PackageProcess(list):
         that must be implemented by the sub classes"""
     def __init__(self, *args):
         super(PackageProcess, self).__init__(args)
+        if not self[0]:
+            del(self[0])
         self._section = ""
         self._error_section = ""
         self._next_section = ""
         self._path_name = ""
         self._pkg_tuple = namedtuple("pkg_tuple", ["ppa", "pkg"])
 
+    @abstractmethod
+    def prepare_action(self):
+        pass
+
     def read_section(self):
         """Reads the section from the cache as a list of packages (self)."""
         for ppa in pkg_states[self._section]:
-            for pkgid in pkg_states[self._section][ppa]:
-                self.append(self._pkg_tuple(ppa=ppa, pkg=pkg_states[self._section][ppa][pkgid]))
+            for pkg_id in pkg_states[self._section][ppa]:
+                self.append(self._pkg_tuple(ppa=ppa, pkg=pkg_states[self._section][ppa][pkg_id]))
+        return len(self)
+
+    @property
+    def section(self):
+        return self._section
 
     @abstractmethod
     def state_change(self):
@@ -53,8 +64,3 @@ class PackageProcess(list):
                     if search_value in pkg_states[section][ppa][pkg_id].dict().values():
                         return pkg_states[section][ppa][pkg_id]
         return False
-
-
-
-
-
