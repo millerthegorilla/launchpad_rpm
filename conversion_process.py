@@ -1,6 +1,8 @@
 from package_process import PackageProcess
 from multiprocessing.dummy import Pool as ThreadPool
-from kfconf import pkg_states, cfg, rpms_dir, add_item_to_section, clean_section
+from kfconf import pkg_states, cfg, \
+                   rpms_dir, add_item_to_section, \
+                   clean_section, pkg_search
 from os.path import isfile
 from os import remove
 import logging
@@ -12,10 +14,11 @@ class ConversionProcess(PackageProcess):
     def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None):
         super(ConversionProcess, self).__init__(args)
         self._section = "converting"
-        self._error_section = "failed_conversion"
+        self._error_section = "failed_converting"
         self._next_section = "installing"
         self._path_name = "rpm_path"
         self._thread_pool = ThreadPool(10)
+        self._process = None
         self._msg_signal = msg_signal
         self._log_signal = log_signal
         self._progress_signal = progress_signal
@@ -29,6 +32,7 @@ class ConversionProcess(PackageProcess):
                         add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
                     elif not isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
                         add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
+        cfg.write()
 
     def state_change(self):
         deb_paths_list = []
@@ -62,25 +66,25 @@ class ConversionProcess(PackageProcess):
         username = getuser()
         del getuser
         try:
-            self.process = Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', username,
+            self._process = Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', username,
                                   cfg['rpms_dir'], cfg['arch']] + deb_path_list,
-                                 bufsize=1,
-                                 stdin=PIPE,
-                                 stdout=PIPE,
-                                 stderr=PIPE)
+                                  bufsize=1,
+                                  stdin=PIPE,
+                                  stdout=PIPE,
+                                  stderr=PIPE)
         except Exception as e:
             self._log_signal.emit(e)
         num_of_conv = 0
         while 1:
             QGuiApplication.instance().processEvents()
-            nextline = self.process.stdout.readline().decode('utf-8')
-            self.process.stdout.flush()
-            self._log_signal.emit(nextline, logging.INFO)
-            if 'Converted' in nextline:
-                word_list = nextline.split(' to ')
+            next_line = self._process.stdout.readline().decode('utf-8')
+            self._process.stdout.flush()
+            self._log_signal.emit(next_line, logging.INFO)
+            if 'Converted' in next_line:
+                word_list = next_line.split(' to ')
                 rpm_name = word_list[1].rstrip('\n')
                 deb_path = word_list[0].lstrip('Converted ')
-                found_pkg = self.pkg_search([self._section], search_value=deb_path)
+                found_pkg = pkg_search([self._section], search_value=deb_path)
                 if found_pkg:
                     if isfile(rpms_dir + rpm_name):
                         pkg_states[self._section][found_pkg.parent.name][found_pkg.name]['rpm_path'] = \
@@ -90,8 +94,8 @@ class ConversionProcess(PackageProcess):
                         remove(found_pkg['deb_path'])
                         found_pkg['deb_path'] = ""
                     self._progress_signal.emit(num_of_conv, deb_length)
-                    self._msg_signal.emit(nextline)
-            if nextline == '' and self.process.poll() is not None:
+                    self._msg_signal.emit(next_line)
+            if next_line == '' and self._process.poll() is not None:
                 break
         if num_of_conv > 0:
             for ppa in pkg_states[self._section]:

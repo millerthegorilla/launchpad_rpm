@@ -43,24 +43,13 @@ class PackageProcess(list):
         """"""
         for ppa in pkg_states[self._section]:
             for pkg_id in pkg_states[self._section][ppa]:
-                if isfile(pkg_states[self._section][ppa][pkg_id][self._path_type]):
+                if isfile(pkg_states[self._section][ppa][pkg_id][self._path_name]):
                     add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
                 else:
                     add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
+            delete_ppa_if_empty(self._section, ppa)
         cfg.write()
-        delete_ppa_if_empty(self._section)
 
     @staticmethod
     def check_installed(name):
         return True if len(rpm.TransactionSet().dbMatch('name', name)) else False
-
-    @staticmethod
-    def pkg_search(sections, search_value):
-        """sections is a list of strings - names of sections - to search
-           search value is content string"""
-        for section in sections:
-            for ppa in pkg_states[section]:
-                for pkg_id in pkg_states[section][ppa]:
-                    if search_value in pkg_states[section][ppa][pkg_id].dict().values():
-                        return pkg_states[section][ppa][pkg_id]
-        return False

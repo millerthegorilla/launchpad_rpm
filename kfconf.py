@@ -62,8 +62,9 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['pkg_states']['uninstalling'] = {}
     cfg['pkg_states']['installed'] = {}
     cfg['pkg_states']['failed_downloading'] = {}
-    cfg['pkg_states']['failed_conversion'] = {}
-    cfg['pkg_states']['failed_installation'] = {}
+    cfg['pkg_states']['failed_converting'] = {}
+    cfg['pkg_states']['failed_installing'] = {}
+    cfg['pkg_states']['failed_uninstalling'] = {}
     cfg['tmp_dir'] = tmp_dir
     cfg['debs'] = {}
     cfg['debs_dir'] = debs_dir

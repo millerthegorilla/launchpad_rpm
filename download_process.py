@@ -17,7 +17,7 @@ class DownloadProcess(PackageProcess):
         super(DownloadProcess, self).__init__(args)
         self._section = "downloading"
         self._next_section = "converting"
-        self._error_section = "failed_download"
+        self._error_section = "failed_downloading"
         self._team_link = team_link
         self._lock = RLock()
         self._thread_pool = ThreadPool(10)
@@ -28,34 +28,34 @@ class DownloadProcess(PackageProcess):
         self._current_length = 0
 
     def prepare_action(self):
-        for ppa in pkg_states['tobeinstalled']:
-            for pkg_id in pkg_states['tobeinstalled'][ppa]:
-                add_item_to_section(self._section, pkg_states['tobeinstalled'][ppa].pop(pkg_id))
-        clean_section(pkg_states['downloading'])
-        if bool(pkg_states['downloading']):
-            for ppa in pkg_states['downloading']:
-                for pkg_id in pkg_states['downloading'][ppa]:
-                    pkg = pkg_states['downloading'][ppa][pkg_id]
-                    if isfile(pkg_states['downloading'][ppa][pkg_id]['rpm_path']):
-                        add_item_to_section('installing', pkg_states['downloading'][ppa].pop(pkg_id))
+        for ppa in pkg_states["tobeinstalled"]:
+            for pkg_id in pkg_states["tobeinstalled"][ppa]:
+                add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
+        clean_section(pkg_states["downloading"])
+        if bool(pkg_states["downloading"]):
+            for ppa in pkg_states["downloading"]:
+                for pkg_id in pkg_states["downloading"][ppa]:
+                    pkg = pkg_states["downloading"][ppa][pkg_id]
+                    if isfile(pkg_states["downloading"][ppa][pkg_id]["rpm_path"]):
+                        add_item_to_section("installing", pkg_states["downloading"][ppa].pop(pkg_id))
                         continue
-                    elif isfile(pkg_states['downloading'][ppa][pkg_id]['deb_path']):
-                        add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkg_id))
+                    elif isfile(pkg_states["downloading"][ppa][pkg_id]["deb_path"]):
+                        add_item_to_section("converting", pkg_states["downloading"][ppa].pop(pkg_id))
                         continue
-                    paths = list(Path(debs_dir).glob(pkg['name'] + '*'))
-                    if paths and fuzz.token_set_ratio(pkg['version'],
+                    paths = list(Path(debs_dir).glob(pkg["name"] + "*"))
+                    if paths and fuzz.token_set_ratio(pkg["version"],
                                                       basename(str(paths[0]).
-                                                      replace(pkg['name'] + '_', '')).
-                                                      rsplit('_', 1)[0]) > 90:
-                        self._msg_signal.emit('Package' +
-                                              pkg['name'] +
-                                              'has already been downloaded, moving to conversion list')
-                        self._log_signal.emit('Package' +
-                                              pkg['name'] +
-                                              'has already been downloaded, moving to conversion list',
+                                                      replace(pkg["name"] + "_", "")).
+                                                      rsplit("_", 1)[0]) > 90:
+                        self._msg_signal.emit("Package " +
+                                              pkg["name"] +
+                                              " has already been downloaded, moving to conversion list")
+                        self._log_signal.emit("Package " +
+                                              pkg["name"] +
+                                              " has already been downloaded, moving to conversion list",
                                               logging.INFO)
-                        pkg['deb_path'] = str(paths[0])
-                        add_item_to_section('converting', pkg_states['downloading'][ppa].pop(pkg_id))
+                        pkg["deb_path"] = str(paths[0])
+                        add_item_to_section("converting", pkg_states["downloading"][ppa].pop(pkg_id))
                         continue
         cfg.write()
 
@@ -66,7 +66,7 @@ class DownloadProcess(PackageProcess):
         pkgs_complete = 0
         pkgs_success = 0
         for i in self:
-            if not self.check_installed(i.pkg['name']):
+            if not self.check_installed(i.pkg["name"]):
                 result = self._thread_pool.apply_async(self.__get_deb_link_and_download,
                                                        (i.ppa,
                                                         i.pkg,
@@ -77,7 +77,7 @@ class DownloadProcess(PackageProcess):
                 if success:
                     pkgs_success += 1
                 else:
-                    if i.pkg['name'] == name:
+                    if i.pkg["name"] == name:
                         self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
         while 1:
             if pkgs_complete == len(self):
@@ -92,27 +92,27 @@ class DownloadProcess(PackageProcess):
         # and returns a path for the package deb file.
         try:
             html = get(web_link
-                       + '/+archive/ubuntu/'
+                       + "/+archive/ubuntu/"
                        + ppa
-                       + '/+build/' + pkg['build_link'].rsplit('/', 1)[-1])
+                       + "/+build/" + pkg["build_link"].rsplit("/", 1)[-1])
 
-            links = BeautifulSoup(html.content, 'lxml').find_all('a',
-                                                                 href=compile(r''
-                                                                              + pkg['name']
-                                                                              + '(.*?)(all|amd64\\.deb)'))
+            links = BeautifulSoup(html.content, "lxml").find_all("a",
+                                                                 href=compile(r""
+                                                                              + pkg["name"]
+                                                                              + "(.*?)(all|amd64\\.deb)"))
             assert len(links) == 1
-            pkg['deb_link'] = links[0]
+            pkg["deb_link"] = links[0]
             link = links[0]
             # deb_paths = []
             # for link in links:
-            fn = link['href'].rsplit('/', 1)[-1]
+            fn = link["href"].rsplit("/", 1)[-1]
             fp = debsdir + fn
             if not isfile(fp):
-                self._log_signal.emit("Downloading " + pkg['name'] + ' from ' + str(link['href']), logging.INFO)
-                self._msg_signal.emit("Downloading " + pkg['name'])
+                self._log_signal.emit("Downloading " + pkg["name"] + " from " + str(link["href"]), logging.INFO)
+                self._msg_signal.emit("Downloading " + pkg["name"])
                 with open(fp, "wb+") as f:
-                    response = get(link['href'], stream=True)
-                    total_length = response.headers.get('content-length')
+                    response = get(link["href"], stream=True)
+                    total_length = response.headers.get("content-length")
                     if total_length is None:  # no content length header
                         f.write(response.content)
                     else:
@@ -124,7 +124,7 @@ class DownloadProcess(PackageProcess):
                             self._current_length += len(data)
                             self._progress_signal.emit(self._current_length, self._total_length)
                             self._lock.release()
-            pkg['deb_path'] = fp
-            return pkg['name'], True
+            pkg["deb_path"] = fp
+            return pkg["name"], True
         except HTTPError as e:
             self._log_signal.emit(e, logging.CRITICAL)
