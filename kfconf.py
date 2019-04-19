@@ -61,7 +61,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['pkg_states']['installing'] = {}
     cfg['pkg_states']['uninstalling'] = {}
     cfg['pkg_states']['installed'] = {}
-    cfg['pkg_states']['failed_download'] = {}
+    cfg['pkg_states']['failed_downloading'] = {}
     cfg['pkg_states']['failed_conversion'] = {}
     cfg['pkg_states']['failed_installation'] = {}
     cfg['tmp_dir'] = tmp_dir
@@ -93,6 +93,8 @@ def clean_section(sections):
     if type(sections) is not list:
         sections = [sections]
     for section in sections:
+        if type(section) is str:
+            section = cfg['pkg_states'][section]
         for ppa in section:
             delete_ppa_if_empty(section.name, ppa)
 
@@ -117,6 +119,14 @@ def add_item_to_section(section, pkg):
             cfg['pkg_states'][section][pkg.parent.name] = {}
         if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
             cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
+
+
+def has_pending(section):
+    if cfg['pkg_states'][section]:
+        for ppa in cfg['pkg_states'][section]:
+            if cfg['pkg_states'][section][ppa]:
+                return True
+    return False
 
 
 def pkg_search(sections, search_value):
