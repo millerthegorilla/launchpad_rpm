@@ -45,7 +45,7 @@ class Packages(QThread):
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
-                 cancel_signal, request_action_signal,
+                 ended_signal, request_action_signal,
                  list_filled_signal):
         super().__init__()
         self.team = team
@@ -64,7 +64,7 @@ class Packages(QThread):
         self._transaction_progress_signal = transaction_progress_signal
         self._lock_model_signal = lock_model_signal
         self._list_filling_signal = list_filling_signal
-        self._cancel_signal = cancel_signal
+        self._ended_signal = ended_signal
         self._request_action_signal = request_action_signal
         self._list_filled_signal = list_filled_signal
 
@@ -162,10 +162,12 @@ class Packages(QThread):
                         self._log_signal("Not all packages from " + pkg_process.section + " were successful",
                                          logging.INFO)
                 pkg_process.move_cache()
+        else:
+            self._msg_signal.emit("Nothing to do...")
+        self._ended_signal.emit(False)
 
     def cancel(self):
-        self._cancel_process = True
         if self.process is not None:
             self.process.stdin.write(b"cancel")
             self.process.terminate()
-        self._cancel_signal.emit()
+        self._ended_signal.emit(True)

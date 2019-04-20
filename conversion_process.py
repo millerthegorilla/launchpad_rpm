@@ -12,27 +12,14 @@ from PyQt5.QtGui import QGuiApplication
 
 class ConversionProcess(PackageProcess):
     def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None):
-        super(ConversionProcess, self).__init__(args)
+        super(ConversionProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "converting"
         self._error_section = "failed_converting"
         self._next_section = "installing"
         self._path_name = "rpm_path"
         self._thread_pool = ThreadPool(10)
         self._process = None
-        self._msg_signal = msg_signal
-        self._log_signal = log_signal
         self._progress_signal = progress_signal
-
-    def prepare_action(self):
-        clean_section(pkg_states['converting'])
-        if bool(pkg_states['converting']):
-            for ppa in pkg_states['converting']:
-                for pkgid in pkg_states['converting'][ppa]:
-                    if isfile(pkg_states['converting'][ppa][pkgid]['rpm_path']):
-                        add_item_to_section('installing', pkg_states['converting'][ppa].pop(pkgid))
-                    elif not isfile(pkg_states['converting'][ppa][pkgid]['deb_path']):
-                        add_item_to_section('tobeinstalled', pkg_states['converting'][ppa].pop(pkgid))
-        cfg.write()
 
     def state_change(self):
         deb_paths_list = []

@@ -24,7 +24,7 @@ class TVModel(QStandardItemModel, QObject):
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
-                 cancel_signal, request_action_signal):
+                 ended_signal, request_action_signal):
         super().__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
@@ -36,7 +36,7 @@ class TVModel(QStandardItemModel, QObject):
                                            transaction_progress_signal,
                                            lock_model_signal,
                                            list_filling_signal,
-                                           cancel_signal,
+                                           ended_signal,
                                            request_action_signal,
                                            self.list_filled_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
@@ -61,7 +61,10 @@ class TVModel(QStandardItemModel, QObject):
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
-            cfg['found'] = {}
+            found = pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling', 'installed'], pkg.name)
+            if found:
+                if pkg.version == found['version']:
+                    pkg.id = found['id']
             if pkg_search(['installed'], pkg.id):
                 pkg.installed = Qt.Checked
                 self.appendRow(pkg.row)
@@ -71,7 +74,7 @@ class TVModel(QStandardItemModel, QObject):
                 pkg.install_state.setBackground(Qt.red)
                 self.appendRow(pkg.row)
                 continue
-            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
+            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling'], pkg.id):
                 pkg.installed = Qt.PartiallyChecked
                 self.appendRow(pkg.row)
                 continue
@@ -136,7 +139,7 @@ class TVModel(QStandardItemModel, QObject):
                 # if item is being set to uninstall
                 if pkg.installed == Qt.Checked:
                     # move from installed to uninstalling section
-                    section = self._packages.pkg_search(['installed'], pkg.id)
+                    section = pkg_search(['installed'], pkg.id)
                     if section:
                         pkg_states['installed'][pkg.ppa].pop(pkg.id)
                         delete_ppa_if_empty('installed', pkg.ppa)

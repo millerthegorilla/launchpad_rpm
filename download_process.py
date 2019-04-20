@@ -1,8 +1,8 @@
 from package_process import PackageProcess
-from kfconf import cfg, debs_dir, rpms_dir, pkg_states, add_item_to_section, clean_section
+from kfconf import cfg, debs_dir, pkg_states, add_item_to_section
 from requests import get, HTTPError
 from bs4 import BeautifulSoup
-from os.path import isfile, basename
+from os.path import isfile
 from re import compile
 import logging
 from threading import RLock
@@ -12,15 +12,13 @@ from multiprocessing.dummy import Pool as ThreadPool
 class DownloadProcess(PackageProcess):
     def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
         assert(team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
-        super(DownloadProcess, self).__init__(args)
+        super(DownloadProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "downloading"
         self._next_section = "converting"
         self._error_section = "failed_downloading"
         self._team_link = team_link
         self._lock = RLock()
         self._thread_pool = ThreadPool(10)
-        self._msg_signal = msg_signal
-        self._log_signal = log_signal
         self._progress_signal = progress_signal
         self._total_length = 0
         self._current_length = 0
@@ -29,7 +27,7 @@ class DownloadProcess(PackageProcess):
         for ppa in pkg_states["tobeinstalled"]:
             for pkg_id in pkg_states["tobeinstalled"][ppa]:
                 add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
-
+        super().prepare_action()
         cfg.write()
 
     def state_change(self):

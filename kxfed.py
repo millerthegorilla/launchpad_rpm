@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 from launchpadlib.errors import HTTPError
 
 import tvmodel
-from kfconf import cfg, cache, pkg_states
+from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
 from kxfedmsgsdialog import KxfedMsgsDialog
@@ -102,7 +102,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def lock_model(self, enabled):
         self.pkgs_tableView.setEnabled(enabled)
 
-    def cancelled(self):
+    def ended(self):
         self.install_btn.setText('Process Packages')
         self.install_btn.clicked.disconnect()
         self.install_btn.clicked.connect(self.install_pkgs_button)
@@ -233,7 +233,7 @@ class Kxfed(QThread):
     transaction_progress_signal = pyqtSignal(int, int)
     lock_model_signal = pyqtSignal(bool)
     list_filling_signal = pyqtSignal()
-    cancel_signal = pyqtSignal()
+    ended_signal = pyqtSignal(int)
     request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
 
     def __init__(self, mainw):
@@ -253,7 +253,7 @@ class Kxfed(QThread):
         self.transaction_progress_signal.connect(self._transaction_progress_changed)  # , type=Qt.DirectConnection)
         self.lock_model_signal.connect(self._lock_model)  # , type=Qt.DirectConnection)
         self.list_filling_signal.connect(self._toggle_pkg_list_loading)  # , type=Qt.DirectConnection)
-        self.cancel_signal.connect(self._cancelled)
+        self.ended_signal.connect(self._ended)
         self.request_action_signal.connect(self._request_action)
 
         self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
@@ -265,7 +265,7 @@ class Kxfed(QThread):
                                          self.transaction_progress_signal,
                                          self.lock_model_signal,
                                          self.list_filling_signal,
-                                         self.cancel_signal,
+                                         self.ended_signal,
                                          self.request_action_signal)
 
         # connect
@@ -293,11 +293,20 @@ class Kxfed(QThread):
         self.moveToThread(self.main_window.thread())
         self.main_window.log_msg(exception, type)
 
-    @pyqtSlot()
-    def _cancelled(self):
+    @pyqtSlot(int)
+    def _ended(self, cancellation):
         self.moveToThread(self.main_window.thread())
-        self.pkg_model.packages.cancel_process = True
-        self.main_window.cancelled()
+        if cancellation == ENDED_ERR:
+            self.pkg_model.packages.cancel_process = True
+            self._message_user("Processing ended in error.  Check messages")
+        if cancellation == ENDED_CANCEL:
+            self.pkg_model.packages.cancel_process = True
+            self._message_user("Processing cancelled by user")
+            self._log_msg("Processing cancelled by user", logging.INFO)
+        if cancellation == ENDED_SUCC:
+            self._message_user("Processing successful!")
+            self._log_msg("Processing successful!", logging.INFO)
+        self.main_window.ended()
 
     @pyqtSlot()
     def _toggle_pkg_list_loading(self):

@@ -5,30 +5,30 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 
 class InstallationProcess(PackageProcess):
-    def __init__(self, *args):
-        super(InstallationProcess, self).__init__(args)
+    def __init__(self, *args, msg_signal=None, log_signal=None):
+        super(InstallationProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = 'installing'
         self._next_section = 'installed'
         self._error_section = 'failed_installing'
         self._path_name = 'name'
         self._thread_pool = ThreadPool(10)
 
-    def prepare_action(self):
-        clean_section(pkg_states['installing'])
-        if bool(pkg_states['installing']):
-            for ppa in pkg_states['installing']:
-                for pkg_id in pkg_states['installing'][ppa]:
-                    if isfile(pkg_states['installing'][ppa][pkg_id]['rpm_path']):
-                        if self.check_installed(pkg_states['installing'][ppa][pkg_id]['name']):
-                            try:
-                                if not pkg_states['installed'][ppa][pkg_id]:
-                                    add_item_to_section('installed', pkg_states['installing'][ppa].pop(pkg_id))
-                            except KeyError:
-                                pkg_states['installed'][ppa] = {}
-                                pkg_states['installed'][ppa][pkg_id] = pkg_states['installing'][ppa].pop(pkg_id)
-                    else:
-                        add_item_to_section('failed_installation', pkg_states['installing'][ppa].pop(pkg_id))
-        cfg.write()
+    # def prepare_action(self):
+    #     clean_section(pkg_states['installing'])
+    #     if bool(pkg_states['installing']):
+    #         for ppa in pkg_states['installing']:
+    #             for pkg_id in pkg_states['installing'][ppa]:
+    #                 if isfile(pkg_states['installing'][ppa][pkg_id]['rpm_path']):
+    #                     if self.check_installed(pkg_states['installing'][ppa][pkg_id]['name']):
+    #                         try:
+    #                             if not pkg_states['installed'][ppa][pkg_id]:
+    #                                 add_item_to_section('installed', pkg_states['installing'][ppa].pop(pkg_id))
+    #                         except KeyError:
+    #                             pkg_states['installed'][ppa] = {}
+    #                             pkg_states['installed'][ppa][pkg_id] = pkg_states['installing'][ppa].pop(pkg_id)
+    #                 else:
+    #                     add_item_to_section('failed_installation', pkg_states['installing'][ppa].pop(pkg_id))
+    #     cfg.write()
 
     def state_change(self):
         install_msg_txt = ""

@@ -73,7 +73,11 @@ class TVItem:
 
     @property
     def id(self):
-        return self._id    \
+        return self._id
+
+    @id.setter
+    def id(self, i):
+        self._id = i
 
     @property
     def install_state(self):

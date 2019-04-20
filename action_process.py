@@ -1,7 +1,7 @@
 from package_process import PackageProcess
 from installation_process import InstallationProcess
 from uninstallation_process import UninstallationProcess
-from kfconf import cfg, tmp_dir, add_item_to_section, pkg_search, has_pending
+from kfconf import cfg, tmp_dir, add_item_to_section, pkg_search, has_pending, ENDED_ERR
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import logging
@@ -14,7 +14,8 @@ class ActionProcess(PackageProcess):
                  log_signal=None,
                  msg_signal=None,
                  progress_signal=None,
-                 transaction_progress_signal=None):
+                 transaction_progress_signal=None,
+                 ended_signal=None):
         super(ActionProcess, self).__init__(args)
         self._thread_pool = ThreadPool(10)
         self._section = "actioning"
@@ -23,14 +24,15 @@ class ActionProcess(PackageProcess):
         self._msg_signal = msg_signal
         self._progress_signal = progress_signal
         self._transaction_progress_signal = transaction_progress_signal
+        self._ended_signal = ended_signal
         self._processes = []
         if cfg.as_bool('install'):
             if has_pending('installing'):
-                self._installation_process = InstallationProcess()
+                self._installation_process = InstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
                 self._processes.append(self._installation_process)
         if cfg.as_bool('uninstall'):
             if has_pending('uninstalling'):
-                self._uninstallation_process = UninstallationProcess()
+                self._uninstallation_process = UninstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
                 self._processes.append(self._uninstallation_process)
 
     def prepare_action(self):
@@ -54,7 +56,9 @@ class ActionProcess(PackageProcess):
 
     def continue_actioning_if_ok(self):
         if cfg['distro_type'] == 'rpm':
-            self._thread_pool.apply_async(self._action_rpms)
+            result = self._thread_pool.apply_async(self._action_rpms)
+            if not result.get():
+                self._ended_signal.emit(ENDED_ERR)
         else:
             self._install_debs()
 
@@ -74,6 +78,7 @@ class ActionProcess(PackageProcess):
                 raise ValueError("Error! : rpm_paths of packages in cache may be empty")
         except Exception as e:
             self._log_signal.emit(e, logging.CRITICAL)
+            return 0
 
         while 1:
             QGuiApplication.instance().processEvents()
@@ -119,6 +124,7 @@ class ActionProcess(PackageProcess):
 
                 if line == '' and self.process.poll() is not None:
                     break
+        return 1
 
     def _install_debs(self):
         pass
