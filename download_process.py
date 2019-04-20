@@ -1,5 +1,5 @@
 from package_process import PackageProcess
-from kfconf import debs_dir, cfg, pkg_states, add_item_to_section, clean_section
+from kfconf import cfg, debs_dir, rpms_dir, pkg_states, add_item_to_section, clean_section
 from requests import get, HTTPError
 from bs4 import BeautifulSoup
 from os.path import isfile, basename
@@ -7,8 +7,6 @@ from re import compile
 import logging
 from threading import RLock
 from multiprocessing.dummy import Pool as ThreadPool
-from fuzzywuzzy import fuzz
-from pathlib import Path
 
 
 class DownloadProcess(PackageProcess):
@@ -31,32 +29,7 @@ class DownloadProcess(PackageProcess):
         for ppa in pkg_states["tobeinstalled"]:
             for pkg_id in pkg_states["tobeinstalled"][ppa]:
                 add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
-        clean_section(pkg_states["downloading"])
-        if bool(pkg_states["downloading"]):
-            for ppa in pkg_states["downloading"]:
-                for pkg_id in pkg_states["downloading"][ppa]:
-                    pkg = pkg_states["downloading"][ppa][pkg_id]
-                    if isfile(pkg_states["downloading"][ppa][pkg_id]["rpm_path"]):
-                        add_item_to_section("installing", pkg_states["downloading"][ppa].pop(pkg_id))
-                        continue
-                    elif isfile(pkg_states["downloading"][ppa][pkg_id]["deb_path"]):
-                        add_item_to_section("converting", pkg_states["downloading"][ppa].pop(pkg_id))
-                        continue
-                    paths = list(Path(debs_dir).glob(pkg["name"] + "*"))
-                    if paths and fuzz.token_set_ratio(pkg["version"],
-                                                      basename(str(paths[0]).
-                                                      replace(pkg["name"] + "_", "")).
-                                                      rsplit("_", 1)[0]) > 90:
-                        self._msg_signal.emit("Package " +
-                                              pkg["name"] +
-                                              " has already been downloaded, moving to conversion list")
-                        self._log_signal.emit("Package " +
-                                              pkg["name"] +
-                                              " has already been downloaded, moving to conversion list",
-                                              logging.INFO)
-                        pkg["deb_path"] = str(paths[0])
-                        add_item_to_section("converting", pkg_states["downloading"][ppa].pop(pkg_id))
-                        continue
+
         cfg.write()
 
     def state_change(self):

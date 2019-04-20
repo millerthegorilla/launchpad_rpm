@@ -120,6 +120,9 @@ class ActionProcess(PackageProcess):
                 if line == '' and self.process.poll() is not None:
                     break
 
+    def _install_debs(self):
+        pass
+
     def move_cache(self):
         for process in self._processes:
             process.move_cache()

@@ -55,7 +55,7 @@ class Packages(QThread):
         self._lp_team = None
         self._ppa = ''
         self._thread_pool = ThreadPool(10)
-        self.cancel_process = False
+        self._cancel_process = False
 
         # signals from above
         self._msg_signal = msg_signal
@@ -164,7 +164,7 @@ class Packages(QThread):
                 pkg_process.move_cache()
 
     def cancel(self):
-        self.cancel_process = True
+        self._cancel_process = True
         if self.process is not None:
             self.process.stdin.write(b"cancel")
             self.process.terminate()
