@@ -1,12 +1,12 @@
 from package_process import PackageProcess
 from kfconf import cfg, clean_section, pkg_states, add_item_to_section, delete_ppa_if_empty
 from multiprocessing.dummy import Pool as ThreadPool
-from rpm import TransactionSet
+import logging
 
 
 class UninstallationProcess(PackageProcess):
-    def __init__(self, *args):
-        super(UninstallationProcess, self).__init__(args)
+    def __init__(self, *args, msg_signal=None, log_signal=None):
+        super(UninstallationProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = 'uninstalling'
         self._error_section = 'failed_uninstalling'
         self._path_name = 'name'
@@ -16,17 +16,17 @@ class UninstallationProcess(PackageProcess):
         clean_section(pkg_states['uninstalling'])
         if bool(pkg_states['uninstalling']):
             for ppa in pkg_states['uninstalling']:
-                for pkgid in pkg_states['uninstalling'][ppa]:
-                    ts = TransactionSet()
-                    if not len(ts.dbMatch('name', pkg_states['uninstalling'][ppa][pkgid]['name'])):
-                        self.msg_signal.emit("there is an error in the cache. ",
-                                             pkg_states['uninstalling'][ppa][pkgid]['name'],
-                                             "is not installed.")
-                        self.log_signal.emit("there is an error in the cache. ",
-                                             pkg_states['uninstalling'][ppa][pkgid]['name'],
-                                             "is not installed.  Find the cache section in the config file,"
-                                             " at USERHOME/.config/kxfed/kxfed.cfg",
-                                             " and delete the package from the uninstalling section.")
+                for pkg_id in pkg_states['uninstalling'][ppa]:
+                    if not self.check_installed(pkg_states['uninstalling'][ppa][pkg_id]['name']):
+                        self._msg_signal.emit("there is an error in the cache. " +
+                                              pkg_states['uninstalling'][ppa][pkg_id]['name'] +
+                                              " is not installed.")
+                        self._log_signal.emit("there is an error in the cache. " +
+                                              pkg_states['uninstalling'][ppa][pkg_id]['name'] +
+                                              " is not installed.  Find the cache section in the config file," +
+                                              " at USERHOME/.config/kxfed/kxfed.cfg" +
+                                              " and delete the package from the uninstalling section.",
+                                              logging.CRITICAL)
         cfg.write()
 
     def state_change(self):
@@ -56,7 +56,7 @@ class UninstallationProcess(PackageProcess):
                 if not self.check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
                     pkg_states[self._section][ppa].pop(pkg_id)
                 else:
-                    add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
+                    add_item_to_section(self._error_section, pkg_states[self._section][ppa][pkg_id])
             delete_ppa_if_empty(self._section, ppa)
         cfg.write()
 

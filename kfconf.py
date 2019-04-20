@@ -16,7 +16,9 @@ from tvitem import TVItem
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
-
+ENDED_ERR = 0
+ENDED_SUCC = 1
+ENDED_CANCEL = 2
 __this__ = sys.modules[__name__]
 
 config_dir = str(Path.home()) + "/" + CONFIG_DIR
