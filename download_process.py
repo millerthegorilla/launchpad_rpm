@@ -24,11 +24,14 @@ class DownloadProcess(PackageProcess):
         self._current_length = 0
 
     def prepare_action(self):
+        moved = False
         for ppa in pkg_states["tobeinstalled"]:
             for pkg_id in pkg_states["tobeinstalled"][ppa]:
                 add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
-        super().prepare_action()
+                moved = True
+        moved = super().prepare_action() | moved
         cfg.write()
+        return moved
 
     def state_change(self):
         assert len(self), "state change called without list initialisation.  Call " + \

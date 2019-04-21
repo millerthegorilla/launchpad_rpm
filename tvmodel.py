@@ -24,7 +24,7 @@ class TVModel(QStandardItemModel, QObject):
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
-                 ended_signal, request_action_signal):
+                 ended_signal, request_action_signal, populate_pkgs_signal):
         super().__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
@@ -38,6 +38,7 @@ class TVModel(QStandardItemModel, QObject):
                                            list_filling_signal,
                                            ended_signal,
                                            request_action_signal,
+                                           populate_pkgs_signal,
                                            self.list_filled_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
@@ -61,7 +62,13 @@ class TVModel(QStandardItemModel, QObject):
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
-            found = pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling', 'installed'], pkg.name)
+            found = pkg_search(['tobeinstalled',
+                                'downloading',
+                                'converting',
+                                'installing',
+                                'uninstalling',
+                                'installed'],
+                               pkg.name)
             if found:
                 if pkg.version == found['version']:
                     pkg.id = found['id']
@@ -74,7 +81,7 @@ class TVModel(QStandardItemModel, QObject):
                 pkg.install_state.setBackground(Qt.red)
                 self.appendRow(pkg.row)
                 continue
-            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling'], pkg.id):
+            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                 pkg.installed = Qt.PartiallyChecked
                 self.appendRow(pkg.row)
                 continue

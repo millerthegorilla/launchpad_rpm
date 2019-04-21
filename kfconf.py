@@ -117,11 +117,17 @@ def add_item_to_section(section, pkg):
             cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
             cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
             cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+            return True
+        else:
+            return False
     else:
         if pkg.parent.name not in cfg['pkg_states'][section]:
             cfg['pkg_states'][section][pkg.parent.name] = {}
         if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
             cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
+            return True
+        else:
+            return False
 
 
 def has_pending(section):

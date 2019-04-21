@@ -14,15 +14,17 @@ import logging
 import time
 import uuid
 from multiprocessing.dummy import Pool as ThreadPool
-
+from sys import exc_info
 from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
-from kfconf import cfg, cache, clean_section, has_pending
+from kfconf import cfg, cache, pkg_states, clean_section, has_pending, ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
 from download_process import DownloadProcess
 from conversion_process import ConversionProcess
 from action_process import ActionProcess
+from traceback import format_exc
+
 try:
     import rpm
 except ImportError as e:
@@ -45,12 +47,12 @@ class Packages(QThread):
                  msg_signal, log_signal, progress_signal,
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
-                 ended_signal, request_action_signal,
+                 ended_signal, request_action_signal, populate_pkgs_signal,
                  list_filled_signal):
         super().__init__()
         self.team = team
         self._launchpad = None
-        self.arch = arch
+        self._arch = arch
         self._lp_ppa = None
         self._lp_team = None
         self._ppa = ''
@@ -66,6 +68,7 @@ class Packages(QThread):
         self._list_filling_signal = list_filling_signal
         self._ended_signal = ended_signal
         self._request_action_signal = request_action_signal
+        self._populate_pkgs_signal = populate_pkgs_signal
         self._list_filled_signal = list_filled_signal
 
         # process handle for the sake of cancelling
@@ -87,7 +90,13 @@ class Packages(QThread):
     def ppa(self, ppa):
         self._ppa = ppa
 
+    @property
+    def arch(self):
+        return self._arch
+
     def populate_pkgs(self, ppa, arch):
+        self._ppa = ppa
+        self._arch = arch
         self._list_filling_signal.emit()
         self._thread_pool.apply_async(self._populate_pkg_list, (ppa, arch,),
                                       callback=self._list_filled_signal.emit)
@@ -136,38 +145,59 @@ class Packages(QThread):
         except Exception as e:
             cfg['distro_type'] = 'deb'
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
+        pkg_processes = self._mk_pkg_process()
+        try:
+            for pkg_process in pkg_processes:
+                if pkg_process.prepare_action() is True:
+                    self.install_pkgs_button()
+                    pkg_processes = []
+                    break
+                if pkg_process.read_section():
+                    success, number = pkg_process.state_change()
+                    if pkg_process.section is not 'actioning':
+                        if not success:
+                            self._msg_signal("Not all packages from " + pkg_process.section + " were successful")
+                            self._log_signal("Not all packages from " + pkg_process.section + " were successful",
+                                             logging.INFO)
+                    pkg_process.move_cache()
+                    self._populate_pkgs_signal.emit()
+            else:
+                self._msg_signal.emit("Nothing to do...")
+            self._ended_signal.emit(ENDED_SUCC)
+        except FileNotFoundError as e:
+            exc = str(e).split(" ")
+            pkg_states['uninstalling'][exc[2]].pop(exc[3])
+            self._populate_pkgs_signal.emit()
+            self._log_signal.emit(format_exc(), logging.ERROR)
+            self._ended_signal.emit(ENDED_ERR)
+        except Exception as e:
+            self._log_signal.emit(format_exc(), logging.ERROR)
+            self._ended_signal.emit(ENDED_ERR)
+
+    def _mk_pkg_process(self):
         pkg_processes = []
-        if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-            pkg_processes.append(DownloadProcess(team_link=self.lp_team.web_link,
-                                                 msg_signal=self._msg_signal,
-                                                 log_signal=self._log_signal,
-                                                 progress_signal=self._progress_signal))
-        if has_pending('converting') and cfg.as_bool('convert'):
-            pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+        try:
+            if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
+                pkg_processes.append(DownloadProcess(team_link=self.lp_team.web_link,
+                                                     msg_signal=self._msg_signal,
+                                                     log_signal=self._log_signal,
+                                                     progress_signal=self._progress_signal))
+            if has_pending('converting') and cfg.as_bool('convert'):
+                pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+                                                       log_signal=self._log_signal,
+                                                       progress_signal=self._progress_signal))
+            if has_pending('installing') or has_pending('uninstalling'):
+                pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
                                                    log_signal=self._log_signal,
-                                                   progress_signal=self._progress_signal))
-        if has_pending('installing') or has_pending('uninstalling'):
-            pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
-                                               log_signal=self._log_signal,
-                                               progress_signal=self._progress_signal,
-                                               transaction_progress_signal=self._transaction_progress_signal,
-                                               request_action_signal=self._request_action_signal))
-        for pkg_process in pkg_processes:
-            pkg_process.prepare_action()
-            if pkg_process.read_section():
-                success, number = pkg_process.state_change()
-                if pkg_process.section is not 'actioning':
-                    if not success:
-                        self._msg_signal("Not all packages from " + pkg_process.section + " were successful")
-                        self._log_signal("Not all packages from " + pkg_process.section + " were successful",
-                                         logging.INFO)
-                pkg_process.move_cache()
-        else:
-            self._msg_signal.emit("Nothing to do...")
-        self._ended_signal.emit(False)
+                                                   progress_signal=self._progress_signal,
+                                                   transaction_progress_signal=self._transaction_progress_signal,
+                                                   request_action_signal=self._request_action_signal))
+            return pkg_processes
+        except Exception as e:
+            raise
 
     def cancel(self):
         if self.process is not None:
             self.process.stdin.write(b"cancel")
             self.process.terminate()
-        self._ended_signal.emit(True)
+        self._ended_signal.emit(ENDED_CANCEL)
