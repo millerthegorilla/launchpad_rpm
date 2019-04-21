@@ -235,6 +235,7 @@ class Kxfed(QThread):
     list_filling_signal = pyqtSignal()
     ended_signal = pyqtSignal(int)
     request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
+    populate_pkgs_signal = pyqtSignal()
 
     def __init__(self, mainw):
         super().__init__()
@@ -255,6 +256,7 @@ class Kxfed(QThread):
         self.list_filling_signal.connect(self._toggle_pkg_list_loading)  # , type=Qt.DirectConnection)
         self.ended_signal.connect(self._ended)
         self.request_action_signal.connect(self._request_action)
+        self.populate_pkgs_signal.connect(self.populate_pkgs)
 
         self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
                                          self.main_window.team_combo.currentText().lower(),
@@ -266,7 +268,8 @@ class Kxfed(QThread):
                                          self.lock_model_signal,
                                          self.list_filling_signal,
                                          self.ended_signal,
-                                         self.request_action_signal)
+                                         self.request_action_signal,
+                                         self.populate_pkgs_signal)
 
         # connect
         self.connect()
@@ -332,6 +335,11 @@ class Kxfed(QThread):
     def _request_action(self, msg, callback):
         self.moveToThread(self.main_window.thread())
         self.main_window.request_action(msg, callback)
+
+    @pyqtSlot()
+    def populate_pkgs(self):
+        self.moveToThread(self.main_window.thread())
+        self.main_window.populate_pkgs()
 
     def connect(self):
         try:

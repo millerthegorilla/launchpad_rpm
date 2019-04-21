@@ -26,6 +26,7 @@ class PackageProcess(list):
         self._log_signal = log_signal
 
     def prepare_action(self):
+        moved = False
         clean_section(pkg_states[self._section])
         if bool(pkg_states[self._section]):
             for ppa in pkg_states[self._section]:
@@ -39,14 +40,14 @@ class PackageProcess(list):
                                               pkg["name"] +
                                               " is already installed, moving to installed list",
                                               logging.INFO)
-                        add_item_to_section("installed", pkg_states[self._section][ppa].pop(pkg_id))
+                        moved = add_item_to_section("installed", pkg_states[self._section][ppa].pop(pkg_id))
                         continue
-                    if not isfile(pkg["rpms_path"]):
+                    if not isfile(pkg["rpm_path"]):
                         paths = list(Path(rpms_dir).glob(pkg["name"] + "*"))
                         if paths and fuzz.token_set_ratio(pkg["version"],
                                                           basename(str(paths[0]).
-                                                                           replace(pkg["name"] + "_", "")).
-                                                                  rsplit("_", 1)[0]) > 90:
+                                                          replace(pkg["name"] + "_", "")).
+                                                          rsplit("_", 1)[0]) > 90:
                             self._msg_signal.emit("Package " +
                                                   pkg["name"] +
                                                   " has already been converted, moving to installation list")
@@ -54,13 +55,16 @@ class PackageProcess(list):
                                                   pkg["name"] +
                                                   " has already been downloaded, moving to installation list",
                                                   logging.INFO)
-                            pkg["rpms_path"] = str(paths[0])
+                            pkg["rpm_path"] = str(paths[0])
+                    if isfile(pkg_states[self._section][ppa][pkg_id]["rpm_path"]):
+                        moved = add_item_to_section("installing", pkg_states[self._section][ppa].pop(pkg_id))
+                        continue
+                    if not isfile(pkg["deb_path"]):
                         paths = list(Path(debs_dir).glob(pkg["name"] + "*"))
-                    if not isfile(pkg["debs_path"]):
                         if paths and fuzz.token_set_ratio(pkg["version"],
                                                           basename(str(paths[0]).
-                                                                           replace(pkg["name"] + "_", "")).
-                                                                  rsplit("_", 1)[0]) > 90:
+                                                          replace(pkg["name"] + "_", "")).
+                                                          rsplit("_", 1)[0]) > 90:
                             self._msg_signal.emit("Package " +
                                                   pkg["name"] +
                                                   " has already been downloaded, moving to conversion list")
@@ -69,13 +73,11 @@ class PackageProcess(list):
                                                   " has already been downloaded, moving to conversion list",
                                                   logging.INFO)
                             pkg["deb_path"] = str(paths[0])
-                    if isfile(pkg_states[self._section][ppa][pkg_id]["rpm_path"]):
-                        add_item_to_section("installing", pkg_states[self._section][ppa].pop(pkg_id))
-                        continue
-                    elif isfile(pkg_states[self._section][ppa][pkg_id]["deb_path"]):
-                        add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
+                    if isfile(pkg_states[self._section][ppa][pkg_id]["deb_path"]):
+                        moved = add_item_to_section("converting", pkg_states[self._section][ppa].pop(pkg_id))
                         continue
         cfg.write()
+        return moved
 
     def read_section(self):
         """Reads the section from the cache as a list of packages (self)."""

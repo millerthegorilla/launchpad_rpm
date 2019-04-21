@@ -23,11 +23,14 @@ class UninstallationProcess(PackageProcess):
                                               " is not installed.")
                         self._log_signal.emit("there is an error in the cache. " +
                                               pkg_states['uninstalling'][ppa][pkg_id]['name'] +
-                                              " is not installed.  Find the cache section in the config file," +
+                                              " is not installed.  If the problem continues," +
+                                              "Find the cache section in the config file," +
                                               " at USERHOME/.config/kxfed/kxfed.cfg" +
                                               " and delete the package from the uninstalling section.",
                                               logging.CRITICAL)
+                        raise FileNotFoundError("Cache Error " + ppa + " " + pkg_id)
         cfg.write()
+        return False
 
     def state_change(self):
         uninstall_msg_txt = ""
