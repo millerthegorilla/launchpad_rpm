@@ -10,12 +10,13 @@ import packages
 from kfconf import cfg, \
     config_dir, CONFIG_FILE, \
     pkg_states, delete_ppa_if_empty, \
-    add_item_to_section, pkg_search
+    add_item_to_section, pkg_search, check_installed
 from tvitem import TVItem, TVITEM_ROLE
 
 
 class TVModel(QStandardItemModel, QObject):
     list_filled_signal = pyqtSignal(list)
+    list_changed_signal = pyqtSignal(str, str)
     clear_brush = None
     highlight_color = QColor(255, 204, 204)
     highlight_brush = QBrush()
@@ -28,6 +29,7 @@ class TVModel(QStandardItemModel, QObject):
         super().__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
+        self.list_changed_signal.connect(self.populate_pkg_list)
         self._packages = packages.Packages(team,
                                            arch,
                                            msg_signal,
@@ -39,7 +41,8 @@ class TVModel(QStandardItemModel, QObject):
                                            ended_signal,
                                            request_action_signal,
                                            populate_pkgs_signal,
-                                           self.list_filled_signal)
+                                           self.list_filled_signal,
+                                           self.list_changed_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
         # self.itemChanged.connect(TVModel.on_item_changed)
@@ -54,6 +57,7 @@ class TVModel(QStandardItemModel, QObject):
     def packages(self):
         return self._packages
 
+    @pyqtSlot(str, str)
     def populate_pkg_list(self, ppa, arch):
         self.removeRows(0, self.rowCount())
         self._packages.populate_pkgs(ppa.lower(), arch.lower())
@@ -62,33 +66,65 @@ class TVModel(QStandardItemModel, QObject):
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
-            found = pkg_search(['tobeinstalled',
-                                'downloading',
-                                'converting',
-                                'installing',
-                                'uninstalling',
-                                'installed'],
-                               pkg.name)
-            if found:
-                if pkg.version == found['version']:
-                    pkg.id = found['id']
-            if pkg_search(['installed'], pkg.id):
+            if check_installed(pkg.name):
+                if not pkg_search(['installed'], pkg.id):
+                    p = pkg_search(['tobeinstalled',
+                                    'downloading',
+                                    'converting',
+                                    'installing',
+                                    'uninstalling'], pkg.id)
+                    if not p:
+                        add_item_to_section('installed', pkg)
+                    else:
+                        add_item_to_section('installed', p.parent.pop(p['id']))
                 pkg.installed = Qt.Checked
                 self.appendRow(pkg.row)
                 continue
-            if pkg_search(['uninstalling'], pkg.id):
-                pkg.installed = Qt.Unchecked
-                pkg.install_state.setBackground(Qt.red)
-                self.appendRow(pkg.row)
-                continue
-            if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
-                pkg.installed = Qt.PartiallyChecked
-                self.appendRow(pkg.row)
-                continue
             else:
-                pkg.installed = Qt.Unchecked
-                self.appendRow(pkg._row)
+                if pkg_search(['uninstalling'], pkg.id):
+                    pkg.installed = Qt.Unchecked
+                    pkg.install_state.setBackground(Qt.red)
+                    self.appendRow(pkg.row)
+                    continue
+                if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
+                    pkg.installed = Qt.PartiallyChecked
+                    self.appendRow(pkg.row)
+                    continue
+                else:
+                    pkg.installed = Qt.Unchecked
+                    self.appendRow(pkg.row)
         self.list_filling_signal.emit()
+    # @pyqtSlot(list)
+    # def pkg_list_complete(self, pkgs):
+    #     for pkg in pkgs:
+    #         pkg = TVItem(pkg)
+    #         found = pkg_search(['tobeinstalled',
+    #                             'downloading',
+    #                             'converting',
+    #                             'installing',
+    #                             'uninstalling',
+    #                             'installed'],
+    #                            pkg.name)
+    #         if found:
+    #             if pkg.version == found['version']:
+    #                 pkg.id = found['id']
+    #         if pkg_search(['installed'], pkg.id):
+    #             pkg.installed = Qt.Checked
+    #             self.appendRow(pkg.row)
+    #             continue
+    #         if pkg_search(['uninstalling'], pkg.id):
+    #             pkg.installed = Qt.Unchecked
+    #             pkg.install_state.setBackground(Qt.red)
+    #             self.appendRow(pkg.row)
+    #             continue
+    #         if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
+    #             pkg.installed = Qt.PartiallyChecked
+    #             self.appendRow(pkg.row)
+    #             continue
+    #         else:
+    #             pkg.installed = Qt.Unchecked
+    #             self.appendRow(pkg._row)
+    #     self.list_filling_signal.emit()
 
     def itemChanged(self, item):
         # I tried overloaded itemChanged, and also connecting itemChanged

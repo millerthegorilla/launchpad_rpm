@@ -14,7 +14,6 @@ import logging
 import time
 import uuid
 from multiprocessing.dummy import Pool as ThreadPool
-from sys import exc_info
 from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
@@ -48,7 +47,7 @@ class Packages(QThread):
                  transaction_progress_signal,
                  lock_model_signal, list_filling_signal,
                  ended_signal, request_action_signal, populate_pkgs_signal,
-                 list_filled_signal):
+                 list_filled_signal, list_changed_signal):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -70,7 +69,7 @@ class Packages(QThread):
         self._request_action_signal = request_action_signal
         self._populate_pkgs_signal = populate_pkgs_signal
         self._list_filled_signal = list_filled_signal
-
+        self._list_changed_signal = list_changed_signal
         # process handle for the sake of cancelling
         self.process = None
 
@@ -146,23 +145,32 @@ class Packages(QThread):
             cfg['distro_type'] = 'deb'
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         pkg_processes = self._mk_pkg_process()
+        i = 0
         try:
-            for pkg_process in pkg_processes:
+            while i < len(pkg_processes):
+                pkg_process = pkg_processes[i]
                 if pkg_process.prepare_action() is True:
-                    self.install_pkgs_button()
-                    pkg_processes = []
-                    break
-                if pkg_process.read_section():
+                    pkg_processes = self._mk_pkg_process()
+                    i = 0
+                    continue
+                pkg_process.read_section()
+                if len(pkg_process):
                     success, number = pkg_process.state_change()
                     if pkg_process.section is not 'actioning':
                         if not success:
-                            self._msg_signal("Not all packages from " + pkg_process.section + " were successful")
-                            self._log_signal("Not all packages from " + pkg_process.section + " were successful",
-                                             logging.INFO)
+                            self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
+                            self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
+                                                  logging.INFO)
                     pkg_process.move_cache()
                     self._populate_pkgs_signal.emit()
+                    if success:
+                        pkg_processes = self._mk_pkg_process()
+                        i = 0
+                        continue
+                i += 1
             else:
                 self._msg_signal.emit("Nothing to do...")
+            self._list_changed_signal.emit(self.ppa, self.arch)
             self._ended_signal.emit(ENDED_SUCC)
         except FileNotFoundError as e:
             exc = str(e).split(" ")
@@ -185,7 +193,8 @@ class Packages(QThread):
             if has_pending('converting') and cfg.as_bool('convert'):
                 pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
                                                        log_signal=self._log_signal,
-                                                       progress_signal=self._progress_signal))
+                                                       progress_signal=self._progress_signal,
+                                                       transaction_progress_signal=self._transaction_progress_signal))
             if has_pending('installing') or has_pending('uninstalling'):
                 pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
                                                    log_signal=self._log_signal,

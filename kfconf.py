@@ -8,6 +8,7 @@ from threading import RLock
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
+from rpm import TransactionSet
 
 # TODO when the program installs the line below must be added to ~/.rpmmacros
 # %_topdir /home/data/rpmbuild
@@ -147,6 +148,10 @@ def pkg_search(sections, search_value):
                 if search_value in cfg['pkg_states'][section][ppa][pkgid].dict().values():
                     return cfg['pkg_states'][section][ppa][pkgid]
     return False
+
+
+def check_installed(name):
+    return True if len(TransactionSet().dbMatch('name', name)) else False
 
 
 cache = make_region().configure(

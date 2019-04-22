@@ -1,7 +1,9 @@
 from package_process import PackageProcess
 from installation_process import InstallationProcess
 from uninstallation_process import UninstallationProcess
-from kfconf import cfg, tmp_dir, add_item_to_section, pkg_search, has_pending, ENDED_ERR
+from kfconf import cfg, tmp_dir, \
+                   pkg_states, add_item_to_section,\
+                   pkg_search, has_pending, ENDED_ERR
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import logging
@@ -42,10 +44,8 @@ class ActionProcess(PackageProcess):
         return moved
 
     def read_section(self):
-        len = 0
         for process in self._processes:
-            len += process.read_section()
-        return len
+            process.read_section()
 
     def state_change(self):
         self._log_signal.emit("Actioning packages...", logging.INFO)
@@ -54,7 +54,7 @@ class ActionProcess(PackageProcess):
         for process in self._processes:
             msg_txt = process.state_change()
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
-        return 0, 0
+        return 1, 1
 
     def continue_actioning_if_ok(self):
         if cfg['distro_type'] == 'rpm':
@@ -108,23 +108,22 @@ class ActionProcess(PackageProcess):
                     self._msg_signal.emit('Installed ' + name)
                     self._log_signal.emit('Installed ' + name, logging.INFO)
                     section = pkg_search(['installing'], name)
-                    section.parent.pop(section['id'])
-                    add_item_to_section('installed', section)
+                    add_item_to_section('installed', pkg_states['installing'][section.parent.parent.items()[0][0]].pop(section['id']))
                     # TODO schedule check or callback to run rpm.db_match to check install ok
                 elif 'kxfeduninstalled' in line:
                     name = line.lstrip('kxfeduninstalled').replace('\n', '').strip()
                     self._msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
                     self._log_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'), logging.INFO)
                     section = pkg_search(['uninstalling'], name)
-                    section.parent.pop(section['id'])
+                    pkg_states['uninstalling'][section.parent.parent.items()[0][0]].pop(section['id'])
                 # TODO delete package from uninstalled state
                 # TODO change highlighted color of checkbox row to normal color
                 # TODO delete rpm if it says so in the preferences
                 elif 'kxfedstop' in line:
                     self._msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
                     self._log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished", logging.INFO)
-
-                if line == '' and self.process.poll() is not None:
+            else:
+                if self.process.poll() is not None:
                     break
         return 1
 
@@ -134,3 +133,10 @@ class ActionProcess(PackageProcess):
     def move_cache(self):
         for process in self._processes:
             process.move_cache()
+
+    def __len__(self):
+        length = 0
+        for a in self._processes:
+            length += len(a)
+        return length
+
