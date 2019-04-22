@@ -1,5 +1,5 @@
 from package_process import PackageProcess
-from kfconf import cfg, debs_dir, pkg_states, add_item_to_section
+from kfconf import cfg, debs_dir, pkg_states, add_item_to_section, check_installed
 from requests import get, HTTPError
 from bs4 import BeautifulSoup
 from os.path import isfile
@@ -40,7 +40,7 @@ class DownloadProcess(PackageProcess):
         pkgs_complete = 0
         pkgs_success = 0
         for i in self:
-            if not self.check_installed(i.pkg["name"]):
+            if not check_installed(i.pkg["name"]):
                 result = self._thread_pool.apply_async(self.__get_deb_link_and_download,
                                                        (i.ppa,
                                                         i.pkg,
@@ -56,9 +56,9 @@ class DownloadProcess(PackageProcess):
         while 1:
             if pkgs_complete == len(self):
                 cfg.write()
-                return 0, pkgs_success
+                return 1, pkgs_success
             else:
-                return -1, pkgs_success
+                return 0, pkgs_success
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link

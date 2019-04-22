@@ -1,5 +1,5 @@
 from package_process import PackageProcess
-from kfconf import cfg, clean_section, pkg_states, delete_ppa_if_empty, add_item_to_section
+from kfconf import cfg, clean_section, pkg_states, delete_ppa_if_empty, add_item_to_section, check_installed
 from os.path import isfile
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -57,7 +57,7 @@ class InstallationProcess(PackageProcess):
         """"""
         for ppa in pkg_states[self._section]:
             for pkg_id in pkg_states[self._section][ppa]:
-                if self.check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
+                if check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
                     add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
                 else:
                     add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))

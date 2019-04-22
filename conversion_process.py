@@ -11,7 +11,7 @@ from PyQt5.QtGui import QGuiApplication
 
 
 class ConversionProcess(PackageProcess):
-    def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None):
+    def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None, transaction_progress_signal=None):
         super(ConversionProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "converting"
         self._error_section = "failed_converting"
@@ -20,6 +20,7 @@ class ConversionProcess(PackageProcess):
         self._thread_pool = ThreadPool(10)
         self._process = None
         self._progress_signal = progress_signal
+        self._transaction_progress_signal = transaction_progress_signal
 
     def state_change(self):
         deb_paths_list = []
@@ -37,15 +38,15 @@ class ConversionProcess(PackageProcess):
                                                    (deb_paths_list,))
             if result.get() is not False:
                 if result.get() == len(deb_paths_list):
-                    self._msg_signal("All packages successfully converted.")
-                    self._log_signal("All packages successfully converted.", logging.INFO)
-                    return 0, result.get()
+                    self._msg_signal.emit("All packages successfully converted.")
+                    self._log_signal.emit("All packages successfully converted.", logging.INFO)
+                    return 1, result.get()
                 else:
-                    self._msg_signal("Some packages were not converted.")
-                    self._log_signal("Some packages were not converted.", logging.INFO)
-                    return -1, len(deb_paths_list) - result.get()
+                    self._msg_signal.emit("Some packages were not converted.")
+                    self._log_signal.emit("Some packages were not converted.", logging.INFO)
+                    return 0, len(deb_paths_list) - result.get()
             else:
-                return -1, len(deb_paths_list) - result.get()
+                return 0, len(deb_paths_list) - result.get()
 
     def _convert_packages(self, deb_path_list):
         deb_length = len(deb_path_list)
@@ -62,10 +63,13 @@ class ConversionProcess(PackageProcess):
         except Exception as e:
             self._log_signal.emit(e)
         num_of_conv = 0
+        i = 0
         while 1:
             QGuiApplication.instance().processEvents()
             next_line = self._process.stdout.readline().decode('utf-8')
             self._process.stdout.flush()
+            i += 1
+            self._progress_signal.emit(i % 17, 17)
             self._log_signal.emit(next_line, logging.INFO)
             if 'Converted' in next_line:
                 word_list = next_line.split(' to ')
@@ -80,7 +84,7 @@ class ConversionProcess(PackageProcess):
                     if isfile(found_pkg['deb_path']) and cfg['delete_downloaded'] == 'True':
                         remove(found_pkg['deb_path'])
                         found_pkg['deb_path'] = ""
-                    self._progress_signal.emit(num_of_conv, deb_length)
+                    self._transaction_progress_signal.emit(num_of_conv, deb_length)
                     self._msg_signal.emit(next_line)
             if next_line == '' and self._process.poll() is not None:
                 break
@@ -94,6 +98,6 @@ class ConversionProcess(PackageProcess):
         else:
             self._log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
             return False
-        self._msg_signal.emit("Converted " + num_of_conv + " out of " + str(deb_length))
-        self._log_signal.emit("Converted " + num_of_conv + " out of " + str(deb_length), logging.INFO)
+        self._msg_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length))
+        self._log_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length), logging.INFO)
         return num_of_conv

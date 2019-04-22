@@ -2,7 +2,7 @@ from abc import abstractmethod
 import rpm
 from kfconf import cfg, pkg_states, debs_dir, rpms_dir, \
                     add_item_to_section, clean_section, \
-                    delete_ppa_if_empty
+                    delete_ppa_if_empty, check_installed
 from os.path import isfile, basename
 from collections import namedtuple
 from fuzzywuzzy import fuzz
@@ -32,7 +32,7 @@ class PackageProcess(list):
             for ppa in pkg_states[self._section]:
                 for pkg_id in pkg_states[self._section][ppa]:
                     pkg = pkg_states[self._section][ppa][pkg_id]
-                    if self.check_installed(pkg['name']):
+                    if check_installed(pkg['name']):
                         self._msg_signal.emit("Package " +
                                               pkg["name"] +
                                               " is already installed, moving to installed list")
@@ -57,7 +57,8 @@ class PackageProcess(list):
                                                   logging.INFO)
                             pkg["rpm_path"] = str(paths[0])
                     if isfile(pkg_states[self._section][ppa][pkg_id]["rpm_path"]):
-                        moved = add_item_to_section("installing", pkg_states[self._section][ppa].pop(pkg_id))
+                        if self._section != "installing":
+                            moved = add_item_to_section("installing", pkg_states[self._section][ppa].pop(pkg_id))
                         continue
                     if not isfile(pkg["deb_path"]):
                         paths = list(Path(debs_dir).glob(pkg["name"] + "*"))
@@ -74,7 +75,8 @@ class PackageProcess(list):
                                                   logging.INFO)
                             pkg["deb_path"] = str(paths[0])
                     if isfile(pkg_states[self._section][ppa][pkg_id]["deb_path"]):
-                        moved = add_item_to_section("converting", pkg_states[self._section][ppa].pop(pkg_id))
+                        if self._section != "converting":
+                            moved = add_item_to_section("converting", pkg_states[self._section][ppa].pop(pkg_id))
                         continue
         cfg.write()
         return moved
@@ -84,7 +86,6 @@ class PackageProcess(list):
         for ppa in pkg_states[self._section]:
             for pkg_id in pkg_states[self._section][ppa]:
                 self.append(self._pkg_tuple(ppa=ppa, pkg=pkg_states[self._section][ppa][pkg_id]))
-        return len(self)
 
     @property
     def section(self):
@@ -107,6 +108,3 @@ class PackageProcess(list):
             delete_ppa_if_empty(self._section, ppa)
         cfg.write()
 
-    @staticmethod
-    def check_installed(name):
-        return True if len(rpm.TransactionSet().dbMatch('name', name)) else False
