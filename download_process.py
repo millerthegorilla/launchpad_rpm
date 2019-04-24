@@ -16,6 +16,7 @@ class DownloadProcess(PackageProcess):
         self._section = "downloading"
         self._next_section = "converting"
         self._error_section = "failed_downloading"
+        self._path_name = "deb_path"
         self._team_link = team_link
         self._lock = RLock()
         self._thread_pool = ThreadPool(10)

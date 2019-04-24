@@ -14,11 +14,12 @@ import logging
 import time
 import uuid
 from multiprocessing.dummy import Pool as ThreadPool
-from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 
-from kfconf import cfg, cache, pkg_states, clean_section, has_pending, ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
+from kfconf import cfg, cache, pkg_states, clean_section, has_pending, \
+                   ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
 from download_process import DownloadProcess
 from conversion_process import ConversionProcess
 from action_process import ActionProcess
@@ -40,14 +41,14 @@ except ImportError as e:
 class Packages(QThread):
     download_finished_signal = pyqtSignal('PyQt_PyObject')
     conversion_finished_signal = pyqtSignal(bool)
-    actioning_finished_signal = pyqtSignal()
+    actioning_finished_signal = pyqtSignal('PyQt_PyObject')
 
     def __init__(self, team, arch,
-                 msg_signal, log_signal, progress_signal,
-                 transaction_progress_signal,
-                 lock_model_signal, list_filling_signal,
-                 ended_signal, request_action_signal, populate_pkgs_signal,
-                 list_filled_signal, list_changed_signal):
+                 msg_signal=None, log_signal=None, progress_signal=None,
+                 transaction_progress_signal=None,
+                 lock_model_signal=None, list_filling_signal=None,
+                 ended_signal=None, request_action_signal=None, populate_pkgs_signal=None,
+                 list_filled_signal=None, list_changed_signal=None, action_timer_signal=None):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -57,7 +58,7 @@ class Packages(QThread):
         self._ppa = ''
         self._thread_pool = ThreadPool(10)
         self._cancel_process = False
-
+        self._success = True
         # signals from above
         self._msg_signal = msg_signal
         self._log_signal = log_signal
@@ -70,6 +71,8 @@ class Packages(QThread):
         self._populate_pkgs_signal = populate_pkgs_signal
         self._list_filled_signal = list_filled_signal
         self._list_changed_signal = list_changed_signal
+        self.actioning_finished_signal.connect(self.state_changed)
+        self._action_timer_signal = action_timer_signal
         # process handle for the sake of cancelling
         self.process = None
 
@@ -96,9 +99,13 @@ class Packages(QThread):
     def populate_pkgs(self, ppa, arch):
         self._ppa = ppa
         self._arch = arch
-        self._list_filling_signal.emit()
+        #  self._list_filling_signal.emit()
         self._thread_pool.apply_async(self._populate_pkg_list, (ppa, arch,),
-                                      callback=self._list_filled_signal.emit)
+                                      callback=self.pkg_populated)
+
+    def pkg_populated(self, pkgs):
+        self._list_filled_signal.emit(pkgs)
+        self._list_filling_signal.emit(False)
 
     @cache.cache_on_arguments()
     def _populate_pkg_list(self, ppa, arch):
@@ -154,28 +161,40 @@ class Packages(QThread):
                     i = 0
                     continue
                 pkg_process.read_section()
+                if type(pkg_process) is ActionProcess:
+                    self.actioning_finished_signal.connect(self.state_changed)
+
                 if len(pkg_process):
-                    success, number = pkg_process.state_change()
-                    if pkg_process.section is not 'actioning':
-                        if not success:
-                            self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
-                            self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
-                                                  logging.INFO)
-                    pkg_process.move_cache()
-                    self._populate_pkgs_signal.emit()
-                    if success:
-                        pkg_processes = self._mk_pkg_process()
-                        i = 0
-                        continue
+                    # self._thread_pool.terminate()
+                    # self._thread_pool = ThreadPool(10)
+                    self._thread_pool.apply_async(pkg_process.state_change,
+                                                  (self.actioning_finished_signal,))
                 i += 1
-            else:
-                self._msg_signal.emit("Nothing to do...")
+        except Exception as e:
+            self._log_signal.emit(format_exc(), logging.ERROR)
+            self._ended_signal.emit(ENDED_ERR)
+
+    @pyqtSlot('PyQt_PyObject')
+    def state_changed(self, result):
+        number, success, pkg_process = result
+        try:
+            if not success:
+                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
+                self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
+                                    logging.INFO)
+            pkg_process.move_cache()
+            # self._populate_pkgs_signal.emit()
+            if success and not type(pkg_process) is ActionProcess:
+                self.install_pkgs_button()
             self._list_changed_signal.emit(self.ppa, self.arch)
-            self._ended_signal.emit(ENDED_SUCC)
+            if success:
+                self._ended_signal.emit(ENDED_SUCC)
+            else:
+                self._ended_signal.emit(ENDED_ERR)
         except FileNotFoundError as e:
             exc = str(e).split(" ")
             pkg_states['uninstalling'][exc[2]].pop(exc[3])
-            self._populate_pkgs_signal.emit()
+            self._list_changed_signal.emit()
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)
         except Exception as e:
@@ -200,7 +219,9 @@ class Packages(QThread):
                                                    log_signal=self._log_signal,
                                                    progress_signal=self._progress_signal,
                                                    transaction_progress_signal=self._transaction_progress_signal,
-                                                   request_action_signal=self._request_action_signal))
+                                                   request_action_signal=self._request_action_signal,
+                                                   populate_pkgs_signal=self._populate_pkgs_signal,
+                                                   action_timer_signal=self._action_timer_signal))
             return pkg_processes
         except Exception as e:
             raise

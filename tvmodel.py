@@ -22,27 +22,29 @@ class TVModel(QStandardItemModel, QObject):
     highlight_brush = QBrush()
 
     def __init__(self, headers, team, arch,
-                 msg_signal, log_signal, progress_signal,
-                 transaction_progress_signal,
-                 lock_model_signal, list_filling_signal,
-                 ended_signal, request_action_signal, populate_pkgs_signal):
+                 msg_signal=None, log_signal=None, progress_signal=None,
+                 transaction_progress_signal=None,
+                 lock_model_signal=None, list_filling_signal=None,
+                 ended_signal=None, request_action_signal=None,
+                 populate_pkgs_signal=None, action_timer_signal=None):
         super().__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
-        self.list_changed_signal.connect(self.populate_pkg_list)
+        self.list_changed_signal.connect(self.list_changed)
         self._packages = packages.Packages(team,
                                            arch,
-                                           msg_signal,
-                                           log_signal,
-                                           progress_signal,
-                                           transaction_progress_signal,
-                                           lock_model_signal,
-                                           list_filling_signal,
-                                           ended_signal,
-                                           request_action_signal,
-                                           populate_pkgs_signal,
-                                           self.list_filled_signal,
-                                           self.list_changed_signal)
+                                           msg_signal=msg_signal,
+                                           log_signal=log_signal,
+                                           progress_signal=progress_signal,
+                                           transaction_progress_signal=transaction_progress_signal,
+                                           lock_model_signal=lock_model_signal,
+                                           list_filling_signal=list_filling_signal,
+                                           ended_signal=ended_signal,
+                                           request_action_signal=request_action_signal,
+                                           populate_pkgs_signal=populate_pkgs_signal,
+                                           action_timer_signal=action_timer_signal,
+                                           list_filled_signal=self.list_filled_signal,
+                                           list_changed_signal=self.list_changed_signal)
         # # self.packages.get(self._setupModelData_) do this when ppa combo is selected
         self.setHorizontalHeaderLabels(headers)
         # self.itemChanged.connect(TVModel.on_item_changed)
@@ -62,21 +64,27 @@ class TVModel(QStandardItemModel, QObject):
         self.removeRows(0, self.rowCount())
         self._packages.populate_pkgs(ppa.lower(), arch.lower())
 
+    @pyqtSlot(str, str)
+    def list_changed(self, ppa, arch):
+        self.removeRows(0, self.rowCount())
+        self.pkg_list_complete(self.packages._populate_pkg_list(ppa, arch))
+
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
         for pkg in pkgs:
             pkg = TVItem(pkg)
+            # if pkg is installed
             if check_installed(pkg.name):
-                if not pkg_search(['installed'], pkg.id):
-                    p = pkg_search(['tobeinstalled',
-                                    'downloading',
-                                    'converting',
-                                    'installing',
-                                    'uninstalling'], pkg.id)
-                    if not p:
-                        add_item_to_section('installed', pkg)
-                    else:
-                        add_item_to_section('installed', p.parent.pop(p['id']))
+                # but the package isn't listed in the installed section
+                p = pkg_search(['tobeinstalled',
+                                'downloading',
+                                'converting',
+                                'installing',
+                                'uninstalling'], pkg.id)
+                if not p:
+                    add_item_to_section('installed', pkg)
+                else:
+                    add_item_to_section('installed', p.parent.pop(p['id']))
                 pkg.installed = Qt.Checked
                 self.appendRow(pkg.row)
                 continue
@@ -93,7 +101,7 @@ class TVModel(QStandardItemModel, QObject):
                 else:
                     pkg.installed = Qt.Unchecked
                     self.appendRow(pkg.row)
-        self.list_filling_signal.emit()
+        cfg.write()
     # @pyqtSlot(list)
     # def pkg_list_complete(self, pkgs):
     #     for pkg in pkgs:
