@@ -43,11 +43,6 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.pkgs_tableView.horizontalHeader().setStretchLastSection(True)
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
 
-        self._movie = QMovie("./assets/loader.gif")
-        self.load_label.setMovie(self._movie)
-        self.load_label.setMinimumWidth(200)
-        self.load_label.setMinimumHeight(20)
-
         # refresh cache button
         self.btn_refresh_cache.triggered.connect(self.refresh_cache)
 
@@ -90,6 +85,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     #     return self.list_filling
 
     def refresh_cache(self):
+        self.toggle_pkg_list_loading(True)
         cache.invalidate(hard=True)
         self.populate_pkgs()
 
@@ -107,9 +103,11 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.install_btn.clicked.disconnect()
         self.install_btn.clicked.connect(self.install_pkgs_button)
 
-    def toggle_pkg_list_loading(self):
-        self.load_label.setVisible((not self.load_label.isVisible()))
-        if self.load_label.isVisible():
+    def toggle_pkg_list_loading(self, vis_bool):
+        self.load_label.setVisible(vis_bool)
+        if vis_bool:
+            self.load_label.move(self.pkgs_tableView.x() + self.pkgs_tableView.width() / 2 - self.load_label.width() / 2,
+                                 self.pkgs_tableView.y() + self.pkgs_tableView.height() / 2)
             self._movie.start()
         else:
             self._movie.stop()
@@ -175,6 +173,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def populate_pkgs(self):
         try:
+            self.load_label.setVisible(True)
             self.kxfed.pkg_model.populate_pkg_list(
                 self.ppa_combo.itemData(self.ppa_combo.currentIndex()),
                 self.arch_combo.currentText())
@@ -232,10 +231,11 @@ class Kxfed(QThread):
     progress_signal = pyqtSignal(int, int)
     transaction_progress_signal = pyqtSignal(int, int)
     lock_model_signal = pyqtSignal(bool)
-    list_filling_signal = pyqtSignal()
+    list_filling_signal = pyqtSignal(bool)
     ended_signal = pyqtSignal(int)
     request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
     populate_pkgs_signal = pyqtSignal()
+    action_timer_signal = pyqtSignal()
 
     def __init__(self, mainw):
         super().__init__()
@@ -246,7 +246,7 @@ class Kxfed(QThread):
         self.main_window.team_combo.addItem(self._team)
         self.main_window.arch_combo.addItem("amd64")
         self.main_window.arch_combo.addItem("i386")
-
+        self._timer_num = 0
         # signals
         self.msg_signal.connect(self._message_user)  # , type=Qt.DirectConnection)
         self.log_signal.connect(self._log_msg)  # type=Qt.DirectConnection)
@@ -257,19 +257,21 @@ class Kxfed(QThread):
         self.ended_signal.connect(self._ended)
         self.request_action_signal.connect(self._request_action)
         self.populate_pkgs_signal.connect(self.populate_pkgs)
+        self.action_timer_signal.connect(self._action_timer)
 
         self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
                                          self.main_window.team_combo.currentText().lower(),
                                          self.main_window.arch_combo.currentText().lower(),
-                                         self.msg_signal,
-                                         self.log_signal,
-                                         self.progress_signal,
-                                         self.transaction_progress_signal,
-                                         self.lock_model_signal,
-                                         self.list_filling_signal,
-                                         self.ended_signal,
-                                         self.request_action_signal,
-                                         self.populate_pkgs_signal)
+                                         msg_signal=self.msg_signal,
+                                         log_signal=self.log_signal,
+                                         progress_signal=self.progress_signal,
+                                         transaction_progress_signal=self.transaction_progress_signal,
+                                         lock_model_signal=self.lock_model_signal,
+                                         list_filling_signal=self.list_filling_signal,
+                                         ended_signal=self.ended_signal,
+                                         request_action_signal=self.request_action_signal,
+                                         populate_pkgs_signal=self.populate_pkgs_signal,
+                                         action_timer_signal=self.action_timer_signal)
 
         # connect
         self.connect()
@@ -311,10 +313,10 @@ class Kxfed(QThread):
             self._log_msg("Processing successful!", logging.INFO)
         self.main_window.ended()
 
-    @pyqtSlot()
-    def _toggle_pkg_list_loading(self):
+    @pyqtSlot(bool)
+    def _toggle_pkg_list_loading(self, vis_bool):
         self.moveToThread(self.main_window.thread())
-        self.main_window.toggle_pkg_list_loading()
+        self.main_window.toggle_pkg_list_loading(vis_bool)
 
     @pyqtSlot(int, int)
     def _progress_changed(self, amount, total):
@@ -340,6 +342,17 @@ class Kxfed(QThread):
     def populate_pkgs(self):
         self.moveToThread(self.main_window.thread())
         self.main_window.populate_pkgs()
+
+    @pyqtSlot()
+    def _action_timer(self):
+        self._timer = QTimer()
+        self._timer.setSingleShot(False)
+        self._timer.timeout.connect(self._timer_fire)
+        self._timer.start(500)
+
+    def _timer_fire(self):
+        self._timer_num += 1
+        self.progress_signal.emit(self._timer_num % 100, 100)
 
     def connect(self):
         try:

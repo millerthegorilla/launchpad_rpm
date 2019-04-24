@@ -5,7 +5,7 @@ from kfconf import cfg, pkg_states, debs_dir, rpms_dir, \
                     delete_ppa_if_empty, check_installed
 from os.path import isfile, basename
 from collections import namedtuple
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import process, fuzz
 import logging
 from pathlib import Path
 
@@ -44,36 +44,34 @@ class PackageProcess(list):
                         continue
                     if not isfile(pkg["rpm_path"]):
                         paths = list(Path(rpms_dir).glob(pkg["name"] + "*"))
-                        if paths and fuzz.token_set_ratio(pkg["version"],
-                                                          basename(str(paths[0]).
-                                                          replace(pkg["name"] + "_", "")).
-                                                          rsplit("_", 1)[0]) > 90:
-                            self._msg_signal.emit("Package " +
-                                                  pkg["name"] +
-                                                  " has already been converted, moving to installation list")
-                            self._log_signal.emit("Package " +
-                                                  pkg["name"] +
-                                                  " has already been downloaded, moving to installation list",
-                                                  logging.INFO)
-                            pkg["rpm_path"] = str(paths[0])
+                        if paths:
+                            fp = process.extractOne(pkg['name'] + pkg["version"], paths, scorer=fuzz.token_sort_ratio)
+                            if fp:
+                                self._msg_signal.emit("Package " +
+                                                      pkg["name"] +
+                                                      " has already been converted, moving to installation list")
+                                self._log_signal.emit("Package " +
+                                                      pkg["name"] +
+                                                      " has already been downloaded, moving to installation list",
+                                                      logging.INFO)
+                            pkg["rpm_path"] = fp[0]
                     if isfile(pkg_states[self._section][ppa][pkg_id]["rpm_path"]):
                         if self._section != "installing":
                             moved = add_item_to_section("installing", pkg_states[self._section][ppa].pop(pkg_id))
                         continue
                     if not isfile(pkg["deb_path"]):
                         paths = list(Path(debs_dir).glob(pkg["name"] + "*"))
-                        if paths and fuzz.token_set_ratio(pkg["version"],
-                                                          basename(str(paths[0]).
-                                                          replace(pkg["name"] + "_", "")).
-                                                          rsplit("_", 1)[0]) > 90:
-                            self._msg_signal.emit("Package " +
-                                                  pkg["name"] +
-                                                  " has already been downloaded, moving to conversion list")
-                            self._log_signal.emit("Package " +
-                                                  pkg["name"] +
-                                                  " has already been downloaded, moving to conversion list",
-                                                  logging.INFO)
-                            pkg["deb_path"] = str(paths[0])
+                        if paths:
+                            fp = process.extractOne(pkg['name'] + pkg["version"], paths, scorer=fuzz.token_sort_ratio)
+                            if fp:
+                                self._msg_signal.emit("Package " +
+                                                      pkg["name"] +
+                                                      " has already been downloaded, moving to conversion list")
+                                self._log_signal.emit("Package " +
+                                                      pkg["name"] +
+                                                      " has already been downloaded, moving to conversion list",
+                                                      logging.INFO)
+                            pkg["deb_path"] = fp[0]
                     if isfile(pkg_states[self._section][ppa][pkg_id]["deb_path"]):
                         if self._section != "converting":
                             moved = add_item_to_section("converting", pkg_states[self._section][ppa].pop(pkg_id))

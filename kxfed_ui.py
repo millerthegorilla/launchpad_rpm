@@ -6,7 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
@@ -14,16 +14,14 @@ class Ui_MainWindow(object):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setWindowModality(QtCore.Qt.ApplicationModal)
         MainWindow.resize(539, 759)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                           QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
         MainWindow.setMinimumSize(QtCore.QSize(459, 629))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                           QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
@@ -188,9 +186,9 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "KXFed - KXStudio on Fedora"))
         self.team_label.setText(_translate("MainWindow", "Team :"))
-        self.ppa_label.setText(_translate("MainWindow", "PPA : "))
-        self.arch_label.setText(_translate("MainWindow", "Arch : "))
-        self.packages_label.setText(_translate("MainWindow", "Packages: "))
+        self.ppa_label.setText(_translate("MainWindow", "PPA :"))
+        self.arch_label.setText(_translate("MainWindow", "Arch :"))
+        self.packages_label.setText(_translate("MainWindow", "Packages:"))
         self.kernelbuild_chk.setText(_translate("MainWindow", "Build and install latest RT kernel"))
         self.lowlatency_chk.setText(_translate("MainWindow", "Lowlatency"))
         self.reconnectBtn.setText(_translate("MainWindow", "Reconnect"))
@@ -201,3 +199,5 @@ class Ui_MainWindow(object):
         self.btn_quit.setText(_translate("MainWindow", "Exit"))
         self.btn_refresh_cache.setText(_translate("MainWindow", "&Refresh Cache"))
         self.btn_show_messages.setText(_translate("MainWindow", "&Messages"))
+
+

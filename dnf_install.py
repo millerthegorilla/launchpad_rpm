@@ -26,6 +26,7 @@ class Progress(callback.TransactionProgress):
                 print('kxfedinstalled', package.name)
                 print('kxfedmsg', package.name, " is being verified.")
                 print('kxfedlog', package.name, " is being verified.")
+                print('kxfedverify')
         if action == callback.PKG_REMOVE:
             if ti_done == 0:
                 print('kxfedmsg', package.name, " is being removed.")
@@ -34,6 +35,7 @@ class Progress(callback.TransactionProgress):
                 print('kxfeduninstalled', package.name)
                 print('kxfedmsg', package.name, " is being verified.")
                 print('kxfedlog', package.name, " is being verified.")
+                print('kxfedverify')
         if action == callback.PKG_VERIFY:
             print('kxfedmsg', package.name, " is verified.")
             print('kxfedlog', package.name, " is verified.")
