@@ -144,7 +144,7 @@ class ActionProcess(PackageProcess):
                 if 'verif' in line:
                     self._msg_signal.emit(line)
                     self._log_signal.emit(line, logging.INFO)
-                    self._action_timer_signal.emit()
+                    self._action_timer_signal.emit(True)
                 # TODO delete package from uninstalled state
                 # TODO change highlighted color of checkbox row to normal color
                 # TODO delete rpm if it says so in the preferences

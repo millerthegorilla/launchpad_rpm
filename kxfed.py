@@ -6,12 +6,13 @@ from threading import RLock
 
 import httplib2
 import requests
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QMetaType, QTimer
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, Qt, QTimer, QSortFilterProxyModel, QRegExp
 from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
 from launchpadlib.errors import HTTPError
 
-import tvmodel
+from tvmodel import TVModel
+from tvitem import TVITEM_ROLE
 from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
@@ -64,6 +65,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.pkgs_tableView.setModel(self.kxfed.pkg_model)
         self.pkgs_tableView.horizontalHeader().setStretchLastSection(True)
         self.pkgs_tableView.setStyleSheet("QTableView::QCheckBox::indicator { position : center; }")
+        self.pkgs_tableView.setSortingEnabled(True)
 
         self.ppa_combo.currentIndexChanged.connect(self.populate_pkgs)
         self.arch_combo.currentIndexChanged.connect(self.populate_pkgs)
@@ -81,8 +83,21 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         # refresh cache button
         self.btn_refresh_cache.triggered.connect(self.refresh_cache)
 
-    # def getboundmethod(self):
-    #     return self.list_filling
+        self.autoSearch.setPlaceholderText("Search table")
+
+        self.autoSearch.textChanged.connect(self._filter)
+        self._proxy_model = QSortFilterProxyModel()
+        self._proxy_model.setSourceModel(self.kxfed.pkg_model)
+        self._proxy_model.setFilterKeyColumn(1)
+        self.pkgs_tableView.setModel(self._proxy_model)
+
+    def _filter(self, text):
+        search = QRegExp(text,
+                         Qt.CaseInsensitive,
+                         QRegExp.RegExp)
+
+        self._proxy_model.setFilterRegExp(search)
+        self._proxy_model.invalidateFilter()
 
     def refresh_cache(self):
         self.toggle_pkg_list_loading(True)
@@ -235,7 +250,7 @@ class Kxfed(QThread):
     ended_signal = pyqtSignal(int)
     request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
     populate_pkgs_signal = pyqtSignal()
-    action_timer_signal = pyqtSignal()
+    action_timer_signal = pyqtSignal(bool)
 
     def __init__(self, mainw):
         super().__init__()
@@ -259,19 +274,20 @@ class Kxfed(QThread):
         self.populate_pkgs_signal.connect(self.populate_pkgs)
         self.action_timer_signal.connect(self._action_timer)
 
-        self.pkg_model = tvmodel.TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
-                                         self.main_window.team_combo.currentText().lower(),
-                                         self.main_window.arch_combo.currentText().lower(),
-                                         msg_signal=self.msg_signal,
-                                         log_signal=self.log_signal,
-                                         progress_signal=self.progress_signal,
-                                         transaction_progress_signal=self.transaction_progress_signal,
-                                         lock_model_signal=self.lock_model_signal,
-                                         list_filling_signal=self.list_filling_signal,
-                                         ended_signal=self.ended_signal,
-                                         request_action_signal=self.request_action_signal,
-                                         populate_pkgs_signal=self.populate_pkgs_signal,
-                                         action_timer_signal=self.action_timer_signal)
+        self.pkg_model = TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
+                                 self.main_window.team_combo.currentText().lower(),
+                                 self.main_window.arch_combo.currentText().lower(),
+                                 msg_signal=self.msg_signal,
+                                 log_signal=self.log_signal,
+                                 progress_signal=self.progress_signal,
+                                 transaction_progress_signal=self.transaction_progress_signal,
+                                 lock_model_signal=self.lock_model_signal,
+                                 list_filling_signal=self.list_filling_signal,
+                                 ended_signal=self.ended_signal,
+                                 request_action_signal=self.request_action_signal,
+                                 populate_pkgs_signal=self.populate_pkgs_signal,
+                                 action_timer_signal=self.action_timer_signal)
+        # self.pkg_model.setSortRole(TVITEM_ROLE)
 
         # connect
         self.connect()
@@ -343,12 +359,15 @@ class Kxfed(QThread):
         self.moveToThread(self.main_window.thread())
         self.main_window.populate_pkgs()
 
-    @pyqtSlot()
-    def _action_timer(self):
+    @pyqtSlot(bool)
+    def _action_timer(self, cont):
         self._timer = QTimer()
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self._timer_fire)
-        self._timer.start(500)
+        if self._timer.isActive() and cont is False:
+            self._timer.stop()
+        elif not self._timer.isActive() and cont is True:
+            self._timer.start(500)
 
     def _timer_fire(self):
         self._timer_num += 1

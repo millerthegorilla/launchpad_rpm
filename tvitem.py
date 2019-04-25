@@ -14,6 +14,7 @@ class TVItem:
         self._ppa = pkg_list[1]
         self._installed = Qt.Unchecked
         self._install_state = QStandardItem()
+        self._install_state.__lt__ = self.less_than
         self._install_state.setData(self, role=TVITEM_ROLE)
         self._install_state.setCheckable(True)
         # self._install_state.setEditable(False)
@@ -82,3 +83,6 @@ class TVItem:
     @property
     def install_state(self):
         return self._install_state
+
+    def less_than(self, other):
+        return self._install_state.checkState() > other.checkState()

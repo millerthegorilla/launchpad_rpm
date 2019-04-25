@@ -189,6 +189,7 @@ class Packages(QThread):
             self._list_changed_signal.emit(self.ppa, self.arch)
             if success:
                 self._ended_signal.emit(ENDED_SUCC)
+                self._action_timer_signal.emit(False)
             else:
                 self._ended_signal.emit(ENDED_ERR)
         except FileNotFoundError as e:
