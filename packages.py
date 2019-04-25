@@ -75,6 +75,7 @@ class Packages(QThread):
         self._action_timer_signal = action_timer_signal
         # process handle for the sake of cancelling
         self.process = None
+        self._teams = None
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -82,6 +83,11 @@ class Packages(QThread):
 
     @property
     def lp_team(self):
+        return self._lp_team
+
+    @lp_team.setter
+    def lp_team(self, team):
+        self._lp_team = self._launchpad.people.findTeam(text=team)[0]
         return self._lp_team
 
     @property
@@ -95,6 +101,10 @@ class Packages(QThread):
     @property
     def arch(self):
         return self._arch
+
+    @property
+    def launchpad(self):
+        return self._launchpad
 
     def populate_pkgs(self, ppa, arch):
         self._ppa = ppa

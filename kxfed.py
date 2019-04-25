@@ -6,9 +6,9 @@ from threading import RLock
 
 import httplib2
 import requests
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, Qt, QTimer, QSortFilterProxyModel, QRegExp
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, Qt, QTimer, QSortFilterProxyModel, QRegExp, QStringListModel
 from PyQt5.QtGui import QMovie
-from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from launchpadlib.errors import HTTPError
 
 from tvmodel import TVModel
@@ -86,18 +86,50 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.autoSearch.setPlaceholderText("Search table")
 
         self.autoSearch.textChanged.connect(self._filter)
+        self.autoSearch.textEdited.connect(self._change_proxy_model)
         self._proxy_model = QSortFilterProxyModel()
         self._proxy_model.setSourceModel(self.kxfed.pkg_model)
         self._proxy_model.setFilterKeyColumn(1)
-        self.pkgs_tableView.setModel(self._proxy_model)
+        self._proxy_model.lessThan = self._less_than
+
+        self.team_line_edit.textChanged.connect(self._team_text)
+        self.qcomplete = QCompleter()
+        self.qcomplete.highlighted.connect(self._chosen)
+
+    def _chosen(self, text):
+        self.kxfed.team = text
+        self.qcomplete.popup().hide()
+
+    def _team_text(self, text):
+        if len(text) > 3:
+            model = QStringListModel()
+            model.setStringList([ x.name for x in self.kxfed.pkg_model.packages.launchpad.people.findTeam(text=text)])
+            self.qcomplete.setModel(model)
+            self.team_line_edit.setCompleter(self.qcomplete)
+
+    def _less_than(self, index0, index1):
+        # index0 = self._proxy_model.mapToSource(index0)
+        # index1 = self._proxy_model.mapToSource(index1)
+        if index0.column() == 0:
+            return self.kxfed.pkg_model.item(index0.row(), index0.column()).checkState() > \
+                   self.kxfed.pkg_model.item(index1.row(), index1.column()).checkState()
+        else:
+            return self.kxfed.pkg_model.item(index0.row(), index0.column()) < \
+                   self.kxfed.pkg_model.item(index1.row(), index1.column())
+
+    def _change_proxy_model(self):
+        self.pkgs_tableView.setModel(self.kxfed.pkg_model)
 
     def _filter(self, text):
-        search = QRegExp(text,
-                         Qt.CaseInsensitive,
-                         QRegExp.RegExp)
-
-        self._proxy_model.setFilterRegExp(search)
-        self._proxy_model.invalidateFilter()
+        if text == "":
+            self.pkgs_tableView.setModel(self.kxfed.pkg_model)
+        else:
+            self.pkgs_tableView.setModel(self._proxy_model)
+            search = QRegExp(text,
+                             Qt.CaseInsensitive,
+                             QRegExp.RegExp)
+            self._proxy_model.setFilterRegExp(search)
+            self._proxy_model.invalidateFilter()
 
     def refresh_cache(self):
         self.toggle_pkg_list_loading(True)
@@ -257,7 +289,7 @@ class Kxfed(QThread):
         self.main_window = mainw
         # instance variables
         self._ppas_json = {}
-        self._team = "KXStudio-Debian"
+        self._team = "KXStudio-Debian" #"kxstudio-team"#
         # self.main_window.team_combo.addItem(self._team)
         self.main_window.arch_combo.addItem("amd64")
         self.main_window.arch_combo.addItem("i386")
@@ -295,6 +327,15 @@ class Kxfed(QThread):
     @property
     def team(self):
         return self._team
+
+    @team.setter
+    def team(self, name):
+        self._team = name
+        self.pkg_model.packages.lp_team = self._team
+        self.populate_ppa_combo()
+        self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
+                                          self.pkg_model.packages.arch)
+        self.log_signal.emit("Connected to Launchpad", logging.INFO)
 
     @property
     def pkg_model(self):
@@ -392,6 +433,7 @@ class Kxfed(QThread):
             self.main_window._ppas_json = requests.get(ppas_link).json()
         except requests.HTTPError as e:
             self.log_signal.emit(e, logging.CRITICAL)
+        self.main_window.ppa_combo.clear()
         for ppa in self.main_window._ppas_json['entries']:
             self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
