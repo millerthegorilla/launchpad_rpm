@@ -31,6 +31,8 @@ class TVModel(QStandardItemModel, QObject):
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
         self.list_changed_signal.connect(self.list_changed)
+        self._msg_signal = msg_signal
+        self._log_signal = log_signal
         self._packages = packages.Packages(team,
                                            arch,
                                            msg_signal=msg_signal,
@@ -61,8 +63,13 @@ class TVModel(QStandardItemModel, QObject):
 
     @pyqtSlot(str, str)
     def populate_pkg_list(self, ppa, arch):
+        self.list_filling_signal.emit(True)
         self.removeRows(0, self.rowCount())
-        self._packages.populate_pkgs(ppa.lower(), arch.lower())
+        if ppa is not None and arch is not None:
+            self._packages.populate_pkgs(ppa.lower(), arch.lower())
+        else:
+            self._msg_signal.emit("The team " + str(self.packages.lp_team.name) + " has no ppas listed")
+            self._log_signal.emit("This team has no ppas listed", logging.INFO)
 
     @pyqtSlot(str, str)
     def list_changed(self, ppa, arch):
