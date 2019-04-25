@@ -37,16 +37,16 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="4" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="5,5,5,5,0,35,5,5,5,5,0,7">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="5,5,5,5,0,35,5,5,0,7">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,10">
+       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,0">
         <property name="spacing">
          <number>1</number>
         </property>
         <property name="sizeConstraint">
          <enum>QLayout::SetDefaultConstraint</enum>
         </property>
-        <item>
+        <item alignment="Qt::AlignLeft">
          <widget class="QLabel" name="team_label">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -54,24 +54,30 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="text">
            <string>Team :</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="team_combo">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
+         <widget class="QLineEdit" name="team_line_edit">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-            <horstretch>1</horstretch>
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>100</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="editable">
-           <bool>false</bool>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
           </property>
          </widget>
         </item>
@@ -144,20 +150,6 @@
       </item>
       <item>
        <widget class="QTableView" name="pkgs_tableView"/>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="kernelbuild_chk">
-        <property name="text">
-         <string>Build and install latest RT kernel</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="lowlatency_chk">
-        <property name="text">
-         <string>Lowlatency</string>
-        </property>
-       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="reconnectBtn">

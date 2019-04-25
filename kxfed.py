@@ -258,7 +258,7 @@ class Kxfed(QThread):
         # instance variables
         self._ppas_json = {}
         self._team = "KXStudio-Debian"
-        self.main_window.team_combo.addItem(self._team)
+        # self.main_window.team_combo.addItem(self._team)
         self.main_window.arch_combo.addItem("amd64")
         self.main_window.arch_combo.addItem("i386")
         self._timer_num = 0
@@ -275,7 +275,7 @@ class Kxfed(QThread):
         self.action_timer_signal.connect(self._action_timer)
 
         self.pkg_model = TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
-                                 self.main_window.team_combo.currentText().lower(),
+                                 self._team.lower(),
                                  self.main_window.arch_combo.currentText().lower(),
                                  msg_signal=self.msg_signal,
                                  log_signal=self.log_signal,
