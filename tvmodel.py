@@ -27,7 +27,7 @@ class TVModel(QStandardItemModel, QObject):
                  lock_model_signal=None, list_filling_signal=None,
                  ended_signal=None, request_action_signal=None,
                  populate_pkgs_signal=None, action_timer_signal=None):
-        super().__init__()
+        super(TVModel, self).__init__()
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
         self.list_changed_signal.connect(self.list_changed)
@@ -102,37 +102,10 @@ class TVModel(QStandardItemModel, QObject):
                     pkg.installed = Qt.Unchecked
                     self.appendRow(pkg.row)
         cfg.write()
-    # @pyqtSlot(list)
-    # def pkg_list_complete(self, pkgs):
-    #     for pkg in pkgs:
-    #         pkg = TVItem(pkg)
-    #         found = pkg_search(['tobeinstalled',
-    #                             'downloading',
-    #                             'converting',
-    #                             'installing',
-    #                             'uninstalling',
-    #                             'installed'],
-    #                            pkg.name)
-    #         if found:
-    #             if pkg.version == found['version']:
-    #                 pkg.id = found['id']
-    #         if pkg_search(['installed'], pkg.id):
-    #             pkg.installed = Qt.Checked
-    #             self.appendRow(pkg.row)
-    #             continue
-    #         if pkg_search(['uninstalling'], pkg.id):
-    #             pkg.installed = Qt.Unchecked
-    #             pkg.install_state.setBackground(Qt.red)
-    #             self.appendRow(pkg.row)
-    #             continue
-    #         if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
-    #             pkg.installed = Qt.PartiallyChecked
-    #             self.appendRow(pkg.row)
-    #             continue
-    #         else:
-    #             pkg.installed = Qt.Unchecked
-    #             self.appendRow(pkg._row)
-    #     self.list_filling_signal.emit()
+
+    def sort(self, p_int, order=None):
+        super(TVModel, self).sort(p_int, order)
+        pass
 
     def itemChanged(self, item):
         # I tried overloaded itemChanged, and also connecting itemChanged
