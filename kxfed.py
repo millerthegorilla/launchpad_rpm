@@ -438,13 +438,35 @@ class Kxfed(QThread):
             self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
 
+def check_requirements():
+    try:
+        import rpm
+        pkg_type = 'rpm'
+        dependencies = ['redhat-rpm-config', 'python3-devel', 'alien', 'rpm-build']
+    except ImportError as e:
+        try:
+            import apt
+            pkg_type = 'deb'
+        except ImportError as ee:
+            raise Exception(str(e.args) + " : " + str(ee.args))
+
+    if pkg_type == 'rpm':
+        ts = rpm.TransactionSet()
+        for requirement in dependencies:
+            if not len(ts.dbMatch('name', requirement)):
+                print("Error, " + requirement + " must be installed for this program to be run")
+                sys.exit(1)
+    return True
+
+
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    myapp = MainW()
-    myapp.show()
+    if check_requirements():
+        app = QApplication(sys.argv)
+        myapp = MainW()
+        myapp.show()
 
-    timer = QTimer()
-    timer.timeout.connect(lambda:None)
-    timer.start(100)
+        timer = QTimer()
+        timer.timeout.connect(lambda:None)
+        timer.start(100)
 
-    sys.exit(app.exec_())
+        sys.exit(app.exec_())

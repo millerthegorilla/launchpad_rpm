@@ -17,6 +17,7 @@ from rpm import TransactionSet
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
+SCRIPT_PATH = "/home/james/Src/kxfed/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2

@@ -1,9 +1,8 @@
 from abc import abstractmethod
-import rpm
 from kfconf import cfg, pkg_states, debs_dir, rpms_dir, \
                     add_item_to_section, clean_section, \
                     delete_ppa_if_empty, check_installed
-from os.path import isfile, basename
+from os.path import isfile
 from collections import namedtuple
 from fuzzywuzzy import process, fuzz
 import logging

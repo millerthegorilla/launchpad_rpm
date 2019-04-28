@@ -11,10 +11,8 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 class DownloadProcess(PackageProcess):
     def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
-        assert(team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
         super(DownloadProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "downloading"
-        self._next_section = "converting"
         self._error_section = "failed_downloading"
         self._path_name = "deb_path"
         self._team_link = team_link
@@ -103,3 +101,27 @@ class DownloadProcess(PackageProcess):
             return pkg["name"], True
         except HTTPError as e:
             self._log_signal.emit(e, logging.CRITICAL)
+
+
+class RPMDownloadProcess(DownloadProcess):
+    def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
+        assert (team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
+        assert (msg_signal is not None), "In order to create a DownloadProcess, msg_signal must be defined."
+        assert (log_signal is not None), "In order to create a DownloadProcess, log_signal must be defined."
+        super(RPMDownloadProcess, self).__init__(args,
+                                                 team_link=team_link,
+                                                 msg_signal=msg_signal,
+                                                 log_signal=log_signal)
+        self._next_section = "converting"
+
+
+class DEBDownloadProcess(DownloadProcess):
+    def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
+        assert (team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
+        assert (msg_signal is not None), "In order to create a DownloadProcess, msg_signal must be defined."
+        assert (log_signal is not None), "In order to create a DownloadProcess, log_signal must be defined."
+        super(DEBDownloadProcess, self).__init__(args,
+                                                 team_link=team_link,
+                                                 msg_signal=msg_signal,
+                                                 log_signal=log_signal)
+        self._next_section = "installing"
