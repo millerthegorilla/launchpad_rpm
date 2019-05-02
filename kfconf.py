@@ -8,8 +8,13 @@ from threading import RLock
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
-from rpm import TransactionSet
-
+import distro
+if 'Fedora' in distro.linux_distribution():
+    from rpm import TransactionSet
+    DISTRO_TYPE = 'rpm'
+else:
+    import apt
+    DISTRO_TYPE = 'deb'
 # TODO when the program installs the line below must be added to ~/.rpmmacros
 # %_topdir /home/data/rpmbuild
 
@@ -17,9 +22,11 @@ from rpm import TransactionSet
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
+SCRIPT_PATH = "/home/james/Src/kxfed/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2
+APT_CACHE_FILE = apt.Cache()
 
 __this__ = sys.modules[__name__]
 
@@ -57,6 +64,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['cache']['arguments'] = {}
     cfg['cache']['arguments']['filename'] = config_dir + CACHE_FILE
     cfg['cache']['initiated'] = {}
+    cfg['distro_type'] = DISTRO_TYPE
     cfg['pkg_states'] = {}
     cfg['pkg_states']['tobeinstalled'] = {}
     cfg['pkg_states']['tobeuninstalled'] = {}
@@ -152,7 +160,17 @@ def pkg_search(sections, search_value):
 
 
 def check_installed(name):
-    return True if len(TransactionSet().dbMatch('name', name)) else False
+    if cfg['distro_type'] == 'rpm':
+        return True if len(TransactionSet().dbMatch('name', name)) else False
+    else:
+        try:
+            p = APT_CACHE_FILE[name]
+            if hasattr(p, 'isInstalled'):
+                return True if p.isInstalled else False
+            else:
+                return False
+        except KeyError as e:
+            return False
 
 
 cache = make_region().configure(

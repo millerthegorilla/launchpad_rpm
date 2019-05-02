@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 
 from PyQt5.QtWidgets import QDialog
-import dnf
+# import dnf
 
 from kfconf import cfg
 from kxfedmsgsdialog_ui import Ui_KxfedMsgsDialog
@@ -23,7 +23,7 @@ class KxfedMsgsDialog(QDialog):
         handler.setFormatter(format)
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(handler)
-        self.logger.addHandler(dnf.base.logger)
+        # self.logger.addHandler(dnf.base.logger)
 
     def log(self, log_record=None, msg=None, level=None):
         log_msg = ""
