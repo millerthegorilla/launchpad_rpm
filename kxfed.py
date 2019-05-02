@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from launchpadlib.errors import HTTPError
 
 from tvmodel import TVModel
-from tvitem import TVITEM_ROLE
 from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
@@ -456,6 +455,7 @@ def check_requirements():
                     sys.exit(1)
         except ModuleNotFoundError as e:
             pass
+
     return True
 
 
