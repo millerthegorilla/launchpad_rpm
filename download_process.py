@@ -2,19 +2,18 @@ from package_process import PackageProcess
 from kfconf import cfg, debs_dir, pkg_states, add_item_to_section, check_installed
 from requests import get, HTTPError
 from bs4 import BeautifulSoup
-from os.path import isfile
+from os.path import isfile, basename
 from re import compile
 import logging
 from threading import RLock
 from multiprocessing.dummy import Pool as ThreadPool
+from PyQt5.QtCore import pyqtSlot
 
 
 class DownloadProcess(PackageProcess):
     def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
-        assert(team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
-        super(DownloadProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
+        super(DownloadProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "downloading"
-        self._next_section = "converting"
         self._error_section = "failed_downloading"
         self._path_name = "deb_path"
         self._team_link = team_link
@@ -23,6 +22,8 @@ class DownloadProcess(PackageProcess):
         self._progress_signal = progress_signal
         self._total_length = 0
         self._current_length = 0
+        self._pkgs_complete = 0
+        self._pkgs_success = 0
 
     def prepare_action(self):
         moved = False
@@ -38,28 +39,27 @@ class DownloadProcess(PackageProcess):
         assert len(self), "state change called without list initialisation.  Call " + \
                           type(self).__qualname__ + \
                           ".read_section()"
-        pkgs_complete = 0
-        pkgs_success = 0
+        self._pkgs_complete = 0
+        self._pkgs_success = 0
         for i in self:
             if not check_installed(i.pkg["name"]):
-                result = self._thread_pool.apply_async(self.__get_deb_link_and_download,
-                                                       (i.ppa,
-                                                        i.pkg,
-                                                        debs_dir,
-                                                        self._team_link,))
-                success, name = result.get()
-                pkgs_complete += 1
-                if success:
-                    pkgs_success += 1
-                else:
-                    if i.pkg["name"] == name:
-                        self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
-        while 1:
-            if pkgs_complete == len(self):
-                cfg.write()
-                return 1, pkgs_success
-            else:
-                return 0, pkgs_success
+                self._thread_pool.apply_async(self.__get_deb_link_and_download,
+                                              (i.ppa,
+                                               i.pkg,
+                                               debs_dir,
+                                               self._team_link,), callback=self.download_finished)
+
+    @pyqtSlot('PyQt_PyObject')
+    def download_finished(self, result):
+        success, name = result
+        self._pkgs_complete += 1
+        if success:
+            self._pkgs_success += 1
+        else:
+            self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
+        if self._pkgs_complete == len(self):
+            cfg.write()
+            self._action_finished_signal.emit((1, self._pkgs_success, self))
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link
@@ -75,18 +75,14 @@ class DownloadProcess(PackageProcess):
                                                                  href=compile(r""
                                                                               + pkg["name"]
                                                                               + "(.*?)(all|amd64\\.deb)"))
-            assert len(links) == 1
-            pkg["deb_link"] = links[0]
-            link = links[0]
-            # deb_paths = []
-            # for link in links:
-            fn = link["href"].rsplit("/", 1)[-1]
+            pkg["deb_link"] = links[[str(basename(x['href'])).split('_')[0] for x in links].index(pkg['name'])]['href']
+            fn = basename(pkg["deb_link"])
             fp = debsdir + fn
             if not isfile(fp):
-                self._log_signal.emit("Downloading " + pkg["name"] + " from " + str(link["href"]), logging.INFO)
+                self._log_signal.emit("Downloading " + pkg["name"] + " from " + pkg['deb_link'], logging.INFO)
                 self._msg_signal.emit("Downloading " + pkg["name"])
                 with open(fp, "wb+") as f:
-                    response = get(link["href"], stream=True)
+                    response = get(pkg["deb_link"], stream=True)
                     total_length = response.headers.get("content-length")
                     if total_length is None:  # no content length header
                         f.write(response.content)
@@ -95,11 +91,45 @@ class DownloadProcess(PackageProcess):
 
                         for data in response.iter_content(chunk_size=1024):
                             f.write(data)
-                            self._lock.acquire()
+                            #self._lock.acquire()
                             self._current_length += len(data)
                             self._progress_signal.emit(self._current_length, self._total_length)
-                            self._lock.release()
+                            #self._lock.release()
             pkg["deb_path"] = fp
             return pkg["name"], True
         except HTTPError as e:
             self._log_signal.emit(e, logging.CRITICAL)
+
+
+class RPMDownloadProcess(DownloadProcess):
+    def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
+        assert (team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
+        assert (msg_signal is not None), "In order to create a DownloadProcess, msg_signal must be defined."
+        assert (log_signal is not None), "In order to create a DownloadProcess, log_signal must be defined."
+        super(RPMDownloadProcess, self).__init__(args,
+                                                 team_link=team_link,
+                                                 msg_signal=msg_signal,
+                                                 log_signal=log_signal,
+                                                 progress_signal=progress_signal)
+        self._next_section = "converting"
+
+    def state_change(self, action_finished_signal=None):
+        super().state_change()
+        self._action_finished_signal = action_finished_signal
+
+
+class DEBDownloadProcess(DownloadProcess):
+    def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
+        assert (team_link is not None), "In order to create a DownloadProcess, team_link must be defined."
+        assert (msg_signal is not None), "In order to create a DownloadProcess, msg_signal must be defined."
+        assert (log_signal is not None), "In order to create a DownloadProcess, log_signal must be defined."
+        super(DEBDownloadProcess, self).__init__(*args,
+                                                 team_link=team_link,
+                                                 msg_signal=msg_signal,
+                                                 log_signal=log_signal,
+                                                 progress_signal=progress_signal)
+        self._next_section = "installing"
+
+    def state_change(self, action_finished_signal=None):
+        super().state_change()
+        self._action_finished_signal = action_finished_signal

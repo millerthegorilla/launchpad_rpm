@@ -1,14 +1,14 @@
-from package_process import PackageProcess
-from installation_process import InstallationProcess
-from uninstallation_process import UninstallationProcess
-from kfconf import cfg, tmp_dir, \
-                   pkg_states, add_item_to_section,\
-                   pkg_search, has_pending, ENDED_ERR
+from kfconf import cfg, tmp_dir, has_pending, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtCore import QTimer, pyqtSlot, pyqtSignal, QObject
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
+from package_process import PackageProcess
+from uninstallation_process import UninstallationProcess
+if cfg['distro_type'] == 'rpm':
+    from installation_process import RPMInstallationProcess
+elif cfg['distro_type'] == 'deb':
+    from installation_process import DEBInstallationProcess
 
 
 class ActionProcess(PackageProcess):
@@ -35,17 +35,22 @@ class ActionProcess(PackageProcess):
         self._action_timer_signal=action_timer_signal
         self._processes = []
         self._errors = 0
-        self._action_finished_signal = None
         self._timer = None
 
         self._progress_bar_num = 0
         if cfg.as_bool('install'):
             if has_pending('installing'):
-                self._installation_process = InstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
+                if cfg['distro_type'] == 'rpm':
+                    self._installation_process = RPMInstallationProcess(msg_signal=msg_signal,
+                                                                        log_signal=log_signal)
+                elif cfg['distro_type'] == 'deb':
+                    self._installation_process = DEBInstallationProcess(msg_signal=msg_signal,
+                                                                        log_signal=log_signal)
                 self._processes.append(self._installation_process)
         if cfg.as_bool('uninstall'):
             if has_pending('uninstalling'):
-                self._uninstallation_process = UninstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
+                self._uninstallation_process = UninstallationProcess(msg_signal=msg_signal,
+                                                                     log_signal=log_signal)
                 self._processes.append(self._uninstallation_process)
 
     def prepare_action(self):
@@ -58,33 +63,21 @@ class ActionProcess(PackageProcess):
         for process in self._processes:
             process.read_section()
 
-    def state_change(self, action_finished_signal):
+    def state_change(self, action_finished_signal=None):
         self._action_finished_signal = action_finished_signal
-        self._errors = 0
+        #self._errors = 0
         self._log_signal.emit("Actioning packages...", logging.INFO)
         self._msg_signal.emit("Actioning packages...")
         msg_txt = ""
         for process in self._processes:
             msg_txt = process.state_change()
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
-        if self._errors:
-            return 0, len(self) - self._errors
-        else:
-            return 1, len(self)
 
     def continue_actioning_if_ok(self):
-        if cfg['distro_type'] == 'rpm':
-            rpm_links = []
-            for process in self._processes:
-                rpm_links = rpm_links + process.action_rpms()
-            self._thread_pool.apply_async(self._action_rpms,(rpm_links,), callback=self._finish_actioning)
-            # num_of_actioned = self._action_rpms(rpm_links)
-            # if num_of_actioned == 0:
-            #     self._ended_signal(ENDED_ERR)
-            # else:
-            #     self._action_finished_signal.emit((num_of_actioned, self._errors, self))
-        else:
-            self._install_debs()
+        pkg_links = []
+        for process in self._processes:
+            pkg_links = pkg_links + process.action_pkgs()
+        self._thread_pool.apply_async(self._action_pkgs, (pkg_links,), callback=self._finish_actioning)
 
     def _finish_actioning(self, num_of_action):
         if num_of_action == 0:
@@ -92,15 +85,23 @@ class ActionProcess(PackageProcess):
                 self._ended_signal.emit(ENDED_ERR)
         self._action_finished_signal.emit((self._errors, num_of_action, self))
 
-    def _action_rpms(self, rpm_links):
+    def _action_pkgs(self, pkg_links):
         try:
-            if rpm_links:
-                self.process = Popen(['pkexec',
-                                     '/home/james/Src/kxfed/dnf_install.py',
-                                      tmp_dir] + rpm_links,
-                                     stdin=PIPE,
-                                     stdout=PIPE,
-                                     stderr=PIPE)
+            if pkg_links:
+                if cfg['distro_type'] == 'rpm':
+                    self.process = Popen(['pkexec',
+                                         SCRIPT_PATH + 'dnf_install.py',
+                                          tmp_dir] + pkg_links,
+                                         stdin=PIPE,
+                                         stdout=PIPE,
+                                         stderr=PIPE)
+                elif cfg['distro_type'] == 'deb':
+                    self.process = Popen(['pkexec',
+                                          SCRIPT_PATH + 'apt_install.py',
+                                          tmp_dir] + pkg_links,
+                                         stdin=PIPE,
+                                         stdout=PIPE,
+                                         stderr=PIPE)
             else:
                 raise ValueError("Error! : rpm_paths of packages in cache may be empty")
         except Exception as e:
@@ -156,7 +157,7 @@ class ActionProcess(PackageProcess):
                     self._progress_signal.emit(0, 0)
                     self._transaction_progress_signal.emit(0, 0)
                     break
-        return len(rpm_links) - self._errors
+        return len(pkg_links) - self._errors
 
     def _install_debs(self):
         pass

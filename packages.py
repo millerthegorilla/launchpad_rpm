@@ -20,18 +20,14 @@ from launchpadlib.launchpad import Launchpad
 
 from kfconf import cfg, cache, pkg_states, clean_section, has_pending, \
                    ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
-from download_process import DownloadProcess
 from conversion_process import ConversionProcess
 from action_process import ActionProcess
 from traceback import format_exc
-
-try:
-    import rpm
-except ImportError as e:
-    try:
-        import apt
-    except ImportError as ee:
-        raise Exception(str(e.args) + " : " + str(ee.args))
+from download_process import DownloadProcess
+if cfg['distro_type'] == 'rpm':
+    from download_process import RPMDownloadProcess
+else:
+    from download_process import DEBDownloadProcess
 
 
 # TODO log messages are being written twice.
@@ -76,6 +72,7 @@ class Packages(QThread):
         # process handle for the sake of cancelling
         self.process = None
         self._teams = None
+        self._num_processed = 0
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -153,36 +150,33 @@ class Packages(QThread):
         except HTTPError as http_error:
             self._log_signal.emit(http_error, logging.CRITICAL)
 
-    def install_pkgs_button(self):
-        try:
-            ts = rpm.TransactionSet()
-            if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                cfg['distro_type'] = 'rpm'
-        except Exception as e:
-            cfg['distro_type'] = 'deb'
+    def install_pkgs_button(self, num_of_processed=None):
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         pkg_processes = self._mk_pkg_process()
-        i = 0
+        self._num_processed = num_of_processed if num_of_processed is not None else 0
         try:
-            while i < len(pkg_processes):
-                pkg_process = pkg_processes[i]
+            if self._num_processed < len(pkg_processes):
+                pkg_process = pkg_processes[self._num_processed]
                 if pkg_process.prepare_action() is True:
-                    pkg_processes = self._mk_pkg_process()
-                    i = 0
-                    continue
+                    self.install_pkgs_button()
                 pkg_process.read_section()
-                if type(pkg_process) is ActionProcess:
-                    self.actioning_finished_signal.connect(self.state_changed)
-
+                # if isinstance(pkg_process, DownloadProcess):
+                #     self.actioning_finished_signal.connect(self.actioning_finished)
+                # if type(pkg_process) is ConversionProcess:
+                #     self.actioning_finished_signal.connect(self.actioning_finished)
+                # if type(pkg_process) is ActionProcess:
+                self.actioning_finished_signal.connect(self.state_changed)
                 if len(pkg_process):
-                    # self._thread_pool.terminate()
-                    # self._thread_pool = ThreadPool(10)
                     self._thread_pool.apply_async(pkg_process.state_change,
                                                   (self.actioning_finished_signal,))
-                i += 1
         except Exception as e:
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)
+
+    @pyqtSlot()
+    def actioning_finished(self):
+        self._num_processed += 1
+        self.install_pkgs_button(self._num_processed)
 
     @pyqtSlot('PyQt_PyObject')
     def state_changed(self, result):
@@ -215,24 +209,45 @@ class Packages(QThread):
     def _mk_pkg_process(self):
         pkg_processes = []
         try:
-            if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-                pkg_processes.append(DownloadProcess(team_link=self.lp_team.web_link,
-                                                     msg_signal=self._msg_signal,
-                                                     log_signal=self._log_signal,
-                                                     progress_signal=self._progress_signal))
-            if has_pending('converting') and cfg.as_bool('convert'):
-                pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+            if cfg['distro_type'] == 'rpm':
+                if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
+                    pkg_processes.append(RPMDownloadProcess(team_link=self.lp_team.web_link,
+                                                         msg_signal=self._msg_signal,
+                                                         log_signal=self._log_signal,
+                                                         progress_signal=self._progress_signal))
+                if has_pending('converting') and cfg.as_bool('convert'):
+                    pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+                                                           log_signal=self._log_signal,
+                                                           progress_signal=self._progress_signal,
+                                                           transaction_progress_signal=self._transaction_progress_signal))
+                if has_pending('installing') or has_pending('uninstalling'):
+                    pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
                                                        log_signal=self._log_signal,
                                                        progress_signal=self._progress_signal,
-                                                       transaction_progress_signal=self._transaction_progress_signal))
-            if has_pending('installing') or has_pending('uninstalling'):
-                pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
-                                                   log_signal=self._log_signal,
-                                                   progress_signal=self._progress_signal,
-                                                   transaction_progress_signal=self._transaction_progress_signal,
-                                                   request_action_signal=self._request_action_signal,
-                                                   populate_pkgs_signal=self._populate_pkgs_signal,
-                                                   action_timer_signal=self._action_timer_signal))
+                                                       transaction_progress_signal=self._transaction_progress_signal,
+                                                       request_action_signal=self._request_action_signal,
+                                                       populate_pkgs_signal=self._populate_pkgs_signal,
+                                                       action_timer_signal=self._action_timer_signal))
+            elif cfg['distro_type'] == 'deb':
+                if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
+                    pkg_processes.append(DEBDownloadProcess(team_link=self.lp_team.web_link,
+                                                            msg_signal=self._msg_signal,
+                                                            log_signal=self._log_signal,
+                                                            progress_signal=self._progress_signal))
+                if has_pending('converting') and cfg.as_bool('convert'):
+                    pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
+                                                           log_signal=self._log_signal,
+                                                           progress_signal=self._progress_signal,
+                                                           transaction_progress_signal=self._transaction_progress_signal))
+                if has_pending('installing') or has_pending('uninstalling'):
+                    pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
+                                                       log_signal=self._log_signal,
+                                                       progress_signal=self._progress_signal,
+                                                       transaction_progress_signal=self._transaction_progress_signal,
+                                                       request_action_signal=self._request_action_signal,
+                                                       populate_pkgs_signal=self._populate_pkgs_signal,
+                                                       action_timer_signal=self._action_timer_signal))
+
             return pkg_processes
         except Exception as e:
             raise

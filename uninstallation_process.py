@@ -8,7 +8,7 @@ import logging
 
 class UninstallationProcess(PackageProcess):
     def __init__(self, *args, msg_signal=None, log_signal=None):
-        super(UninstallationProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
+        super(UninstallationProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = 'uninstalling'
         self._error_section = 'failed_uninstalling'
         self._path_name = 'name'
@@ -34,7 +34,7 @@ class UninstallationProcess(PackageProcess):
         cfg.write()
         return False
 
-    def state_change(self):
+    def state_change(self, process_finished_signal=None):
         uninstall_msg_txt = ""
         if cfg['uninstall'] == 'True':
             clean_section(pkg_states[self._section])
@@ -47,12 +47,12 @@ class UninstallationProcess(PackageProcess):
         return uninstall_msg_txt
 
     @staticmethod
-    def action_rpms():
-        rpm_links = []
+    def action_pkgs():
+        pkg_links = []
         for ppa in pkg_states['uninstalling']:
             for pkg in pkg_states['uninstalling'][ppa]:
-                rpm_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
-        return rpm_links
+                pkg_links.append('uninstalling' + pkg_states['uninstalling'][ppa][pkg]['name'])
+        return pkg_links
 
     def move_cache(self):
         """"""
@@ -65,6 +65,4 @@ class UninstallationProcess(PackageProcess):
             delete_ppa_if_empty(self._section, ppa)
         cfg.write()
 
-    def _install_debs(self):
-        pass
 

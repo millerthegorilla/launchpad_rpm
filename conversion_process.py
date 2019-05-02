@@ -13,7 +13,7 @@ from threading import RLock
 
 class ConversionProcess(PackageProcess):
     def __init__(self, *args, log_signal=None, msg_signal=None, progress_signal=None, transaction_progress_signal=None):
-        super(ConversionProcess, self).__init__(args, msg_signal=msg_signal, log_signal=log_signal)
+        super(ConversionProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "converting"
         self._error_section = "failed_converting"
         self._next_section = "installing"
@@ -22,10 +22,9 @@ class ConversionProcess(PackageProcess):
         self._process = None
         self._progress_signal = progress_signal
         self._transaction_progress_signal = transaction_progress_signal
-        self._action_finished_signal = None
         self._lock = RLock()
 
-    def state_change(self, action_finished_signal):
+    def state_change(self, action_finished_signal=None):
         self._action_finished_signal = action_finished_signal
         deb_paths_list = []
         for i in self:
