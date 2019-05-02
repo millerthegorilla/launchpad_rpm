@@ -8,9 +8,13 @@ import logging
 from threading import RLock
 from multiprocessing.dummy import Pool as ThreadPool
 from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtGui import QGuiApplication
 
 
 class DownloadProcess(PackageProcess):
+    total_length = 0
+    current_length = 0
+
     def __init__(self, *args, team_link=None, msg_signal=None, log_signal=None, progress_signal=None):
         super(DownloadProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._section = "downloading"
@@ -20,8 +24,6 @@ class DownloadProcess(PackageProcess):
         self._lock = RLock()
         self._thread_pool = ThreadPool(10)
         self._progress_signal = progress_signal
-        self._total_length = 0
-        self._current_length = 0
         self._pkgs_complete = 0
         self._pkgs_success = 0
 
@@ -83,18 +85,16 @@ class DownloadProcess(PackageProcess):
                 self._msg_signal.emit("Downloading " + pkg["name"])
                 with open(fp, "wb+") as f:
                     response = get(pkg["deb_link"], stream=True)
-                    total_length = response.headers.get("content-length")
-                    if total_length is None:  # no content length header
+                    tot_length = response.headers.get("content-length")
+                    if tot_length is None:  # no content length header
                         f.write(response.content)
                     else:
-                        self._total_length += int(total_length)
-
+                        self.total_length += int(tot_length)
                         for data in response.iter_content(chunk_size=1024):
                             f.write(data)
-                            #self._lock.acquire()
-                            self._current_length += len(data)
-                            self._progress_signal.emit(self._current_length, self._total_length)
-                            #self._lock.release()
+                            self.current_length += len(data)
+                            self._progress_signal.emit(self.current_length, self.total_length)
+                            QGuiApplication.processEvents()
             pkg["deb_path"] = fp
             return pkg["name"], True
         except HTTPError as e:

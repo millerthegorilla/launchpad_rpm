@@ -71,8 +71,9 @@ class Packages(QThread):
         self._action_timer_signal = action_timer_signal
         # process handle for the sake of cancelling
         self.process = None
-        self._teams = None
         self._num_processed = 0
+        self._pkg_processes = []
+        self._teams = None
 
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
@@ -151,14 +152,15 @@ class Packages(QThread):
             self._log_signal.emit(http_error, logging.CRITICAL)
 
     def install_pkgs_button(self, num_of_processed=None):
-        clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
-        pkg_processes = self._mk_pkg_process()
         self._num_processed = num_of_processed if num_of_processed is not None else 0
+        if self._num_processed == 0:
+            self._pkg_processes = self._mk_pkg_process()
         try:
-            if self._num_processed < len(pkg_processes):
-                pkg_process = pkg_processes[self._num_processed]
+            if self._num_processed < len(self._pkg_processes):
+                pkg_process = self._pkg_processes[self._num_processed]
                 if pkg_process.prepare_action() is True:
                     self.install_pkgs_button()
+                    return
                 pkg_process.read_section()
                 # if isinstance(pkg_process, DownloadProcess):
                 #     self.actioning_finished_signal.connect(self.actioning_finished)
@@ -189,7 +191,13 @@ class Packages(QThread):
             pkg_process.move_cache()
             # self._populate_pkgs_signal.emit()
             if success and not type(pkg_process) is ActionProcess:
-                self.install_pkgs_button()
+                self._num_processed += 1
+                if self._num_processed < len(self._pkg_processes):
+                    self.install_pkgs_button(self._num_processed)
+                    return
+                else:
+                    self.install_pkgs_button()
+                    return
             self._list_changed_signal.emit(self.ppa, self.arch)
             if success:
                 self._ended_signal.emit(ENDED_SUCC)
@@ -207,6 +215,7 @@ class Packages(QThread):
             self._ended_signal.emit(ENDED_ERR)
 
     def _mk_pkg_process(self):
+        clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         pkg_processes = []
         try:
             if cfg['distro_type'] == 'rpm':
