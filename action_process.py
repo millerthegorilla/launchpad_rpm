@@ -65,12 +65,11 @@ class ActionProcess(PackageProcess):
 
     def state_change(self, action_finished_signal=None):
         self._action_finished_signal = action_finished_signal
-        #self._errors = 0
         self._log_signal.emit("Actioning packages...", logging.INFO)
         self._msg_signal.emit("Actioning packages...")
         msg_txt = ""
         for process in self._processes:
-            msg_txt = process.state_change()
+            msg_txt = process.state_change(action_finished_signal)
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
 
     def continue_actioning_if_ok(self):
