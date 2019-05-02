@@ -403,6 +403,8 @@ class Kxfed(QThread):
 
     @pyqtSlot(bool)
     def _action_timer(self, cont):
+        """This is for the progress bar when dealing with undefined length
+           actions, in packages.py"""
         self._timer = QTimer()
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self._timer_fire)

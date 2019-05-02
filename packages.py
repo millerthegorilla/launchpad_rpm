@@ -33,13 +33,15 @@ else:
 
 class Transaction(list):
     def __init__(self, team_web_link=None,
-                       msg_signal=None,
-                       log_signal=None,
-                       progress_signal=None,
-                       transaction_progress_signal=None,
-                       request_action_signal=None,
-                       populate_pkgs_signal=None,
-                       action_timer_signal=None):
+                 msg_signal=None,
+                 log_signal=None,
+                 progress_signal=None,
+                 transaction_progress_signal=None,
+                 request_action_signal=None,
+                 populate_pkgs_signal=None,
+                 action_timer_signal=None,
+                 list_changed_signal=None,
+                 ended_signal=None):
         super(Transaction, self).__init__()
         self._team_web_link = team_web_link
         self._msg_signal = msg_signal
@@ -49,19 +51,66 @@ class Transaction(list):
         self._request_action_signal = request_action_signal
         self._populate_pkgs_signal = populate_pkgs_signal
         self._action_timer_signal = action_timer_signal
-        self._mk_pkg_process()
+        self._actioning_finished_signal = None
+        self._actioning_finished_signal.connect(self._state_changed)
+        self._list_changed_signal = list_changed_signal
+        self._ended_signal = ended_signal
+        self._num = 0
 
     @abstractmethod
     def _mk_pkg_process(self):
         pass
 
-    def _begin(self):
-        for i in self:
-            if i.prepare_action():
-                return False
+    def process(self):
+        self._num = 0
+        self._process()
+
+    # def __iter__(self):
+    #     yield self._process
+
+    def __next__(self):
+        self._num += 1
+        self._process(self._num)
+
+    def _process(self, num=None):
+        num = num if num is not None else 0
+        if num >= len(self):
+            raise StopIteration()
+        if self[num].prepare_action():
+            self.clear()
+            self._mk_pkg_process()
+            self._num = 0
+        else:
+            self[num].read_section()
+            self[num].state_change(self._actioning_finished_signal)
+
+    @pyqtSlot('PyQt_PyObject')
+    def _state_changed(self, result):
+        number, success, pkg_process = result
+        try:
+            if not success:
+                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
+                self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
+                                    logging.INFO)
+            self[self._num].move_cache()
+            self._list_changed_signal.emit(self.ppa, self.arch)
+            if success and type(self[self._num]) is ActionProcess:
+                self._ended_signal.emit(ENDED_SUCC)
+                self._action_timer_signal.emit(False)
+            elif not success and type(self[self._num]) is ActionProcess:
+                self._ended_signal.emit(ENDED_ERR)
             else:
-                i.read_section()
-                i.state_change()
+                self._num += 1
+                next(self)
+        except FileNotFoundError as e:
+            exc = str(e).split(" ")
+            pkg_states['uninstalling'][exc[2]].pop(exc[3])
+            self._list_changed_signal.emit()
+            self._log_signal.emit(format_exc(), logging.ERROR)
+            self._ended_signal.emit(ENDED_ERR)
+        except Exception as e:
+            self._log_signal.emit(format_exc(), logging.ERROR)
+            self._ended_signal.emit(ENDED_ERR)
 
 
 class RPMTransaction(Transaction):
@@ -72,15 +121,22 @@ class RPMTransaction(Transaction):
                        transaction_progress_signal=None,
                        request_action_signal=None,
                        populate_pkgs_signal=None,
-                       action_timer_signal=None):
-        super(RPMTransaction, self).__init__(team_web_link,
-                                             msg_signal,
-                                             log_signal,
-                                             progress_signal,
-                                             transaction_progress_signal,
-                                             request_action_signal,
-                                             populate_pkgs_signal,
-                                             action_timer_signal)
+                       action_timer_signal=None,
+                       list_changed_signal=None,
+                       ended_signal=None):
+        super(RPMTransaction, self).__init__(team_web_link=team_web_link,
+                                             msg_signal=msg_signal,
+                                             log_signal=log_signal,
+                                             progress_signal=progress_signal,
+                                             transaction_progress_signal=transaction_progress_signal,
+                                             request_action_signal=request_action_signal,
+                                             populate_pkgs_signal=populate_pkgs_signal,
+                                             action_timer_signal=action_timer_signal,
+                                             list_changed_signal=list_changed_signal,
+                                             ended_signal=ended_signal)
+
+        self._mk_pkg_process()
+        self.process()
 
     def _mk_pkg_process(self):
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
@@ -118,35 +174,41 @@ class DEBTransaction(Transaction):
                  transaction_progress_signal=None,
                  request_action_signal=None,
                  populate_pkgs_signal=None,
-                 action_timer_signal=None):
-        super(DEBTransaction, self).__init__(team_web_link,
-                                             msg_signal,
-                                             log_signal,
-                                             progress_signal,
-                                             transaction_progress_signal,
-                                             request_action_signal,
-                                             populate_pkgs_signal,
-                                             action_timer_signal)
+                 action_timer_signal=None,
+                 list_changed_signal=None,
+                 ended_signal=None):
+        super(DEBTransaction, self).__init__(team_web_link=team_web_link,
+                                             msg_signal=msg_signal,
+                                             log_signal=log_signal,
+                                             progress_signal=progress_signal,
+                                             transaction_progress_signal=transaction_progress_signal,
+                                             request_action_signal=request_action_signal,
+                                             populate_pkgs_signal=populate_pkgs_signal,
+                                             action_timer_signal=action_timer_signal,
+                                             list_changed_signal=list_changed_signal,
+                                             ended_signal=ended_signal)
+        self._mk_pkg_process()
+        self.process()
 
     def _mk_pkg_process(self):
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         try:
             if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-                self.append(DEBDownloadProcess(team_link=self.lp_team.web_link,
-                                                        msg_signal=self._msg_signal,
-                                                        log_signal=self._log_signal,
-                                                        progress_signal=self._progress_signal))
+                self.append(DEBDownloadProcess(team_link=self._team_web_link,
+                                               msg_signal=self._msg_signal,
+                                               log_signal=self._log_signal,
+                                               progress_signal=self._progress_signal))
             if (has_pending('installing') or
                 has_pending('uninstalling') or
                 len(self) == 1) and (cfg.as_bool('install') or
                                               cfg.as_bool('uninstall')):
                 self.append(ActionProcess(msg_signal=self._msg_signal,
-                                                   log_signal=self._log_signal,
-                                                   progress_signal=self._progress_signal,
-                                                   transaction_progress_signal=self._transaction_progress_signal,
-                                                   request_action_signal=self._request_action_signal,
-                                                   populate_pkgs_signal=self._populate_pkgs_signal,
-                                                   action_timer_signal=self._action_timer_signal))
+                                          log_signal=self._log_signal,
+                                          progress_signal=self._progress_signal,
+                                          transaction_progress_signal=self._transaction_progress_signal,
+                                          request_action_signal=self._request_action_signal,
+                                          populate_pkgs_signal=self._populate_pkgs_signal,
+                                          action_timer_signal=self._action_timer_signal))
         except Exception as e:
             self._log_signal.emit(str(e), logging.CRITICAL)
 
@@ -184,7 +246,6 @@ class Packages(QThread):
         self._populate_pkgs_signal = populate_pkgs_signal
         self._list_filled_signal = list_filled_signal
         self._list_changed_signal = list_changed_signal
-        self.actioning_finished_signal.connect(self.state_changed)
         self._action_timer_signal = action_timer_signal
         # process handle for the sake of cancelling
         self.process = None
@@ -203,7 +264,6 @@ class Packages(QThread):
     @lp_team.setter
     def lp_team(self, team):
         self._lp_team = self._launchpad.people.findTeam(text=team)[0]
-        return self._lp_team
 
     @property
     def ppa(self):
@@ -271,70 +331,38 @@ class Packages(QThread):
     def install_pkgs_button(self):
         try:
             if cfg['distro_type'] == 'rpm':
-                self._transaction = RPMTransaction(self._lp_team.web_link,
-                                                   self._msg_signal,
-                                                   self._log_signal,
-                                                   self._progress_signal,
-                                                   self._transaction_progress_signal,
-                                                   self._request_action_signal,
-                                                   self._populate_pkgs_signal,
-                                                   self._action_timer_signal)
+                self._transaction = RPMTransaction(team_web_link=self._lp_team.web_link,
+                                                   msg_signal=self._msg_signal,
+                                                   log_signal=self._log_signal,
+                                                   progress_signal=self._progress_signal,
+                                                   transaction_progress_signal=self._transaction_progress_signal,
+                                                   request_action_signal=self._request_action_signal,
+                                                   populate_pkgs_signal=self._populate_pkgs_signal,
+                                                   action_timer_signal=self._action_timer_signal,
+                                                   list_changed_signal=self._list_changed_signal,
+                                                   ended_signal=self._ended_signal)
             if cfg['distro_type'] == 'deb':
-                self._transaction = DEBTransaction(self._lp_team.web_link,
-                                                   self._msg_signal,
-                                                   self._log_signal,
-                                                   self._progress_signal,
-                                                   self._transaction_progress_signal,
-                                                   self._request_action_signal,
-                                                   self._populate_pkgs_signal,
-                                                   self._action_timer_signal)
-
-
+                self._transaction = DEBTransaction(team_web_link=self._lp_team.web_link,
+                                                   msg_signal=self._msg_signal,
+                                                   log_signal=self._log_signal,
+                                                   progress_signal=self._progress_signal,
+                                                   transaction_progress_signal=self._transaction_progress_signal,
+                                                   request_action_signal=self._request_action_signal,
+                                                   populate_pkgs_signal=self._populate_pkgs_signal,
+                                                   action_timer_signal=self._action_timer_signal,
+                                                   list_changed_signal=self._list_changed_signal,
+                                                   ended_signal=self._ended_signal)
         except Exception as e:
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)
 
     def begin_transaction(self, transaction):
-
+        pass
 
     @pyqtSlot()
     def actioning_finished(self):
         self._num_processed += 1
         self.install_pkgs_button(self._num_processed)
-
-    @pyqtSlot('PyQt_PyObject')
-    def state_changed(self, result):
-        number, success, pkg_process = result
-        try:
-            if not success:
-                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
-                self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
-                                    logging.INFO)
-            pkg_process.move_cache()
-            # self._populate_pkgs_signal.emit()
-            if success and not type(pkg_process) is ActionProcess:
-                self._num_processed += 1
-                if self._num_processed < len(self._pkg_processes):
-                    self.install_pkgs_button(self._num_processed)
-                    return
-                else:
-                    self.install_pkgs_button()
-                    return
-            self._list_changed_signal.emit(self.ppa, self.arch)
-            if success:
-                self._ended_signal.emit(ENDED_SUCC)
-                self._action_timer_signal.emit(False)
-            else:
-                self._ended_signal.emit(ENDED_ERR)
-        except FileNotFoundError as e:
-            exc = str(e).split(" ")
-            pkg_states['uninstalling'][exc[2]].pop(exc[3])
-            self._list_changed_signal.emit()
-            self._log_signal.emit(format_exc(), logging.ERROR)
-            self._ended_signal.emit(ENDED_ERR)
-        except Exception as e:
-            self._log_signal.emit(format_exc(), logging.ERROR)
-            self._ended_signal.emit(ENDED_ERR)
 
     def cancel(self):
         if self.process is not None:
