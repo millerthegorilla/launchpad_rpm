@@ -438,13 +438,35 @@ class Kxfed(QThread):
             self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
 
+def check_requirements():
+    dependencies = []
+    import distro
+    if 'Fedora' in distro.linux_distribution():
+        cfg['distro_type'] = 'rpm'
+        dependencies = ['redhat-rpm-config', 'python3-devel', 'alien', 'rpm-build']
+    else:
+        cfg['distro_type'] = 'deb'
+    if 'Fedora' in distro.linux_distribution() and cfg['distro_type'] == 'rpm':
+        try:
+            import rpm
+            ts = rpm.TransactionSet()
+            for requirement in dependencies:
+                if not len(ts.dbMatch('name', requirement)):
+                    print("Error, " + requirement + " must be installed for this program to be run")
+                    sys.exit(1)
+        except ModuleNotFoundError as e:
+            pass
+    return True
+
+
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    myapp = MainW()
-    myapp.show()
+    if check_requirements():
+        app = QApplication(sys.argv)
+        myapp = MainW()
+        myapp.show()
 
-    timer = QTimer()
-    timer.timeout.connect(lambda:None)
-    timer.start(100)
+        timer = QTimer()
+        timer.timeout.connect(lambda:None)
+        timer.start(100)
 
-    sys.exit(app.exec_())
+        sys.exit(app.exec_())

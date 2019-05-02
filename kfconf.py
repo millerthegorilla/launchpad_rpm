@@ -8,7 +8,12 @@ from threading import RLock
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
-from rpm import TransactionSet
+
+import distro
+if 'Fedora' in distro.linux_distribution():
+    from rpm import TransactionSet
+else:
+    import apt
 
 # TODO when the program installs the line below must be added to ~/.rpmmacros
 # %_topdir /home/data/rpmbuild
@@ -17,6 +22,7 @@ from rpm import TransactionSet
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
+SCRIPT_PATH = "/home/james/Src/kxfed/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2

@@ -1,12 +1,9 @@
 from package_process import PackageProcess
-from installation_process import InstallationProcess
+from installation_process import RPMInstallationProcess, DEBInstallationProcess
 from uninstallation_process import UninstallationProcess
-from kfconf import cfg, tmp_dir, \
-                   pkg_states, add_item_to_section,\
-                   pkg_search, has_pending, ENDED_ERR
+from kfconf import cfg, tmp_dir, has_pending, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
-from PyQt5.QtCore import QTimer, pyqtSlot, pyqtSignal, QObject
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -14,6 +11,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 class ActionProcess(PackageProcess):
 
     def __init__(self, *args,
+                 pkg_type=None,
                  request_action_signal=None,
                  log_signal=None,
                  msg_signal=None,
@@ -37,12 +35,20 @@ class ActionProcess(PackageProcess):
         self._errors = 0
         self._action_finished_signal = None
         self._timer = None
-
         self._progress_bar_num = 0
+        if pkg_type == 'rpm':
+            self._script = "dnf_install.py"
+        elif pkg_type == 'deb':
+            self._script = "deb_install.py"
         if cfg.as_bool('install'):
             if has_pending('installing'):
-                self._installation_process = InstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
-                self._processes.append(self._installation_process)
+                if pkg_type == 'rpm':
+                    self._installation_process = RPMInstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
+                    self._processes.append(self._installation_process)
+                elif pkg_type == 'deb':
+                    self._installation_process = DEBInstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
+                    self._processes.append(self._installation_process)
+
         if cfg.as_bool('uninstall'):
             if has_pending('uninstalling'):
                 self._uninstallation_process = UninstallationProcess(msg_signal=msg_signal, log_signal=log_signal)
@@ -74,15 +80,10 @@ class ActionProcess(PackageProcess):
 
     def continue_actioning_if_ok(self):
         if cfg['distro_type'] == 'rpm':
-            rpm_links = []
+            pkg_links = []
             for process in self._processes:
-                rpm_links = rpm_links + process.action_rpms()
-            self._thread_pool.apply_async(self._action_rpms,(rpm_links,), callback=self._finish_actioning)
-            # num_of_actioned = self._action_rpms(rpm_links)
-            # if num_of_actioned == 0:
-            #     self._ended_signal(ENDED_ERR)
-            # else:
-            #     self._action_finished_signal.emit((num_of_actioned, self._errors, self))
+                pkg_links = pkg_links + process.action_rpms()
+            self._thread_pool.apply_async(self._action_rpms, (pkg_links,), callback=self._finish_actioning)
         else:
             self._install_debs()
 
@@ -92,12 +93,12 @@ class ActionProcess(PackageProcess):
                 self._ended_signal.emit(ENDED_ERR)
         self._action_finished_signal.emit((self._errors, num_of_action, self))
 
-    def _action_rpms(self, rpm_links):
+    def _action_rpms(self, pkg_links):
         try:
-            if rpm_links:
+            if pkg_links:
                 self.process = Popen(['pkexec',
-                                     '/home/james/Src/kxfed/dnf_install.py',
-                                      tmp_dir] + rpm_links,
+                                     SCRIPT_PATH + self._script,
+                                      tmp_dir] + pkg_links,
                                      stdin=PIPE,
                                      stdout=PIPE,
                                      stderr=PIPE)
@@ -156,7 +157,7 @@ class ActionProcess(PackageProcess):
                     self._progress_signal.emit(0, 0)
                     self._transaction_progress_signal.emit(0, 0)
                     break
-        return len(rpm_links) - self._errors
+        return len(pkg_links) - self._errors
 
     def _install_debs(self):
         pass

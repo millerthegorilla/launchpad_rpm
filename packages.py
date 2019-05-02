@@ -20,20 +20,10 @@ from launchpadlib.launchpad import Launchpad
 
 from kfconf import cfg, cache, pkg_states, clean_section, has_pending, \
                    ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
-from download_process import DownloadProcess
+from download_process import RPMDownloadProcess, DEBDownloadProcess
 from conversion_process import ConversionProcess
 from action_process import ActionProcess
 from traceback import format_exc
-
-try:
-    import rpm
-except ImportError as e:
-    try:
-        import apt
-    except ImportError as ee:
-        raise Exception(str(e.args) + " : " + str(ee.args))
-
-
 # TODO log messages are being written twice.
 # TODO why is it stopping?
 
@@ -153,13 +143,9 @@ class Packages(QThread):
         except HTTPError as http_error:
             self._log_signal.emit(http_error, logging.CRITICAL)
 
+    # TODO need to create inherited installation process etc for debian systems
+    # TODO and return them from mk_pkg_process depending on cfg['distro_type']
     def install_pkgs_button(self):
-        try:
-            ts = rpm.TransactionSet()
-            if ts.dbMatch('name', 'python3-rpm').count() == 1:
-                cfg['distro_type'] = 'rpm'
-        except Exception as e:
-            cfg['distro_type'] = 'deb'
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         pkg_processes = self._mk_pkg_process()
         i = 0
@@ -192,10 +178,9 @@ class Packages(QThread):
                 self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
                 self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
                                     logging.INFO)
-            pkg_process.move_cache()
-            # self._populate_pkgs_signal.emit()
             if success and not type(pkg_process) is ActionProcess:
                 self.install_pkgs_button()
+            pkg_process.move_cache()
             self._list_changed_signal.emit(self.ppa, self.arch)
             if success:
                 self._ended_signal.emit(ENDED_SUCC)
@@ -216,17 +201,24 @@ class Packages(QThread):
         pkg_processes = []
         try:
             if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-                pkg_processes.append(DownloadProcess(team_link=self.lp_team.web_link,
-                                                     msg_signal=self._msg_signal,
-                                                     log_signal=self._log_signal,
-                                                     progress_signal=self._progress_signal))
+                if cfg['distro_type'] == 'rpm':
+                    pkg_processes.append(RPMDownloadProcess(team_link=self.lp_team.web_link,
+                                                            msg_signal=self._msg_signal,
+                                                            log_signal=self._log_signal,
+                                                            progress_signal=self._progress_signal))
+                elif cfg['distro_type'] == 'deb':
+                    pkg_processes.append(DEBDownloadProcess(team_link=self.lp_team.web_link,
+                                                            msg_signal=self._msg_signal,
+                                                            log_signal=self._log_signal,
+                                                            progress_signal=self._progress_signal))
             if has_pending('converting') and cfg.as_bool('convert'):
                 pkg_processes.append(ConversionProcess(msg_signal=self._msg_signal,
                                                        log_signal=self._log_signal,
                                                        progress_signal=self._progress_signal,
                                                        transaction_progress_signal=self._transaction_progress_signal))
             if has_pending('installing') or has_pending('uninstalling'):
-                pkg_processes.append(ActionProcess(msg_signal=self._msg_signal,
+                pkg_processes.append(ActionProcess(pkg_type=cfg['distro_type'],
+                                                   msg_signal=self._msg_signal,
                                                    log_signal=self._log_signal,
                                                    progress_signal=self._progress_signal,
                                                    transaction_progress_signal=self._transaction_progress_signal,
