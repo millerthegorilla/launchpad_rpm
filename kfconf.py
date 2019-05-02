@@ -14,6 +14,7 @@ if 'Fedora' in distro.linux_distribution():
     DISTRO_TYPE = 'rpm'
 else:
     import apt
+    APT_CACHE_FILE = apt.Cache()
     DISTRO_TYPE = 'deb'
 # TODO when the program installs the line below must be added to ~/.rpmmacros
 # %_topdir /home/data/rpmbuild
@@ -26,7 +27,6 @@ SCRIPT_PATH = "/home/james/Src/kxfed/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2
-APT_CACHE_FILE = apt.Cache()
 
 __this__ = sys.modules[__name__]
 
