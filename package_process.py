@@ -21,7 +21,7 @@ class PackageProcess(list):
         self._pkg_tuple = namedtuple("pkg_tuple", ["ppa", "pkg"])
         self._msg_signal = msg_signal
         self._log_signal = log_signal
-        self._action_finished_signal = None
+        self._action_finished_callback = None
 
     def prepare_action(self):
         moved = False
@@ -126,7 +126,7 @@ class PackageProcess(list):
         return self._section
 
     @abstractmethod
-    def state_change(self):
+    def state_change(self, callback=None):
         """Each process, download, convert, install, uninstall, must check if the package is installed
             before it continues"""
         pass

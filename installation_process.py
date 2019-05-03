@@ -14,7 +14,7 @@ class InstallationProcess(PackageProcess):
         self._path_type = ""
         self._thread_pool = ThreadPool(10)
 
-    def state_change(self, process_finished_signal=None):
+    def state_change(self):
         install_msg_txt = ""
         if cfg['install'] == 'True':
             clean_section(pkg_states[self._section])

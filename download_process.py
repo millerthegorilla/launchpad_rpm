@@ -26,6 +26,7 @@ class DownloadProcess(PackageProcess):
         self._progress_signal = progress_signal
         self._pkgs_complete = 0
         self._pkgs_success = 0
+        self._errors = 0
 
     def prepare_action(self):
         moved = False
@@ -37,12 +38,14 @@ class DownloadProcess(PackageProcess):
         cfg.write()
         return moved
 
-    def state_change(self):
+    def state_change(self, callback=None):
+        self._action_finished_callback = callback
         assert len(self), "state change called without list initialisation.  Call " + \
                           type(self).__qualname__ + \
                           ".read_section()"
         self._pkgs_complete = 0
         self._pkgs_success = 0
+        self._errors = 0
         for i in self:
             if not check_installed(i.pkg["name"]):
                 self._thread_pool.apply_async(self.__get_deb_link_and_download,
@@ -52,16 +55,16 @@ class DownloadProcess(PackageProcess):
                                                self._team_link,), callback=self.download_finished)
 
     @pyqtSlot('PyQt_PyObject')
-    def download_finished(self, result):
-        success, name = result
+    def download_finished(self, name):
         self._pkgs_complete += 1
         if success:
             self._pkgs_success += 1
         else:
+            self._errors += 1
             self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
         if self._pkgs_complete == len(self):
             cfg.write()
-            self._action_finished_signal.emit((1, self._pkgs_success, self))
+            self._action_finished_callback(1, self._pkgs_success)
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link
@@ -96,9 +99,10 @@ class DownloadProcess(PackageProcess):
                             self._progress_signal.emit(self.current_length, self.total_length)
                             QGuiApplication.processEvents()
             pkg["deb_path"] = fp
-            return pkg["name"], True
+            return True, pkg["name"]
         except HTTPError as e:
             self._log_signal.emit(e, logging.CRITICAL)
+            return False, pkg["name"]
 
 
 class RPMDownloadProcess(DownloadProcess):
@@ -113,9 +117,9 @@ class RPMDownloadProcess(DownloadProcess):
                                                  progress_signal=progress_signal)
         self._next_section = "converting"
 
-    def state_change(self, action_finished_signal=None):
+    def state_change(self, callback=None):
+        self._action_finished_callback = callback
         super().state_change()
-        self._action_finished_signal = action_finished_signal
 
 
 class DEBDownloadProcess(DownloadProcess):
@@ -130,6 +134,6 @@ class DEBDownloadProcess(DownloadProcess):
                                                  progress_signal=progress_signal)
         self._next_section = "installing"
 
-    def state_change(self, action_finished_signal=None):
+    def state_change(self, callback=None):
+        self._action_finished_callback = callback
         super().state_change()
-        self._action_finished_signal = action_finished_signal

@@ -12,13 +12,13 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from launchpadlib.errors import HTTPError
 
 from tvmodel import TVModel
-from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC, APT_CACHE_FILE
+from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
 from kxfedmsgsdialog import KxfedMsgsDialog
 if cfg['distro_type'] == 'deb':
     import apt
-
+    from kfconf import APT_CACHE_FILE
 
 # TODO add installed packages to config
 # TODO send in correct path for build_rpm.sh
