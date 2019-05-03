@@ -66,7 +66,6 @@ class ActionRpms:
         self.progress = Progress()
 
     def action(self):
-        import epdb; epdb.set_trace()
         for filename in sys.argv[2:]:
             if "uninstalling" in filename:
                 name = filename.replace('uninstalling', '')
@@ -79,7 +78,7 @@ class ActionRpms:
                     pkg = i[0]
                     self.base.transaction.add_erase(pkg)
                 else:
-                    print('kxfedexcept', 'Error uninstalling ', name, ' It\'s not installed...')
+                    print('kxfedexcept', 'Error uninstalling ', pkg.name + pkg.evr, ' It\'s not installed...')
                     sys.stdout.flush()
             else:
                 print('kxfedmsg Installing ', filename)

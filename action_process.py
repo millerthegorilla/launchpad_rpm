@@ -34,6 +34,7 @@ class ActionProcess(PackageProcess):
         self._populate_pkgs_signal = populate_pkgs_signal
         self._action_timer_signal = action_timer_signal
         self._processes = []
+        self._process = None
         self._errors = 0
         self._timer = None
 
@@ -88,14 +89,15 @@ class ActionProcess(PackageProcess):
         try:
             if pkg_links:
                 if cfg['distro_type'] == 'rpm':
-                    self.process = Popen(['/usr/bin/pkexec',    # TODO auto detect path to pkexec
+                    self._process = Popen(['/usr/bin/pkexec',    # TODO auto detect path to pkexec
+                                         'python', '-u',
                                          SCRIPT_PATH + 'dnf_install.py',
                                           tmp_dir] + pkg_links,
                                          stdin=PIPE,
                                          stdout=PIPE,
                                          stderr=PIPE)
                 elif cfg['distro_type'] == 'deb':
-                    self.process = Popen(['/usr/bin/pkexec',
+                    self._process = Popen(['/usr/bin/pkexec',
                                           SCRIPT_PATH + 'apt_install.py',
                                           tmp_dir] + pkg_links,
                                          stdin=PIPE,
@@ -108,8 +110,8 @@ class ActionProcess(PackageProcess):
 
         while 1:
             QGuiApplication.instance().processEvents()
-            line = self.process.stdout.readline().decode('utf-8')
-            self.process.stdout.flush()
+            line = self._process.stdout.readline().decode('utf-8')
+            self._process.stdout.flush()
             if line:
                 # self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
@@ -152,7 +154,7 @@ class ActionProcess(PackageProcess):
                     self._msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
                     self._log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished", logging.INFO)
             else:
-                if self.process.poll() is not None:
+                if self._process.poll() is not None:
                     self._progress_signal.emit(0, 0)
                     self._transaction_progress_signal.emit(0, 0)
                     break

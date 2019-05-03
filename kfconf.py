@@ -4,13 +4,13 @@ import os
 import sys
 from pathlib import Path
 from threading import RLock
-
+from fuzzywuzzy import fuzz
 from configobj import ConfigObj
 from dogpile.cache import make_region
 from tvitem import TVItem
 import distro
 if 'Fedora' in distro.linux_distribution():
-    from rpm import TransactionSet
+    from dnf import Base
     DISTRO_TYPE = 'rpm'
 else:
     import apt
@@ -159,11 +159,32 @@ def pkg_search(sections, search_value):
     return False
 
 
-def check_installed(name):
+base = None
+sack = None
+query = None
+
+def initialize_search():
+    global base, sack, query
+    base = Base()
+    sack = base.fill_sack()
+    query = sack.query()
+
+
+def check_installed(name=None, version=None):
+    if None in {name, version}:
+        raise ValueError("details must be complete for check_installed")
     if cfg['distro_type'] == 'rpm':
-        return True if len(TransactionSet().dbMatch('name', name)) else False
+        result = query.installed().filter(name=name)
+        if len(result):
+            if fuzz.token_set_ratio(result[0].version, version) > 70:
+                return True
+            else:
+                return False
+        return False
+        # return True if len(result) else False
+        # return True if len(TransactionSet().dbMatch('name', name)) else False
     else:
-        try:
+        try:  # TODO include version and release
             p = APT_CACHE_FILE[name]
             if hasattr(p, 'isInstalled'):
                 return True if p.isInstalled else False
@@ -171,6 +192,8 @@ def check_installed(name):
                 return False
         except KeyError as e:
             return False
+
+initialize_search()
 
 
 cache = make_region().configure(

@@ -47,7 +47,7 @@ class DownloadProcess(PackageProcess):
         self._pkgs_success = 0
         self._errors = 0
         for i in self:
-            if not check_installed(i.pkg["name"]):
+            if not check_installed(i.pkg["name"], i.pkg["version"]):
                 self._thread_pool.apply_async(self.__get_deb_link_and_download,
                                               (i.ppa,
                                                i.pkg,
