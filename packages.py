@@ -10,213 +10,25 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from abc import abstractmethod
 import logging
 import time
 import uuid
 from multiprocessing.dummy import Pool as ThreadPool
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
-
-from kfconf import cfg, cache, pkg_states, clean_section, has_pending, \
-                   ENDED_SUCC, ENDED_CANCEL, ENDED_ERR
-from conversion_process import ConversionProcess
-from action_process import ActionProcess
 from traceback import format_exc
-from download_process import DownloadProcess
+from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR
 if cfg['distro_type'] == 'rpm':
-    from download_process import RPMDownloadProcess
+    from transaction import RPMTransaction
 else:
-    from download_process import DEBDownloadProcess
-
-
-class Transaction(list):
-    def __init__(self, team_web_link=None,
-                 msg_signal=None,
-                 log_signal=None,
-                 progress_signal=None,
-                 transaction_progress_signal=None,
-                 request_action_signal=None,
-                 populate_pkgs_signal=None,
-                 action_timer_signal=None,
-                 list_changed_signal=None,
-                 ended_signal=None):
-        super(Transaction, self).__init__()
-        self._team_web_link = team_web_link
-        self._msg_signal = msg_signal
-        self._log_signal = log_signal
-        self._progress_signal = progress_signal
-        self._transaction_progress_signal = transaction_progress_signal
-        self._request_action_signal = request_action_signal
-        self._populate_pkgs_signal = populate_pkgs_signal
-        self._action_timer_signal = action_timer_signal
-        self._actioning_finished_signal = None
-        self._actioning_finished_signal.connect(self._state_changed)
-        self._list_changed_signal = list_changed_signal
-        self._ended_signal = ended_signal
-        self._num = 0
-
-    @abstractmethod
-    def _mk_pkg_process(self):
-        pass
-
-    def process(self):
-        self._num = 0
-        self._process()
-
-    # def __iter__(self):
-    #     yield self._process
-
-    def __next__(self):
-        self._num += 1
-        self._process(self._num)
-
-    def _process(self, num=None):
-        num = num if num is not None else 0
-        if num >= len(self):
-            raise StopIteration()
-        if self[num].prepare_action():
-            self.clear()
-            self._mk_pkg_process()
-            self._num = 0
-        else:
-            self[num].read_section()
-            self[num].state_change(self._actioning_finished_signal)
-
-    @pyqtSlot('PyQt_PyObject')
-    def _state_changed(self, result):
-        number, success, pkg_process = result
-        try:
-            if not success:
-                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful")
-                self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful",
-                                    logging.INFO)
-            self[self._num].move_cache()
-            self._list_changed_signal.emit(self.ppa, self.arch)
-            if success and type(self[self._num]) is ActionProcess:
-                self._ended_signal.emit(ENDED_SUCC)
-                self._action_timer_signal.emit(False)
-            elif not success and type(self[self._num]) is ActionProcess:
-                self._ended_signal.emit(ENDED_ERR)
-            else:
-                self._num += 1
-                next(self)
-        except FileNotFoundError as e:
-            exc = str(e).split(" ")
-            pkg_states['uninstalling'][exc[2]].pop(exc[3])
-            self._list_changed_signal.emit()
-            self._log_signal.emit(format_exc(), logging.ERROR)
-            self._ended_signal.emit(ENDED_ERR)
-        except Exception as e:
-            self._log_signal.emit(format_exc(), logging.ERROR)
-            self._ended_signal.emit(ENDED_ERR)
-
-
-class RPMTransaction(Transaction):
-    def __init__(self, team_web_link=None,
-                       msg_signal=None,
-                       log_signal=None,
-                       progress_signal=None,
-                       transaction_progress_signal=None,
-                       request_action_signal=None,
-                       populate_pkgs_signal=None,
-                       action_timer_signal=None,
-                       list_changed_signal=None,
-                       ended_signal=None):
-        super(RPMTransaction, self).__init__(team_web_link=team_web_link,
-                                             msg_signal=msg_signal,
-                                             log_signal=log_signal,
-                                             progress_signal=progress_signal,
-                                             transaction_progress_signal=transaction_progress_signal,
-                                             request_action_signal=request_action_signal,
-                                             populate_pkgs_signal=populate_pkgs_signal,
-                                             action_timer_signal=action_timer_signal,
-                                             list_changed_signal=list_changed_signal,
-                                             ended_signal=ended_signal)
-
-        self._mk_pkg_process()
-        self.process()
-
-    def _mk_pkg_process(self):
-        clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
-        try:
-            if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-                self.append(RPMDownloadProcess(team_link=self._team_web_link,
-                                               msg_signal=self._msg_signal,
-                                               log_signal=self._log_signal,
-                                               progress_signal=self._progress_signal))
-            if has_pending('converting') or len(self) == 1 and cfg.as_bool('convert'):
-                self.append(ConversionProcess(msg_signal=self._msg_signal,
-                                              log_signal=self._log_signal,
-                                              progress_signal=self._progress_signal,
-                                              transaction_progress_signal=self._transaction_progress_signal))
-            if (has_pending('installing') or
-                has_pending('uninstalling') or
-                len(self) >= 1) and (cfg.as_bool('install') or
-                                              cfg.as_bool('uninstall')):
-                self.append(ActionProcess(msg_signal=self._msg_signal,
-                                          log_signal=self._log_signal,
-                                          progress_signal=self._progress_signal,
-                                          transaction_progress_signal=self._transaction_progress_signal,
-                                          request_action_signal=self._request_action_signal,
-                                          populate_pkgs_signal=self._populate_pkgs_signal,
-                                          action_timer_signal=self._action_timer_signal))
-        except Exception as e:
-            self._log_signal.emit(str(e), logging.CRITICAL)
-
-
-class DEBTransaction(Transaction):
-    def __init__(self, team_web_link=None,
-                 msg_signal=None,
-                 log_signal=None,
-                 progress_signal=None,
-                 transaction_progress_signal=None,
-                 request_action_signal=None,
-                 populate_pkgs_signal=None,
-                 action_timer_signal=None,
-                 list_changed_signal=None,
-                 ended_signal=None):
-        super(DEBTransaction, self).__init__(team_web_link=team_web_link,
-                                             msg_signal=msg_signal,
-                                             log_signal=log_signal,
-                                             progress_signal=progress_signal,
-                                             transaction_progress_signal=transaction_progress_signal,
-                                             request_action_signal=request_action_signal,
-                                             populate_pkgs_signal=populate_pkgs_signal,
-                                             action_timer_signal=action_timer_signal,
-                                             list_changed_signal=list_changed_signal,
-                                             ended_signal=ended_signal)
-        self._mk_pkg_process()
-        self.process()
-
-    def _mk_pkg_process(self):
-        clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
-        try:
-            if has_pending('downloading') or has_pending('tobeinstalled') and cfg.as_bool('download'):
-                self.append(DEBDownloadProcess(team_link=self._team_web_link,
-                                               msg_signal=self._msg_signal,
-                                               log_signal=self._log_signal,
-                                               progress_signal=self._progress_signal))
-            if (has_pending('installing') or
-                has_pending('uninstalling') or
-                len(self) == 1) and (cfg.as_bool('install') or
-                                              cfg.as_bool('uninstall')):
-                self.append(ActionProcess(msg_signal=self._msg_signal,
-                                          log_signal=self._log_signal,
-                                          progress_signal=self._progress_signal,
-                                          transaction_progress_signal=self._transaction_progress_signal,
-                                          request_action_signal=self._request_action_signal,
-                                          populate_pkgs_signal=self._populate_pkgs_signal,
-                                          action_timer_signal=self._action_timer_signal))
-        except Exception as e:
-            self._log_signal.emit(str(e), logging.CRITICAL)
+    from transaction import DEBTransaction
 
 
 class Packages(QThread):
-    download_finished_signal = pyqtSignal('PyQt_PyObject')
-    conversion_finished_signal = pyqtSignal(bool)
-    actioning_finished_signal = pyqtSignal('PyQt_PyObject')
+    # download_finished_signal = pyqtSignal('PyQt_PyObject')
+    # conversion_finished_signal = pyqtSignal(bool)
+    _actioning_finished_signal = pyqtSignal()
 
     def __init__(self, team, arch,
                  msg_signal=None, log_signal=None, progress_signal=None,
@@ -329,6 +141,8 @@ class Packages(QThread):
             self._log_signal.emit(http_error, logging.CRITICAL)
 
     def install_pkgs_button(self):
+
+        self._actioning_finished_signal.connect(lambda: self._list_changed_signal.emit(self._ppa, self._arch))
         try:
             if cfg['distro_type'] == 'rpm':
                 self._transaction = RPMTransaction(team_web_link=self._lp_team.web_link,
@@ -339,7 +153,7 @@ class Packages(QThread):
                                                    request_action_signal=self._request_action_signal,
                                                    populate_pkgs_signal=self._populate_pkgs_signal,
                                                    action_timer_signal=self._action_timer_signal,
-                                                   list_changed_signal=self._list_changed_signal,
+                                                   list_changed_signal=self._actioning_finished_signal,
                                                    ended_signal=self._ended_signal)
             if cfg['distro_type'] == 'deb':
                 self._transaction = DEBTransaction(team_web_link=self._lp_team.web_link,
@@ -350,7 +164,7 @@ class Packages(QThread):
                                                    request_action_signal=self._request_action_signal,
                                                    populate_pkgs_signal=self._populate_pkgs_signal,
                                                    action_timer_signal=self._action_timer_signal,
-                                                   list_changed_signal=self._list_changed_signal,
+                                                   list_changed_signal=self._actioning_finished_signal,
                                                    ended_signal=self._ended_signal)
         except Exception as e:
             self._log_signal.emit(format_exc(), logging.ERROR)

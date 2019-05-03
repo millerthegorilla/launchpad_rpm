@@ -31,8 +31,8 @@ class ActionProcess(PackageProcess):
         self._progress_signal = progress_signal
         self._transaction_progress_signal = transaction_progress_signal
         self._ended_signal = ended_signal
-        self._populate_pkgs_signal=populate_pkgs_signal
-        self._action_timer_signal=action_timer_signal
+        self._populate_pkgs_signal = populate_pkgs_signal
+        self._action_timer_signal = action_timer_signal
         self._processes = []
         self._errors = 0
         self._timer = None
@@ -63,13 +63,13 @@ class ActionProcess(PackageProcess):
         for process in self._processes:
             process.read_section()
 
-    def state_change(self, action_finished_signal=None):
-        self._action_finished_signal = action_finished_signal
+    def state_change(self, callback=None):
+        self._action_finished_callback = callback
         self._log_signal.emit("Actioning packages...", logging.INFO)
         self._msg_signal.emit("Actioning packages...")
         msg_txt = ""
         for process in self._processes:
-            msg_txt = process.state_change(action_finished_signal)
+            msg_txt = process.state_change()
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
 
     def continue_actioning_if_ok(self):
@@ -82,20 +82,20 @@ class ActionProcess(PackageProcess):
         if num_of_action == 0:
             if self._errors:
                 self._ended_signal.emit(ENDED_ERR)
-        self._action_finished_signal.emit((self._errors, num_of_action, self))
+        self._action_finished_callback(self._errors, num_of_action)
 
     def _action_pkgs(self, pkg_links):
         try:
             if pkg_links:
                 if cfg['distro_type'] == 'rpm':
-                    self.process = Popen(['pkexec',
+                    self.process = Popen(['/usr/bin/pkexec',    # TODO auto detect path to pkexec
                                          SCRIPT_PATH + 'dnf_install.py',
                                           tmp_dir] + pkg_links,
                                          stdin=PIPE,
                                          stdout=PIPE,
                                          stderr=PIPE)
                 elif cfg['distro_type'] == 'deb':
-                    self.process = Popen(['pkexec',
+                    self.process = Popen(['/usr/bin/pkexec',
                                           SCRIPT_PATH + 'apt_install.py',
                                           tmp_dir] + pkg_links,
                                          stdin=PIPE,

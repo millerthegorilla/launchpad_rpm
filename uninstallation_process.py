@@ -34,7 +34,7 @@ class UninstallationProcess(PackageProcess):
         cfg.write()
         return False
 
-    def state_change(self, process_finished_signal=None):
+    def state_change(self):
         uninstall_msg_txt = ""
         if cfg['uninstall'] == 'True':
             clean_section(pkg_states[self._section])

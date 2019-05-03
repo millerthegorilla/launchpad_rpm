@@ -66,6 +66,7 @@ class ActionRpms:
         self.progress = Progress()
 
     def action(self):
+        import epdb; epdb.set_trace()
         for filename in sys.argv[2:]:
             if "uninstalling" in filename:
                 name = filename.replace('uninstalling', '')

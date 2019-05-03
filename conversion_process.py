@@ -24,8 +24,8 @@ class ConversionProcess(PackageProcess):
         self._transaction_progress_signal = transaction_progress_signal
         self._lock = RLock()
 
-    def state_change(self, action_finished_signal=None):
-        self._action_finished_signal = action_finished_signal
+    def state_change(self, callback=None):
+        self._action_finished_callback = callback
         deb_paths_list = []
         for i in self:
             if isfile(i.pkg['deb_path']):
@@ -42,18 +42,15 @@ class ConversionProcess(PackageProcess):
                                           callback=self._conversion_finished)
 
     def _conversion_finished(self, tup):
-        if tup:
-            num_conv, deb_path_length = tup
-            if num_conv == deb_path_length:
-                self._msg_signal.emit("All packages successfully converted.")
-                self._log_signal.emit("All packages successfully converted.", logging.INFO)
-                self._action_finished_signal.emit((1, num_conv, self))
-            else:
-                self._msg_signal.emit("Some packages were not converted.")
-                self._log_signal.emit("Some packages were not converted.", logging.INFO)
-                self._action_finished_signal.emit((0, deb_path_length - num_conv, self))
+        num_conv, deb_path_length = tup
+        if num_conv == deb_path_length:
+            self._msg_signal.emit("All packages successfully converted.")
+            self._log_signal.emit("All packages successfully converted.", logging.INFO)
+            self._action_finished_callback(num_conv, deb_path_length)
         else:
-            self._action_finished_signal.emit((0, 0, self))
+            self._msg_signal.emit(str(deb_path_length - num_conv) + " Some packages were not converted.")
+            self._log_signal.emit(str(deb_path_length - num_conv) + " packages were not converted.", logging.INFO)
+            self._action_finished_callback(deb_path_length - num_conv, deb_path_length)
 
     def _convert_packages(self, deb_path_list):
         deb_length = len(deb_path_list)
