@@ -30,7 +30,7 @@ class PackageProcess(list):
             for ppa in pkg_states[self._section]:
                 for pkg_id in pkg_states[self._section][ppa]:
                     pkg = pkg_states[self._section][ppa][pkg_id]
-                    if check_installed(pkg['name']):
+                    if check_installed(pkg['name'], pkg['version']):
                         self._msg_signal.emit("Package " +
                                               pkg["name"] +
                                               " is already installed, moving to installed list")

@@ -81,7 +81,7 @@ class TVModel(QStandardItemModel, QObject):
         for pkg in pkgs:
             pkg = TVItem(pkg)
             # if pkg is installed
-            if check_installed(pkg.name):
+            if check_installed(pkg.name, pkg.version):
                 # but the package isn't listed in the installed section
                 p = pkg_search(['tobeinstalled',
                                 'downloading',

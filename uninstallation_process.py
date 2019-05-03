@@ -19,7 +19,8 @@ class UninstallationProcess(PackageProcess):
         if bool(pkg_states['uninstalling']):
             for ppa in pkg_states['uninstalling']:
                 for pkg_id in pkg_states['uninstalling'][ppa]:
-                    if not check_installed(pkg_states['uninstalling'][ppa][pkg_id]['name']):
+                    if not check_installed(pkg_states['uninstalling'][ppa][pkg_id]['name'],
+                                           pkg_states['uninstalling'][ppa][pkg_id]['version']):
                         self._msg_signal.emit("there is an error in the cache. " +
                                               pkg_states['uninstalling'][ppa][pkg_id]['name'] +
                                               " is not installed.")
@@ -34,7 +35,7 @@ class UninstallationProcess(PackageProcess):
         cfg.write()
         return False
 
-    def state_change(self):
+    def state_change(self, callback=None):
         uninstall_msg_txt = ""
         if cfg['uninstall'] == 'True':
             clean_section(pkg_states[self._section])
@@ -58,7 +59,8 @@ class UninstallationProcess(PackageProcess):
         """"""
         for ppa in pkg_states[self._section]:
             for pkg_id in pkg_states[self._section][ppa]:
-                if not check_installed(pkg_states[self._section][ppa][pkg_id][self._path_name]):
+                if not check_installed(pkg_states[self._section][ppa][pkg_id]['name'],
+                                       pkg_states[self._section][ppa][pkg_id]['version']):
                     pkg_states[self._section][ppa].pop(pkg_id)
                 else:
                     add_item_to_section(self._error_section, pkg_states[self._section][ppa][pkg_id])

@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR
+from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR, initialize_search
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
 else:
@@ -140,9 +140,13 @@ class Packages(QThread):
         except HTTPError as http_error:
             self._log_signal.emit(http_error, logging.CRITICAL)
 
+    def post_state_change(self):
+        initialize_search()
+        self._list_changed_signal.emit(self._ppa, self._arch)
+
     def install_pkgs_button(self):
 
-        self._actioning_finished_signal.connect(lambda: self._list_changed_signal.emit(self._ppa, self._arch))
+        self._actioning_finished_signal.connect(self.post_state_change)
         try:
             if cfg['distro_type'] == 'rpm':
                 self._transaction = RPMTransaction(team_web_link=self._lp_team.web_link,
