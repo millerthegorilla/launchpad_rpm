@@ -113,11 +113,11 @@ class ConversionProcess(PackageProcess):
             if num_conv == deb_path_length:
                 self._msg_signal.emit("All packages successfully converted.")
                 self._log_signal.emit("All packages successfully converted.", logging.INFO)
-                self._action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
+                self.action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
             else:
                 self._msg_signal.emit(str(deb_path_length - num_conv) + " Some packages were not converted.")
                 self._log_signal.emit(str(deb_path_length - num_conv) + " packages were not converted.", logging.INFO)
-                self._action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
+                self.action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
         else:
             self._msg_signal.emit("Error converting packages.  Please consult messages")
             self._log_signal.emit("Error converting packages.  Please consult messages", logging.INFO)

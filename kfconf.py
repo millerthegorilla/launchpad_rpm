@@ -155,7 +155,7 @@ def pkg_search(sections, search_value):
     for section in sections:
         for ppa in cfg['pkg_states'][section]:
             for pkgid in cfg['pkg_states'][section][ppa]:
-                if search_value in cfg['pkg_states'][section][ppa][pkgid].dict().values():
+                if search_value in [str(v) for v in cfg['pkg_states'][section][ppa][pkgid].dict().values()]:
                     return cfg['pkg_states'][section][ppa][pkgid]
     return False
 

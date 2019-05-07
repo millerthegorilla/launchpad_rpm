@@ -42,13 +42,17 @@ class Transaction(list):
         pass
 
     def process(self):
-        self[self._num]._action_finished_callback = self._state_changed
-        if self[self._num].prepare_action():
-            self._num += 1
-            self.process()
-            return
-        self[self._num].read_section()
-        self[self._num].change_state()
+        if self._num < len(self):
+            self[self._num].action_finished_callback = self._state_changed
+            if self[self._num].prepare_action():
+                self._num += 1
+                self.process()
+                return
+            if not self[self._num].read_section():
+                raise ValueError(self[self._num].section + " has no content, Transaction.py line 52")
+            self[self._num].change_state()
+        else:
+            self._num = 0
 
     def _state_changed(self, num_of_errors, num_of_success, pkg_process):
         try:
