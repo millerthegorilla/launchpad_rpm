@@ -93,6 +93,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
+arch = cfg['arch']
 
 def delete_ppa_if_empty(section, ppa):
     """section is string, ppa is string"""

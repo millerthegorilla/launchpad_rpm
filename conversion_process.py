@@ -1,12 +1,13 @@
 from package_process import PackageProcess
 from multiprocessing.dummy import Pool as ThreadPool
 from kfconf import pkg_states, cfg, \
-                   rpms_dir, add_item_to_section, pkg_search
+                   rpms_dir, arch, \
+                   add_item_to_section, \
+                   pkg_search, SCRIPT_PATH
 from os.path import isfile
 from os import remove
 import logging
 from subprocess import Popen, PIPE
-from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QGuiApplication
 from threading import RLock
 
@@ -24,33 +25,19 @@ class ConversionProcess(PackageProcess):
         self._transaction_progress_signal = transaction_progress_signal
         self._lock = RLock()
 
-    def state_change(self, callback=None):
-        self._action_finished_callback = callback
+    def change_state(self):
         deb_paths_list = []
         for i in self:
             if isfile(i.pkg['deb_path']):
                 deb_paths_list.append(str(i.pkg['deb_path']))
             else:
-                add_item_to_section('failed_download', i.pkg.parent.pop(i.pkg))
-
+                add_item_to_section('failed_downloading', i.pkg.parent.pop(i.pkg))
         if cfg['convert'] == 'True' and cfg['distro_type'] == 'rpm':
             self._log_signal.emit('Converting packages : ' + str(deb_paths_list), logging.INFO)
             self._msg_signal.emit('Converting Packages...')
-
             self._thread_pool.apply_async(self._convert_packages,
                                           (deb_paths_list,),
                                           callback=self._conversion_finished)
-
-    def _conversion_finished(self, tup):
-        num_conv, deb_path_length = tup
-        if num_conv == deb_path_length:
-            self._msg_signal.emit("All packages successfully converted.")
-            self._log_signal.emit("All packages successfully converted.", logging.INFO)
-            self._action_finished_callback(num_conv, deb_path_length)
-        else:
-            self._msg_signal.emit(str(deb_path_length - num_conv) + " Some packages were not converted.")
-            self._log_signal.emit(str(deb_path_length - num_conv) + " packages were not converted.", logging.INFO)
-            self._action_finished_callback(deb_path_length - num_conv, deb_path_length)
 
     def _convert_packages(self, deb_path_list):
         deb_length = len(deb_path_list)
@@ -58,8 +45,9 @@ class ConversionProcess(PackageProcess):
         username = getuser()
         del getuser
         try:
-            self._process = Popen(['pkexec', '/home/james/Src/kxfed/build_rpms.sh', username,
-                                  cfg['rpms_dir'], cfg['arch']] + deb_path_list,
+            self._process = Popen(['pkexec', SCRIPT_PATH + 'build_rpms.sh', username,
+                                  rpms_dir, arch, SCRIPT_PATH] + deb_path_list,
+                                  universal_newlines=True,
                                   bufsize=1,
                                   stdin=PIPE,
                                   stdout=PIPE,
@@ -69,11 +57,9 @@ class ConversionProcess(PackageProcess):
         num_of_conv = 0
         i = 0
         while 1:
-            QGuiApplication.instance().sendPostedEvents()
-            QApplication.instance().processEvents()
-            QGuiApplication.instance().processEvents()
-            next_line = self._process.stdout.readline().decode('utf-8')
+            next_line = self._process.stdout.readline()
             self._process.stdout.flush()
+            QGuiApplication.processEvents()
             i += 1
             self._lock.acquire()
             self._progress_signal.emit(i % 17, deb_length * 17)
@@ -100,6 +86,7 @@ class ConversionProcess(PackageProcess):
                 self._progress_signal.emit(0, 0)
                 self._transaction_progress_signal.emit(0, 0)
                 break
+        assert num_of_conv > 0, "num of conv is zero"
         if num_of_conv > 0:
             for ppa in pkg_states[self._section]:
                 if pkg_states[self._section][ppa]:
@@ -119,3 +106,18 @@ class ConversionProcess(PackageProcess):
         self._transaction_progress_signal.emit(0, 0)
         self._lock.release()
         return num_of_conv, deb_length
+
+    def _conversion_finished(self, tup):
+        if tup is not False:
+            num_conv, deb_path_length = tup
+            if num_conv == deb_path_length:
+                self._msg_signal.emit("All packages successfully converted.")
+                self._log_signal.emit("All packages successfully converted.", logging.INFO)
+                self._action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
+            else:
+                self._msg_signal.emit(str(deb_path_length - num_conv) + " Some packages were not converted.")
+                self._log_signal.emit(str(deb_path_length - num_conv) + " packages were not converted.", logging.INFO)
+                self._action_finished_callback(deb_path_length - num_conv, deb_path_length, self)
+        else:
+            self._msg_signal.emit("Error converting packages.  Please consult messages")
+            self._log_signal.emit("Error converting packages.  Please consult messages", logging.INFO)

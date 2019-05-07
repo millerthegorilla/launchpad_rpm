@@ -1,4 +1,4 @@
-from kfconf import cfg, tmp_dir, has_pending, ENDED_ERR, SCRIPT_PATH
+from kfconf import cfg, tmp_dir, has_pending, initialize_search, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import logging
@@ -64,13 +64,12 @@ class ActionProcess(PackageProcess):
         for process in self._processes:
             process.read_section()
 
-    def state_change(self, callback=None):
-        self._action_finished_callback = callback
+    def change_state(self):
         self._log_signal.emit("Actioning packages...", logging.INFO)
         self._msg_signal.emit("Actioning packages...")
         msg_txt = ""
         for process in self._processes:
-            msg_txt = process.state_change()
+            msg_txt = process.change_state()
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
 
     def continue_actioning_if_ok(self):
@@ -83,7 +82,8 @@ class ActionProcess(PackageProcess):
         if num_of_action == 0:
             if self._errors:
                 self._ended_signal.emit(ENDED_ERR)
-        self._action_finished_callback(self._errors, num_of_action)
+        initialize_search()
+        self._action_finished_callback(self._errors, num_of_action, self)
 
     def _action_pkgs(self, pkg_links):
         try:

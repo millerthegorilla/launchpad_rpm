@@ -421,7 +421,11 @@ class Kxfed(QThread):
         try:
             self._pkg_model.packages.connect()
             self.main_window.reconnectBtn.setVisible(False)
-            self.populate_ppa_combo()
+            ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
+            self.main_window._ppas_json = requests.get(ppas_link).json()
+            self.main_window.ppa_combo.clear()
+            for ppa in self.main_window._ppas_json['entries']:
+                self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
             self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
                                               self.pkg_model.packages.arch)
             self.log_signal.emit("Connected to Launchpad", logging.INFO)
@@ -429,16 +433,6 @@ class Kxfed(QThread):
             self.main_window.reconnectBtn.setVisible(True)
             self.log_signal.emit(e, logging.ERROR)
             self.msg_signal.emit('Error connecting - see messages for more detail - check your internet connection. ')
-
-    def populate_ppa_combo(self):
-        try:
-            ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
-            self.main_window._ppas_json = requests.get(ppas_link).json()
-        except requests.HTTPError as e:
-            self.log_signal.emit(e, logging.CRITICAL)
-        self.main_window.ppa_combo.clear()
-        for ppa in self.main_window._ppas_json['entries']:
-            self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
 
 
 def check_requirements():

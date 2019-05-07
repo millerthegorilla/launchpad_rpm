@@ -17,29 +17,30 @@
 USER=$1
 RPMS_DIR=$2
 ARCH=$3
+SCRIPT_PATH=$4
 
-RPM_BUILD_ROOT=/home/james/.local/share/kxfed/rpmbuild/BUILDROOT/
+RPM_BUILD_ROOT=${SCRIPT_PATH}rpmbuild/BUILDROOT/
 MAX_NUM_OF_JOBS=10
 
 if [ ! -d "$RPMS_DIR" ]; then
   mkdir -p "$RPMS_DIR"
 fi
 
-. /home/james/Src/kxfed/job_pool.sh
+. ${SCRIPT_PATH}job_pool.sh
 
-number_of_debs=$(($#-3))
+number_of_debs=$(($#-4))
 
-if [ $MAX_NUM_OF_JOBS -lt $number_of_debs ]; then
-    number_of_jobs=$MAX_NUM_OF_JOBS
+if [ ${MAX_NUM_OF_JOBS} -lt ${number_of_debs} ]; then
+    number_of_jobs=${MAX_NUM_OF_JOBS}
 else
     number_of_jobs=${number_of_debs}
 fi
 
 job_pool_init ${number_of_jobs} 0
 
-for (( i=4; i<=$#; i++ ))
+for (( i=5; i<=$#; i++ ))
 do
-    job_pool_run /home/james/Src/kxfed/build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i} ${USER}
+    job_pool_run ${SCRIPT_PATH}build_rpm.sh ${RPM_BUILD_ROOT} ${RPMS_DIR} ${ARCH} ${!i} ${USER}
 done
 
 job_pool_wait
@@ -47,8 +48,7 @@ job_pool_wait
 job_pool_shutdown
 
 function finish {
-    # TODO need to specify the paths using a variable throughout
-    rm -rf /home/james/.local/share/kxfed/rpmbuild
+    rm -rf ${SCRIPT_PATH}rpmbuild
 }
 
 trap finish EXIT
