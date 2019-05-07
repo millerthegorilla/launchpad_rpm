@@ -14,8 +14,7 @@ class InstallationProcess(PackageProcess):
         self._path_type = ""
         self._thread_pool = ThreadPool(10)
 
-    def state_change(self, callback=None):
-        self._action_finished_callback = callback
+    def change_state(self):
         install_msg_txt = ""
         if cfg['install'] == 'True':
             clean_section(pkg_states[self._section])
@@ -58,8 +57,8 @@ class RPMInstallationProcess(InstallationProcess):
         super(RPMInstallationProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._path_type = "rpm_path"
 
-    def state_change(self, callback=None):
-        return super().state_change(callback)
+    def change_state(self):
+        return super().change_state()
 
 
 class DEBInstallationProcess(InstallationProcess):
@@ -67,5 +66,5 @@ class DEBInstallationProcess(InstallationProcess):
         super(DEBInstallationProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
         self._path_type = "deb_path"
 
-    def state_change(self, callback=None):
-        return super().state_change(callback)
+    def change_state(self):
+        return super().change_state()

@@ -7,8 +7,8 @@ import logging
 
 
 class UninstallationProcess(PackageProcess):
-    def __init__(self, *args, msg_signal=None, log_signal=None):
-        super(UninstallationProcess, self).__init__(*args, msg_signal=msg_signal, log_signal=log_signal)
+    def __init__(self, msg_signal=None, log_signal=None, *args):
+        super(UninstallationProcess, self).__init__(msg_signal=msg_signal, log_signal=log_signal, *args)
         self._section = 'uninstalling'
         self._error_section = 'failed_uninstalling'
         self._path_name = 'name'
@@ -35,7 +35,7 @@ class UninstallationProcess(PackageProcess):
         cfg.write()
         return False
 
-    def state_change(self, callback=None):
+    def change_state(self):
         uninstall_msg_txt = ""
         if cfg['uninstall'] == 'True':
             clean_section(pkg_states[self._section])
@@ -66,5 +66,3 @@ class UninstallationProcess(PackageProcess):
                     add_item_to_section(self._error_section, pkg_states[self._section][ppa][pkg_id])
             delete_ppa_if_empty(self._section, ppa)
         cfg.write()
-
-

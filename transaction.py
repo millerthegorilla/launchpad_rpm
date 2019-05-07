@@ -33,55 +33,44 @@ class Transaction(list):
         self._action_timer_signal = action_timer_signal
         self._list_changed_signal = list_changed_signal
         self._ended_signal = ended_signal
+        self._done = False
         self._num = 0
+        self._mk_pkg_process()
 
     @abstractmethod
     def _mk_pkg_process(self):
         pass
 
     def process(self):
-        self._num = 0
-        self._process()
+        self[self._num]._action_finished_callback = self._state_changed
+        if self[self._num].prepare_action():
+            self._num += 1
+            self.process()
+            return
+        self[self._num].read_section()
+        self[self._num].change_state()
 
-    # def __iter__(self):
-    #     yield self._process
-
-    def __next__(self):
-        self._num += 1
-        self._process(self._num)
-
-    def _process(self, num=None):
-        num = num if num is not None else 0
-        if num >= len(self):
-            raise StopIteration()
-        if self[num].prepare_action():
-            self.clear()
-            self._mk_pkg_process()
-            self._num = 0
-        else:
-            self[num].read_section()
-            self[num].state_change(callback=self._state_changed)
-
-    def _state_changed(self, num_of_errors, num_of_success):
+    def _state_changed(self, num_of_errors, num_of_success, pkg_process):
         try:
             if num_of_errors:
-                self._msg_signal.emit("Not all packages from " + self[self._num].section + " were successful. " +
+                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful. " +
                                       str(num_of_errors) + " packages out of " + str(num_of_errors + num_of_success) +
                                       "were not processed.")
-                self._log_signal.emit("Not all packages from " + self[self._num].section + " were successful. " +
+                self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful. " +
                                       str(num_of_errors) + " packages out of " + str(num_of_errors + num_of_success) +
                                       "were not processed.",
                                       logging.INFO)
-            self[self._num].move_cache()
-            self._list_changed_signal.emit()
-            if not num_of_errors and type(self[self._num]) is ActionProcess:
+            if isinstance(pkg_process, ActionProcess):
+                self._list_changed_signal.emit()
+            if not num_of_errors and type(pkg_process) is ActionProcess:
                 self._ended_signal.emit(ENDED_SUCC)
                 self._action_timer_signal.emit(False)
-            elif num_of_errors and type(self[self._num]) is ActionProcess:
+            elif num_of_errors and type(pkg_process) is ActionProcess:
                 self._ended_signal.emit(ENDED_ERR)
-            else:
-                self._num += 1
-                next(self)
+            pkg_process.move_cache()
+            self._num += 1
+            self.process()
+
         except FileNotFoundError as e:
             # exc = str(e).split(" ")
             self._log_signal.emit(format_exc(), logging.ERROR)
@@ -113,9 +102,6 @@ class RPMTransaction(Transaction):
                                              list_changed_signal=list_changed_signal,
                                              ended_signal=ended_signal)
 
-        self._mk_pkg_process()
-        self.process()
-
     def _mk_pkg_process(self):
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])
         try:
@@ -132,7 +118,7 @@ class RPMTransaction(Transaction):
             if (has_pending('installing') or
                 has_pending('uninstalling') or
                 len(self) >= 1) and (cfg.as_bool('install') or
-                                              cfg.as_bool('uninstall')):
+                                     cfg.as_bool('uninstall')):
                 self.append(ActionProcess(msg_signal=self._msg_signal,
                                           log_signal=self._log_signal,
                                           progress_signal=self._progress_signal,
@@ -165,8 +151,6 @@ class DEBTransaction(Transaction):
                                              action_timer_signal=action_timer_signal,
                                              list_changed_signal=list_changed_signal,
                                              ended_signal=ended_signal)
-        self._mk_pkg_process()
-        self.process()
 
     def _mk_pkg_process(self):
         clean_section(['tobeinstalled', 'downloading', 'converting', 'installing'])

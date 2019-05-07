@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR, initialize_search
+from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
 else:
@@ -26,8 +26,7 @@ else:
 
 
 class Packages(QThread):
-    # download_finished_signal = pyqtSignal('PyQt_PyObject')
-    # conversion_finished_signal = pyqtSignal(bool)
+
     _actioning_finished_signal = pyqtSignal()
 
     def __init__(self, team, arch,
@@ -42,6 +41,7 @@ class Packages(QThread):
         self._arch = arch
         self._lp_ppa = None
         self._lp_team = None
+        self._lp_team_web_link = None
         self._ppa = ''
         self._thread_pool = ThreadPool(10)
         self._cancel_process = False
@@ -68,6 +68,7 @@ class Packages(QThread):
     def connect(self):
         self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
         self._lp_team = self._launchpad.people[self.team]
+        self._lp_team_web_link = self._lp_team.web_link
 
     @property
     def lp_team(self):
@@ -76,6 +77,10 @@ class Packages(QThread):
     @lp_team.setter
     def lp_team(self, team):
         self._lp_team = self._launchpad.people.findTeam(text=team)[0]
+
+    @property
+    def team_web_link(self, team):
+        return self._team_web_link
 
     @property
     def ppa(self):
@@ -141,15 +146,15 @@ class Packages(QThread):
             self._log_signal.emit(http_error, logging.CRITICAL)
 
     def post_state_change(self):
-        initialize_search()
+        self._progress_signal.emit(0, 0)
+        self._transaction_progress_signal.emit(0, 0)
         self._list_changed_signal.emit(self._ppa, self._arch)
 
     def install_pkgs_button(self):
-
         self._actioning_finished_signal.connect(self.post_state_change)
         try:
             if cfg['distro_type'] == 'rpm':
-                self._transaction = RPMTransaction(team_web_link=self._lp_team.web_link,
+                self._transaction = RPMTransaction(team_web_link=self._lp_team_web_link,
                                                    msg_signal=self._msg_signal,
                                                    log_signal=self._log_signal,
                                                    progress_signal=self._progress_signal,
@@ -160,7 +165,7 @@ class Packages(QThread):
                                                    list_changed_signal=self._actioning_finished_signal,
                                                    ended_signal=self._ended_signal)
             if cfg['distro_type'] == 'deb':
-                self._transaction = DEBTransaction(team_web_link=self._lp_team.web_link,
+                self._transaction = DEBTransaction(team_web_link=self._lp_team_web_link,
                                                    msg_signal=self._msg_signal,
                                                    log_signal=self._log_signal,
                                                    progress_signal=self._progress_signal,
@@ -170,6 +175,9 @@ class Packages(QThread):
                                                    action_timer_signal=self._action_timer_signal,
                                                    list_changed_signal=self._actioning_finished_signal,
                                                    ended_signal=self._ended_signal)
+
+            self._transaction.process()
+
         except Exception as e:
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)

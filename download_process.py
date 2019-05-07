@@ -29,17 +29,16 @@ class DownloadProcess(PackageProcess):
         self._errors = 0
 
     def prepare_action(self):
-        moved = False
+        moved_section = False
         for ppa in pkg_states["tobeinstalled"]:
             for pkg_id in pkg_states["tobeinstalled"][ppa]:
                 add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
-                moved = True
-        moved = super().prepare_action() | moved
+                moved_section = True
+        moved_section = super().prepare_action() | moved_section
         cfg.write()
-        return moved
+        return moved_section
 
-    def state_change(self, callback=None):
-        self._action_finished_callback = callback
+    def change_state(self):
         assert len(self), "state change called without list initialisation.  Call " + \
                           type(self).__qualname__ + \
                           ".read_section()"
@@ -55,7 +54,8 @@ class DownloadProcess(PackageProcess):
                                                self._team_link,), callback=self.download_finished)
 
     @pyqtSlot('PyQt_PyObject')
-    def download_finished(self, name):
+    def download_finished(self, tup):
+        success, name = tup
         self._pkgs_complete += 1
         if success:
             self._pkgs_success += 1
@@ -64,7 +64,7 @@ class DownloadProcess(PackageProcess):
             self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
         if self._pkgs_complete == len(self):
             cfg.write()
-            self._action_finished_callback(1, self._pkgs_success)
+            self._action_finished_callback(1, self._pkgs_success, self)
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link
@@ -117,9 +117,9 @@ class RPMDownloadProcess(DownloadProcess):
                                                  progress_signal=progress_signal)
         self._next_section = "converting"
 
-    def state_change(self, callback=None):
+    def change_state(self, callback=None):
         self._action_finished_callback = callback
-        super().state_change()
+        super().change_state()
 
 
 class DEBDownloadProcess(DownloadProcess):
@@ -134,6 +134,6 @@ class DEBDownloadProcess(DownloadProcess):
                                                  progress_signal=progress_signal)
         self._next_section = "installing"
 
-    def state_change(self, callback=None):
+    def change_state(self, callback=None):
         self._action_finished_callback = callback
-        super().state_change()
+        super().change_state()
