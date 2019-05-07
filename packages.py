@@ -175,20 +175,13 @@ class Packages(QThread):
                                                    action_timer_signal=self._action_timer_signal,
                                                    list_changed_signal=self._actioning_finished_signal,
                                                    ended_signal=self._ended_signal)
-
             self._transaction.process()
-
         except Exception as e:
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)
 
     def begin_transaction(self, transaction):
         pass
-
-    @pyqtSlot()
-    def actioning_finished(self):
-        self._num_processed += 1
-        self.install_pkgs_button(self._num_processed)
 
     def cancel(self):
         if self.process is not None:

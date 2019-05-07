@@ -64,7 +64,7 @@ class DownloadProcess(PackageProcess):
             self._log_signal.emit("Unable to download " + name + " from launchpad.", logging.ERROR)
         if self._pkgs_complete == len(self):
             cfg.write()
-            self._action_finished_callback(1, self._pkgs_success, self)
+            self.action_finished_callback(1, self._pkgs_success, self)
 
     def __get_deb_link_and_download(self, ppa, pkg, debsdir, web_link):
         # threaded function - gets build link from page and then parses that link

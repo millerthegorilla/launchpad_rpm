@@ -37,24 +37,28 @@ class ActionProcess(PackageProcess):
         self._process = None
         self._errors = 0
         self._timer = None
-
+        self._installation_process = None
+        self._uninstallation_process = None
         self._progress_bar_num = 0
+
+    def prepare_processes(self):
         if cfg.as_bool('install'):
             if has_pending('installing'):
                 if cfg['distro_type'] == 'rpm':
-                    self._installation_process = RPMInstallationProcess(msg_signal=msg_signal,
-                                                                        log_signal=log_signal)
+                    self._installation_process = RPMInstallationProcess(msg_signal=self._msg_signal,
+                                                                        log_signal=self._log_signal)
                 elif cfg['distro_type'] == 'deb':
-                    self._installation_process = DEBInstallationProcess(msg_signal=msg_signal,
-                                                                        log_signal=log_signal)
+                    self._installation_process = DEBInstallationProcess(msg_signal=self._msg_signal,
+                                                                        log_signal=self._log_signal)
                 self._processes.append(self._installation_process)
         if cfg.as_bool('uninstall'):
             if has_pending('uninstalling'):
-                self._uninstallation_process = UninstallationProcess(msg_signal=msg_signal,
-                                                                     log_signal=log_signal)
+                self._uninstallation_process = UninstallationProcess(msg_signal=self._msg_signal,
+                                                                     log_signal=self._log_signal)
                 self._processes.append(self._uninstallation_process)
 
     def prepare_action(self):
+        self.prepare_processes()
         moved = False
         for process in self._processes:
             moved = process.prepare_action() | moved
@@ -63,6 +67,7 @@ class ActionProcess(PackageProcess):
     def read_section(self):
         for process in self._processes:
             process.read_section()
+        return len(self)
 
     def change_state(self):
         self._log_signal.emit("Actioning packages...", logging.INFO)
@@ -83,26 +88,29 @@ class ActionProcess(PackageProcess):
             if self._errors:
                 self._ended_signal.emit(ENDED_ERR)
         initialize_search()
-        self._action_finished_callback(self._errors, num_of_action, self)
+        self.action_finished_callback(self._errors, num_of_action, self)
 
     def _action_pkgs(self, pkg_links):
         try:
             if pkg_links:
                 if cfg['distro_type'] == 'rpm':
                     self._process = Popen(['/usr/bin/pkexec',    # TODO auto detect path to pkexec
-                                         'python', '-u',
-                                         SCRIPT_PATH + 'dnf_install.py',
+                                          SCRIPT_PATH + 'dnf_install.py',
                                           tmp_dir] + pkg_links,
-                                         stdin=PIPE,
-                                         stdout=PIPE,
-                                         stderr=PIPE)
+                                          universal_newlines=True,
+                                          bufsize=1,
+                                          stdin=PIPE,
+                                          stdout=PIPE,
+                                          stderr=PIPE)
                 elif cfg['distro_type'] == 'deb':
                     self._process = Popen(['/usr/bin/pkexec',
                                           SCRIPT_PATH + 'apt_install.py',
                                           tmp_dir] + pkg_links,
-                                         stdin=PIPE,
-                                         stdout=PIPE,
-                                         stderr=PIPE)
+                                          universal_newlines=True,
+                                          bufsize=1,
+                                          stdin=PIPE,
+                                          stdout=PIPE,
+                                          stderr=PIPE)
             else:
                 raise ValueError("Error! : rpm_paths of packages in cache may be empty")
         except Exception as e:
@@ -110,7 +118,7 @@ class ActionProcess(PackageProcess):
 
         while 1:
             QGuiApplication.instance().processEvents()
-            line = self._process.stdout.readline().decode('utf-8')
+            line = self._process.stdout.readline()
             self._process.stdout.flush()
             if line:
                 # self.log_signal.emit(line, logging.INFO)
@@ -172,4 +180,3 @@ class ActionProcess(PackageProcess):
         for a in self._processes:
             length += len(a)
         return length
-
