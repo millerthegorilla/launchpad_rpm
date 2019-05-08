@@ -1,6 +1,8 @@
-from kfconf import cfg, tmp_dir, has_pending, initialize_search, ENDED_ERR, SCRIPT_PATH
+from kfconf import cfg, tmp_dir, has_pending, initialize_search, pkg_search, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
+from os.path import isfile
+from os import remove
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
 from package_process import PackageProcess
@@ -74,7 +76,7 @@ class ActionProcess(PackageProcess):
         self._msg_signal.emit("Actioning packages...")
         msg_txt = ""
         for process in self._processes:
-            msg_txt = process.change_state()
+            msg_txt += process.change_state()
         self._request_action_signal.emit(msg_txt, self.continue_actioning_if_ok)
 
     def continue_actioning_if_ok(self):
@@ -112,7 +114,8 @@ class ActionProcess(PackageProcess):
                                           stdout=PIPE,
                                           stderr=PIPE)
             else:
-                raise ValueError("Error! : rpm_paths of packages in cache may be empty")
+                raise ValueError("Error! : links to installable packages \
+                                 in cache may be empty; action_process.py line 115")
         except Exception as e:
             self._log_signal.emit(e, logging.CRITICAL)
 
@@ -123,48 +126,69 @@ class ActionProcess(PackageProcess):
             if line:
                 # self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
+                    self._lock.acquire()
                     self._log_signal.emit(line.lstrip('kxfedlog'), logging.INFO)
+                    self._lock.release()
                 if 'kxfedexcept' in line:
+                    self._lock.acquire()
                     self._log_signal.emit(line.lstrip('kxfedexcept'), logging.CRITICAL)
                     self._msg_signal.emit('Error Installing! Check messages...')
+                    self._lock.release()
                     self._errors += 1
                 if 'kxfedmsg' in line:
+                    self._lock.acquire()
                     self._msg_signal.emit(line.lstrip('kxfedmsg'))
+                    self._lock.release()
                 if 'kxfedprogress' in line:
                     sig = line.split(' ')
+                    self._lock.acquire()
                     self._progress_signal.emit(sig[1], sig[2])
+                    self._lock.release()
                 if 'kxfedtransprogress' in line:
                     sig = line.split(' ')
                     if sig[1] == sig[2]:
+                        self._lock.acquire()
                         self._msg_signal.emit('Verifying package, please wait...')
+                        self._lock.release()
+                    self._lock.acquire()
                     self._transaction_progress_signal.emit(sig[1], sig[2])
+                    self._lock.release()
                 if 'kxfedinstalled' in line:
                     name = line.lstrip('kxfedinstalled').replace('\n', '').strip()
+                    self._lock.acquire()
                     self._msg_signal.emit('Installed ' + name)
                     self._log_signal.emit('Installed ' + name, logging.INFO)
-                    # section = pkg_search(['installing'], name)
-                    # add_item_to_section('installed', pkg_states['installing'][section.parent.parent.items()[0][0]].pop(section['id']))
-                    # TODO schedule check or callback to run rpm.db_match to check install ok
+                    self._lock.release()
+                    found_pkg = pkg_search[['installing'], name]
+                    if isfile(found_pkg['rpm_path']):
+                        remove(found_pkg['rpm_path'])
+                        found_pkg['rpm_path'] = ""
                 if 'kxfeduninstalled' in line:
                     name = line.lstrip('kxfeduninstalled').replace('\n', '').strip()
-                    self._msg_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'))
-                    self._log_signal.emit('Uninstalled ' + line.lstrip('kxfeduninstalled'), logging.INFO)
-                    # section = pkg_search(['uninstalling'], name)
-                    # pkg_states['uninstalling'][section.parent.parent.items()[0][0]].pop(section['id'])
+                    self._lock.acquire()
+                    self._msg_signal.emit('Uninstalled ' + name)
+                    self._log_signal.emit('Uninstalled ' + name, logging.INFO)
+                    self._lock.release()
                 if 'verif' in line:
+                    self._lock.acquire()
                     self._msg_signal.emit(line)
                     self._log_signal.emit(line, logging.INFO)
                     self._action_timer_signal.emit(True)
+                    self._lock.release()
                 # TODO delete package from uninstalled state
                 # TODO change highlighted color of checkbox row to normal color
                 # TODO delete rpm if it says so in the preferences
                 if 'kxfedstop' in line:
+                    self._lock.acquire()
                     self._msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
                     self._log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished", logging.INFO)
+                    self._lock.release()
             else:
                 if self._process.poll() is not None:
+                    self._lock.acquire()
                     self._progress_signal.emit(0, 0)
                     self._transaction_progress_signal.emit(0, 0)
+                    self._lock.release()
                     break
         return len(pkg_links) - self._errors
 

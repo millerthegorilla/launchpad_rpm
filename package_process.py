@@ -23,7 +23,7 @@ class PackageProcess(list):
         self._msg_signal = msg_signal
         self._log_signal = log_signal
         self.action_finished_callback = None
-        self.lock = RLock()
+        self._lock = RLock()
         self._transaction = [self.prepare_action,
                              self.read_section,
                              self.change_state]

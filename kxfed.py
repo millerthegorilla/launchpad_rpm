@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from launchpadlib.errors import HTTPError
 
 from tvmodel import TVModel
-from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC
+from kfconf import cfg, cache, pkg_states, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC, ENDED_NTD
 from kxfed_prefs import KxfedPrefsDialog
 from kxfed_ui import Ui_MainWindow
 from kxfedmsgsdialog import KxfedMsgsDialog
@@ -359,6 +359,8 @@ class Kxfed(QThread):
     @pyqtSlot(int)
     def _ended(self, cancellation):
         self.moveToThread(self.main_window.thread())
+        if cancellation == ENDED_NTD:
+            self._message_user("Nothing to do!")
         if cancellation == ENDED_ERR:
             self.pkg_model.packages.cancel_process = True
             self._message_user("Processing ended in error.  Check messages")

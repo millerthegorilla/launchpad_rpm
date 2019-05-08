@@ -49,17 +49,21 @@ class Transaction(list):
                 self.process()
                 return
             if not self[self._num].read_section():
-                raise ValueError(self[self._num].section + " has no content, Transaction.py line 52")
+                self._num += 1
+                self.process()
+                return
             self[self._num].change_state()
         else:
             self._num = 0
 
     def _state_changed(self, num_of_errors, num_of_success, pkg_process):
         try:
+            pk_string = " package" if num_of_errors == 1 else " packages"
             if num_of_errors:
-                self._msg_signal.emit("Not all packages from " + pkg_process.section + " were successful. " +
-                                      str(num_of_errors) + " packages out of " + str(num_of_errors + num_of_success) +
-                                      "were not processed.")
+                self._msg_signal.emit("Not all packages from " + pkg_process.section +
+                                      " were successful. At least " +
+                                      str(num_of_errors) + pk_string + " out of " +
+                                      str(num_of_errors + num_of_success) + " were not processed.")
                 self._log_signal.emit("Not all packages from " + pkg_process.section + " were successful. " +
                                       str(num_of_errors) + " packages out of " + str(num_of_errors + num_of_success) +
                                       "were not processed.",
@@ -76,7 +80,6 @@ class Transaction(list):
             self.process()
 
         except FileNotFoundError as e:
-            # exc = str(e).split(" ")
             self._log_signal.emit(format_exc(), logging.ERROR)
             self._ended_signal.emit(ENDED_ERR)
         except Exception as e:

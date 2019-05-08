@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from kfconf import cfg, cache, ENDED_CANCEL, ENDED_ERR
+from kfconf import cfg, cache, clean_section, all_sections, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
 else:
@@ -151,34 +151,42 @@ class Packages(QThread):
         self._list_changed_signal.emit(self._ppa, self._arch)
 
     def install_pkgs_button(self):
-        self._actioning_finished_signal.connect(self.post_state_change)
-        try:
-            if cfg['distro_type'] == 'rpm':
-                self._transaction = RPMTransaction(team_web_link=self._lp_team_web_link,
-                                                   msg_signal=self._msg_signal,
-                                                   log_signal=self._log_signal,
-                                                   progress_signal=self._progress_signal,
-                                                   transaction_progress_signal=self._transaction_progress_signal,
-                                                   request_action_signal=self._request_action_signal,
-                                                   populate_pkgs_signal=self._populate_pkgs_signal,
-                                                   action_timer_signal=self._action_timer_signal,
-                                                   list_changed_signal=self._actioning_finished_signal,
-                                                   ended_signal=self._ended_signal)
-            if cfg['distro_type'] == 'deb':
-                self._transaction = DEBTransaction(team_web_link=self._lp_team_web_link,
-                                                   msg_signal=self._msg_signal,
-                                                   log_signal=self._log_signal,
-                                                   progress_signal=self._progress_signal,
-                                                   transaction_progress_signal=self._transaction_progress_signal,
-                                                   request_action_signal=self._request_action_signal,
-                                                   populate_pkgs_signal=self._populate_pkgs_signal,
-                                                   action_timer_signal=self._action_timer_signal,
-                                                   list_changed_signal=self._actioning_finished_signal,
-                                                   ended_signal=self._ended_signal)
-            self._transaction.process()
-        except Exception as e:
-            self._log_signal.emit(format_exc(), logging.ERROR)
-            self._ended_signal.emit(ENDED_ERR)
+        clean_section(all_sections)
+        empty = True
+        for section in all_sections:
+            if bool(section) is True:
+                empty = False
+        if empty is True:
+            self._ended_signal.emit(ENDED_NTD)
+        else:
+            self._actioning_finished_signal.connect(self.post_state_change)
+            try:
+                if cfg['distro_type'] == 'rpm':
+                    self._transaction = RPMTransaction(team_web_link=self._lp_team_web_link,
+                                                       msg_signal=self._msg_signal,
+                                                       log_signal=self._log_signal,
+                                                       progress_signal=self._progress_signal,
+                                                       transaction_progress_signal=self._transaction_progress_signal,
+                                                       request_action_signal=self._request_action_signal,
+                                                       populate_pkgs_signal=self._populate_pkgs_signal,
+                                                       action_timer_signal=self._action_timer_signal,
+                                                       list_changed_signal=self._actioning_finished_signal,
+                                                       ended_signal=self._ended_signal)
+                if cfg['distro_type'] == 'deb':
+                    self._transaction = DEBTransaction(team_web_link=self._lp_team_web_link,
+                                                       msg_signal=self._msg_signal,
+                                                       log_signal=self._log_signal,
+                                                       progress_signal=self._progress_signal,
+                                                       transaction_progress_signal=self._transaction_progress_signal,
+                                                       request_action_signal=self._request_action_signal,
+                                                       populate_pkgs_signal=self._populate_pkgs_signal,
+                                                       action_timer_signal=self._action_timer_signal,
+                                                       list_changed_signal=self._actioning_finished_signal,
+                                                       ended_signal=self._ended_signal)
+                self._transaction.process()
+            except Exception as e:
+                self._log_signal.emit(format_exc(), logging.ERROR)
+                self._ended_signal.emit(ENDED_ERR)
 
     def begin_transaction(self, transaction):
         pass
