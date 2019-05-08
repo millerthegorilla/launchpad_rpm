@@ -27,6 +27,7 @@ SCRIPT_PATH = "/home/james/Src/launchpad_rpm/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2
+ENDED_NTD = 3
 
 __this__ = sys.modules[__name__]
 
@@ -95,11 +96,13 @@ else:
 
 arch = cfg['arch']
 
+
 def delete_ppa_if_empty(section, ppa):
     """section is string, ppa is string"""
     if ppa in cfg['pkg_states'][section]:
         if not cfg['pkg_states'][section][ppa]:  # if ppa is empty
             cfg['pkg_states'][section].pop(ppa)
+            cfg.write()
 
 
 def clean_section(sections):
@@ -160,9 +163,11 @@ def pkg_search(sections, search_value):
     return False
 
 
+all_sections = ['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling']
 base = None
 sack = None
 query = None
+
 
 def initialize_search():
     global base, sack, query
