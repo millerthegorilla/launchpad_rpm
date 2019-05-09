@@ -1,13 +1,14 @@
 from abc import abstractmethod
 import logging
-from kfconf import cfg, has_pending, clean_section, ENDED_ERR, ENDED_SUCC
-from action_process import ActionProcess
-from conversion_process import ConversionProcess
+from lprpm_conf import cfg, has_pending, clean_section, ENDED_ERR, ENDED_SUCC
+from package_process.action_process import ActionProcess
+from package_process.conversion_process import ConversionProcess
 from traceback import format_exc
+from package_process.download_process import DownloadProcess
 if cfg['distro_type'] == 'rpm':
-    from download_process import RPMDownloadProcess
+    from package_process.download_process import RPMDownloadProcess
 else:
-    from download_process import DEBDownloadProcess
+    from package_process.download_process import DEBDownloadProcess
 
 
 class Transaction(list):
@@ -44,7 +45,7 @@ class Transaction(list):
     def process(self):
         if self._num < len(self):
             self[self._num].action_finished_callback = self._state_changed
-            if self[self._num].prepare_action():
+            if self[self._num].prepare_action() and not isinstance(self[self._num], DownloadProcess):
                 self._num += 1
                 self.process()
                 return

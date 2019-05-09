@@ -1,6 +1,6 @@
-from package_process import PackageProcess
+from package_process.package_process import PackageProcess
 from multiprocessing.dummy import Pool as ThreadPool
-from kfconf import pkg_states, cfg, \
+from lprpm_conf import pkg_states, cfg, \
                    rpms_dir, arch, \
                    add_item_to_section, \
                    pkg_search, SCRIPT_PATH

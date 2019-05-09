@@ -7,7 +7,7 @@ from threading import RLock
 from fuzzywuzzy import fuzz
 from configobj import ConfigObj
 from dogpile.cache import make_region
-from tvitem import TVItem
+from treeview.tvitem import TVItem
 import distro
 if 'Fedora' in distro.linux_distribution():
     from dnf import Base
@@ -17,13 +17,13 @@ else:
     APT_CACHE_FILE = apt.Cache()
     DISTRO_TYPE = 'deb'
 # TODO when the program installs the line below must be added to ~/.rpmmacros
-# %_topdir /home/data/rpmbuild
+# %_topdir /home/james/.local/share/kxfed/
 
 # constants
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
-SCRIPT_PATH = "/home/james/Src/launchpad_rpm/"
+SCRIPT_PATH = "/home/james/Src/launchpad_rpm/src/scripts/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2

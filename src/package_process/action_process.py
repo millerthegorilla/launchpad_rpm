@@ -1,16 +1,16 @@
-from kfconf import cfg, tmp_dir, has_pending, initialize_search, pkg_search, ENDED_ERR, SCRIPT_PATH
+from lprpm_conf import cfg, rpms_dir, has_pending, initialize_search, pkg_search, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 from os.path import isfile
 from os import remove
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
-from package_process import PackageProcess
-from uninstallation_process import UninstallationProcess
+from package_process.package_process import PackageProcess
+from package_process.uninstallation_process import UninstallationProcess
 if cfg['distro_type'] == 'rpm':
-    from installation_process import RPMInstallationProcess
+    from src.package_process.installation_process import RPMInstallationProcess
 elif cfg['distro_type'] == 'deb':
-    from installation_process import DEBInstallationProcess
+    from src.package_process.installation_process import DEBInstallationProcess
 
 
 class ActionProcess(PackageProcess):
@@ -98,7 +98,7 @@ class ActionProcess(PackageProcess):
                 if cfg['distro_type'] == 'rpm':
                     self._process = Popen(['/usr/bin/pkexec',    # TODO auto detect path to pkexec
                                           SCRIPT_PATH + 'dnf_install.py',
-                                          tmp_dir] + pkg_links,
+                                          rpms_dir] + pkg_links,
                                           universal_newlines=True,
                                           bufsize=1,
                                           stdin=PIPE,
@@ -107,7 +107,7 @@ class ActionProcess(PackageProcess):
                 elif cfg['distro_type'] == 'deb':
                     self._process = Popen(['/usr/bin/pkexec',
                                           SCRIPT_PATH + 'apt_install.py',
-                                          tmp_dir] + pkg_links,
+                                          rpms_dir] + pkg_links,
                                           universal_newlines=True,
                                           bufsize=1,
                                           stdin=PIPE,

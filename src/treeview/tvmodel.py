@@ -7,11 +7,11 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt, QObject
 from PyQt5.QtGui import QStandardItemModel, QBrush, QColor
 
 import packages
-from kfconf import cfg, \
+from lprpm_conf import cfg, \
     config_dir, CONFIG_FILE, \
     pkg_states, delete_ppa_if_empty, \
     add_item_to_section, pkg_search, check_installed
-from tvitem import TVItem, TVITEM_ROLE
+from treeview.tvitem import TVItem, TVITEM_ROLE
 
 
 class TVModel(QStandardItemModel, QObject):

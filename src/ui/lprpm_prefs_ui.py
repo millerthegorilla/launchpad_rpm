@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'kxfed_prefs_ui.ui'
+# Form implementation generated from reading ui file 'lprpm_prefs_ui.ui'
 #
 # Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+from ui.qlabelchanged import QLabelChanged
 
 
-class Ui_prefs_dialog(object):
+class UiPrefsDialog(object):
     def setupUi(self, prefs_dialog):
         prefs_dialog.setObjectName("prefs_dialog")
         prefs_dialog.setWindowModality(QtCore.Qt.WindowModal)
@@ -84,6 +85,3 @@ class Ui_prefs_dialog(object):
         self.uninstall_chkbox.setText(_translate("prefs_dialog", "Uninstall Checked Packages"))
         self.delete_downloaded_chkbox.setText(_translate("prefs_dialog", "Delete Downloaded Packages"))
         self.delete_converted_chkbox.setText(_translate("prefs_dialog", "Delete Converted Packages"))
-
-
-from qlabelchanged import QLabelChanged
