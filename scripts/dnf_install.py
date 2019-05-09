@@ -78,12 +78,13 @@ class ActionRpms:
                     pkg = i[0]
                     self.base.transaction.add_erase(pkg)
                 else:
-                    print('kxfedexcept', 'Error uninstalling ', pkg.name + pkg.evr, ' It\'s not installed...')
+                    print('kxfedexcept', 'Error uninstalling ', name, ' It\'s not installed...')
                     sys.stdout.flush()
             else:
-                print('kxfedmsg Installing ', filename)
+                name = sys.argv[1] + filename
+                print('kxfedmsg Installing ', name)
                 sys.stdout.flush()
-                pkgs = self.base.add_remote_rpms([filename])
+                pkgs = self.base.add_remote_rpms([name])
                 self.base.transaction.add_install(pkgs[0])
         try:
             self.base.do_transaction(self.progress)
@@ -96,16 +97,16 @@ if __name__ == '__main__':
     action_rpms = ActionRpms()
     tp = thread_pool(10)
     result = tp.apply_async(action_rpms.action)
-    bob = result.get()
-    # while not result.ready():
-    #     if action_rpms.stop:
-    #         tp.close()
-    #         tp.terminate()
-    #         install_rpms = None
-    #         print("kxfedlog ended in Main")
-    #         sys.stdout.flush()
-    #         break
-    #     nextline = sys.stdin.readline()
-    #     if 'cancel' in nextline:
-    #         action_rpms.stop = True
+    while not result.ready():
+        if action_rpms.stop:
+            tp.close()
+            tp.terminate()
+            install_rpms = None
+            print("kxfedlog ended in Main")
+            sys.stdout.flush()
+            break
+        nextline = sys.stdin.readline()
+        sys.stdin.flush()
+        if 'cancel' in nextline:
+            action_rpms.stop = True
     sys.exit(0)

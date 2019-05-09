@@ -14,11 +14,11 @@ import logging
 import time
 import uuid
 from multiprocessing.dummy import Pool as ThreadPool
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QThread, QObject
+from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from kfconf import cfg, cache, clean_section, all_sections, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
+from lprpm_conf import cfg, cache, clean_section, all_sections, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
 else:
@@ -66,7 +66,7 @@ class Packages(QThread):
         self._teams = None
 
     def connect(self):
-        self._launchpad = Launchpad.login_anonymously('kxfed.py', 'production')
+        self._launchpad = Launchpad.login_anonymously('lprpm.py', 'production')
         self._lp_team = self._launchpad.people[self.team]
         self._lp_team_web_link = self._lp_team.web_link
 

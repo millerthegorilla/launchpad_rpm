@@ -4,15 +4,15 @@ import logging.handlers
 from PyQt5.QtWidgets import QDialog
 # import dnf
 
-from kfconf import cfg
-from kxfedmsgsdialog_ui import Ui_KxfedMsgsDialog
+from lprpm_conf import cfg
+from ui.lprpm_msgs_dialog_ui import UiLPRpmMsgsDialog
 
 
 # TODO - add and sort out logging in MessagesWindow
-class KxfedMsgsDialog(QDialog):
+class LPRpmMsgsDialog(QDialog):
     def __init__(self):
-        super(KxfedMsgsDialog, self).__init__()
-        self.ui = Ui_KxfedMsgsDialog()
+        super(LPRpmMsgsDialog, self).__init__()
+        self.ui = UiLPRpmMsgsDialog()
         self.ui.setupUi(self)
         self.ui.pushButton.clicked.connect(self.close)
         self.logger = logging.getLogger(__name__)

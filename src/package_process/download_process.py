@@ -1,5 +1,5 @@
-from package_process import PackageProcess
-from kfconf import cfg, debs_dir, pkg_states, add_item_to_section, check_installed
+from package_process.package_process import PackageProcess
+from lprpm_conf import cfg, debs_dir, pkg_states, add_item_to_section, check_installed
 from requests import get, HTTPError
 from bs4 import BeautifulSoup
 from os.path import isfile, basename

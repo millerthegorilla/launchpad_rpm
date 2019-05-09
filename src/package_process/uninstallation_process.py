@@ -1,5 +1,5 @@
-from package_process import PackageProcess
-from kfconf import cfg, clean_section, \
+from package_process.package_process import PackageProcess
+from lprpm_conf import cfg, clean_section, \
                    pkg_states, add_item_to_section, \
                    delete_ppa_if_empty, check_installed
 from multiprocessing.dummy import Pool as ThreadPool
