@@ -23,7 +23,7 @@ else:
 CONFIG_DIR = ".config/kxfed/"
 CONFIG_FILE = "kxfed.cfg"
 CACHE_FILE = "kxfed.cache.db"
-SCRIPT_PATH = "/home/james/Src/launchpad_rpm/src/scripts/"
+SCRIPT_PATH = "/home/james/Src/launchpad_rpm/scripts/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2
