@@ -10,7 +10,8 @@ import packages
 from lprpm_conf import cfg, \
     config_dir, CONFIG_FILE, \
     pkg_states, delete_ppa_if_empty, \
-    add_item_to_section, pkg_search, check_installed
+    add_item_to_section, pkg_search, check_installed, \
+    all_sections_not_installed
 from treeview.tvitem import TVItem, TVITEM_ROLE
 
 
@@ -97,10 +98,14 @@ class TVModel(QStandardItemModel, QObject):
                 continue
             else:
                 if pkg_search(['uninstalling'], pkg.id):
-                    pkg.installed = Qt.Unchecked
-                    pkg.install_state.setBackground(Qt.red)
-                    self.appendRow(pkg.row)
-                    continue
+                    if check_installed(pkg.name, pkg.version):
+                        pkg.installed = Qt.Unchecked
+                        pkg.install_state.setBackground(Qt.red)
+                        self.appendRow(pkg.row)
+                    else:
+                        pkg_states['uninstalling'][pkg.ppa].pop(pkg.id)
+                        delete_ppa_if_empty('uninstalling', pkg.ppa)
+                        continue
                 if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                     pkg.installed = Qt.PartiallyChecked
                     self.appendRow(pkg.row)
@@ -126,68 +131,90 @@ class TVModel(QStandardItemModel, QObject):
         #                     ie downloaded/converted/installing but not installed
         # checked = installed
         # item = QStandardItem(item)
-        pkg = item.data(TVITEM_ROLE)
-        if item.isCheckable():
-            # if item is not installed
-            if pkg.installed == Qt.Unchecked:
-                item.setCheckState(Qt.PartiallyChecked)
-            # if item was installed and is now to be uninstalled
-            if item.checkState() == Qt.Unchecked:
-                # if item is in the process of being installed
-                # and has been cancelled
-                try:
-                    if pkg.installed == Qt.PartiallyChecked:
-                        if pkg.ppa in pkg_states['tobeinstalled']:
-                            if pkg.id in pkg_states['tobeinstalled'][pkg.ppa]:
-                                pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
-                                cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
-                        if pkg.ppa in pkg_states['downloading']:
-                            if pkg.id in pkg_states['downloading'][pkg.ppa]:
-                                for deb_path in pkg_states['downloading'][pkg.ppa][pkg.id]:
-                                    if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
+        try:
+            super().itemChanged.disconnect()
+            pkg = item.data(TVITEM_ROLE)
+            if item.isCheckable():
+                # if item is not installed
+                if pkg.installed == Qt.Unchecked:
+                    item.setCheckState(Qt.PartiallyChecked)
+                # if item was installed and is now to be uninstalled
+                if item.checkState() == Qt.Unchecked:
+                    # if item is in the process of being installed
+                    # and has been cancelled
+                    try:
+                        if pkg.installed == Qt.PartiallyChecked:
+                            if pkg.ppa in pkg_states['tobeinstalled']:
+                                if pkg.id in pkg_states['tobeinstalled'][pkg.ppa]:
+                                    pkg_states['tobeinstalled'][pkg.ppa].pop(pkg.id)
+                                    cfg.delete_ppa_if_empty('tobeinstalled', pkg.ppa)
+                            if pkg.ppa in pkg_states['downloading']:
+                                if pkg.id in pkg_states['downloading'][pkg.ppa]:
+                                    for deb_path in pkg_states['downloading'][pkg.ppa][pkg.id]:
+                                        if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
+                                            os.remove(deb_path)
+                                    pkg_states['downloading'][pkg.ppa].pop(pkg.id)
+                                    delete_ppa_if_empty('downloading', pkg.ppa)
+                            if pkg.ppa in pkg_states['converting']:
+                                if pkg.id in pkg_states['converting'][pkg.ppa]:
+                                    for deb_path in pkg_states['converting'][pkg.ppa][pkg.id]:
+                                        if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
+                                            os.remove(deb_path)
+                                    pkg_states['converting'][pkg.ppa].pop(pkg.id)
+                                    delete_ppa_if_empty('converting', pkg.ppa)
+                            if pkg.ppa in pkg_states['installing']:
+                                if pkg.id in pkg_states['installing'][pkg.ppa]:
+                                    deb_path = pkg_states['installing'][pkg.ppa][pkg.id]['deb_path']
+                                    if os.path.isfile(deb_path) and cfg['delete_downloaded'] == 'True':
                                         os.remove(deb_path)
-                                pkg_states['downloading'][pkg.ppa].pop(pkg.id)
-                                delete_ppa_if_empty('downloading', pkg.ppa)
-                        if pkg.ppa in pkg_states['converting']:
-                            if pkg.id in pkg_states['converting'][pkg.ppa]:
-                                for deb_path in pkg_states['converting'][pkg.ppa][pkg.id]:
-                                    if os.path.exists(deb_path) and cfg['delete_downloaded'] == 'True':
-                                        os.remove(deb_path)
-                                pkg_states['converting'][pkg.ppa].pop(pkg.id)
-                                delete_ppa_if_empty('converting', pkg.ppa)
-                        if pkg.ppa in pkg_states['installing']:
-                            if pkg.id in pkg_states['installing'][pkg.ppa]:
-                                deb_path = pkg_states['installing'][pkg.ppa][pkg.id]['deb_path']
-                                if os.path.isfile(deb_path) and cfg['delete_downloaded'] == 'True':
-                                    os.remove(deb_path)
-                                rpm_path = pkg_states['installing'][pkg.ppa][pkg.id]['rpm_path']
-                                if os.path.isfile(rpm_path) and cfg['delete_converted'] == 'True':
-                                    os.remove(rpm_path)
-                                pkg_states['installing'][pkg.ppa].pop(pkg.id)
-                                delete_ppa_if_empty('installing', pkg.ppa)
-                except IsADirectoryError as e:
-                    self.packages.log_signal.emit('Error in config ' + str(e), logging.CRITICAL)
-                # if item is being set to uninstall
-                if pkg.installed == Qt.Checked:
-                    # move from installed to uninstalling section
-                    section = pkg_search(['installed'], pkg.id)
-                    if section:
+                                    rpm_path = pkg_states['installing'][pkg.ppa][pkg.id]['rpm_path']
+                                    if os.path.isfile(rpm_path) and cfg['delete_converted'] == 'True':
+                                        os.remove(rpm_path)
+                                    pkg_states['installing'][pkg.ppa].pop(pkg.id)
+                                    delete_ppa_if_empty('installing', pkg.ppa)
+                    except IsADirectoryError as e:
+                        self.packages.log_signal.emit('Error in config ' + str(e), logging.CRITICAL)
+                    # if item is being set to uninstall
+                    if pkg.installed == Qt.Checked:
+                        # move from installed to uninstalling section
+                        section = pkg_search(['installed'], pkg.id)
+                        if section:
+                            pkg_states['installed'][pkg.ppa].pop(pkg.id)
+                            delete_ppa_if_empty('installed', pkg.ppa)
+                            add_item_to_section('uninstalling', pkg)
+                            item.setBackground(QBrush(Qt.red))
+                # item is to be downloaded/converted
+                if item.checkState() == Qt.Checked:
+                    # ie item was partially checked and user clicked it
+                    item.setCheckState(Qt.Unchecked)
+                    found_pkg = pkg_search(all_sections_not_installed, pkg.id)
+                    section = found_pkg.parent.parent.name
+                    ppa = found_pkg.parent.name
+                    pkg_states[section][ppa].pop(found_pkg['id'])
+                    delete_ppa_if_empty(section, ppa)
+                if item.checkState() == Qt.PartiallyChecked:
+                    # but if the pkg wasn't downloaded/converted yet
+                    if pkg.installed == Qt.Unchecked:
+                        if item.background().color() == Qt.red:
+                            pkg_states['uninstalling'][pkg.ppa].pop(pkg.id)
+                            delete_ppa_if_empty('uninstalling', pkg.ppa)
+                            add_item_to_section('installed', pkg)
+                            item.setCheckState(Qt.Checked)
+                            item.setBackground(Qt.color0)
+                        else:
+                            cfg.add_item_to_section('tobeinstalled', pkg)
+                    # or item is to be uninstalled
+                    if pkg.installed == Qt.Checked:
                         pkg_states['installed'][pkg.ppa].pop(pkg.id)
                         delete_ppa_if_empty('installed', pkg.ppa)
-                        add_item_to_section('uninstalling', pkg)
+                        cfg.add_item_to_section('tobeuninstalled', pkg)
                         item.setBackground(QBrush(Qt.red))
-            # item is to be downloaded/converted
-            if item.checkState() == Qt.PartiallyChecked:
-                # but if the pkg wasn't downloaded/converted yet
-                if pkg.installed == Qt.Unchecked:
-                    cfg.add_item_to_section('tobeinstalled', pkg)
-                # or item is to be uninstalled
-                if pkg.installed == Qt.Checked:
-                    cfg.add_item_to_section('tobeuninstalled', pkg)
-                    #TVModel.clear_brush = item.background()
-                    item.setBackground(QBrush(Qt.red))
-            if item.checkState() == Qt.Checked:
-                item.setCheckState(Qt.Unchecked)
-            pkg.installed = item.checkState()
-        cfg.filename = config_dir + CONFIG_FILE
-        cfg.write()
+                pkg.installed = item.checkState()
+            cfg.filename = config_dir + CONFIG_FILE
+            cfg.write()
+            super().itemChanged.connect(self.itemChanged)
+        except KeyError as e:
+            pass
+        except Exception as e:
+            pass
+

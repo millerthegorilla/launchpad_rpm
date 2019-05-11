@@ -163,7 +163,8 @@ def pkg_search(sections, search_value):
     return False
 
 
-all_sections = ['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling']
+all_sections_not_installed = ['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling']
+all_sections = ['tobeinstalled', 'downloading', 'converting', 'installing', 'uninstalling', 'installed']
 base = None
 sack = None
 query = None
@@ -199,7 +200,14 @@ def check_installed(name=None, version=None):
         except KeyError as e:
             return False
 
-initialize_search()
+
+def clean_installed():
+    """cleans the installed section, run at start"""
+    for ppa in cfg['pkg_states']['installed']:
+        for pkg in cfg['pkg_states']['installed'][ppa]:
+            if not check_installed(cfg['pkg_states']['installed'][ppa][pkg]['name'],
+                                   cfg['pkg_states']['installed'][ppa][pkg]['version']):
+                cfg['pkg_states']['installed'][ppa].pop(pkg)
 
 
 cache = make_region().configure(

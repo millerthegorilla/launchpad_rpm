@@ -61,7 +61,7 @@ class PackageProcess(list):
                                                         paths,
                                                         scorer=fuzz.token_sort_ratio)
                                 if fp:
-                                    if fuzz.token_set_ratio(fp[0], pkg['name'] + pkg['version']) > 70:
+                                    if fuzz.token_set_ratio(fp[0], pkg['name'] + pkg['version']) > 85:
                                         self._msg_signal.emit("Package " +
                                                               pkg["name"] +
                                                               " has already been converted, moving to installation list")
@@ -82,7 +82,7 @@ class PackageProcess(list):
                                                         paths,
                                                         scorer=fuzz.token_sort_ratio)
                                 if fp:
-                                    if fuzz.token_set_ratio(fp[0], pkg['name'] + pkg['version']) > 70:
+                                    if fuzz.token_set_ratio(fp[0], pkg['name'] + pkg['version']) > 85:
                                         self._msg_signal.emit("Package " +
                                                               pkg["name"] +
                                                               " has already been downloaded, moving to conversion list")

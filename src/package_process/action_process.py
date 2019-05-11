@@ -1,8 +1,7 @@
 from lprpm_conf import cfg, rpms_dir, has_pending, initialize_search, pkg_search, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
-from os.path import isfile
-from os import remove
+import time
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
 from package_process.package_process import PackageProcess
@@ -81,6 +80,7 @@ class ActionProcess(PackageProcess):
 
     def continue_actioning_if_ok(self):
         pkg_links = []
+        cfg.write()
         for process in self._processes:
             pkg_links = pkg_links + process.action_pkgs()
         self._thread_pool.apply_async(self._action_pkgs, (pkg_links,), callback=self._finish_actioning)
@@ -118,12 +118,16 @@ class ActionProcess(PackageProcess):
                                  in cache may be empty; action_process.py line 115")
         except Exception as e:
             self._log_signal.emit(e, logging.CRITICAL)
-
+        #now = time.time()
+        timer_running = False
         while 1:
             QGuiApplication.instance().processEvents()
-            line = self._process.stdout.readline()
+            line = self._process.stdout.readline().rstrip('\n')
             self._process.stdout.flush()
             if line:
+                # if timer_running is False and time.time() - now > 5:
+                #     timer_running = True
+                #     self._action_timer_signal.emit(True)
                 # self.log_signal.emit(line, logging.INFO)
                 if 'kxfedlog' in line:
                     self._lock.acquire()
@@ -159,41 +163,39 @@ class ActionProcess(PackageProcess):
                     self._msg_signal.emit('Installed ' + name)
                     self._log_signal.emit('Installed ' + name, logging.INFO)
                     self._lock.release()
-                    found_pkg = pkg_search[['installing'], name]
-                    if isfile(found_pkg['rpm_path']):
-                        remove(found_pkg['rpm_path'])
-                        found_pkg['rpm_path'] = ""
                 if 'kxfeduninstalled' in line:
                     name = line.lstrip('kxfeduninstalled').replace('\n', '').strip()
                     self._lock.acquire()
                     self._msg_signal.emit('Uninstalled ' + name)
                     self._log_signal.emit('Uninstalled ' + name, logging.INFO)
                     self._lock.release()
-                if 'verif' in line:
+                if 'kxfedverify_begin' in line:
                     self._lock.acquire()
-                    self._msg_signal.emit(line)
                     self._log_signal.emit(line, logging.INFO)
-                    self._action_timer_signal.emit(True)
+                    if timer_running is False:
+                        timer_running = True
+                        self._action_timer_signal.emit(True)
                     self._lock.release()
-                # TODO delete package from uninstalled state
-                # TODO change highlighted color of checkbox row to normal color
-                # TODO delete rpm if it says so in the preferences
-                if 'kxfedstop' in line:
+                if 'kxfedverify_end' in line:
                     self._lock.acquire()
-                    self._msg_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished")
-                    self._log_signal.emit("Transaction ", line.lstrip('kxfedstop'), " has finished", logging.INFO)
+                    self._log_signal.emit(line, logging.INFO)
+                    self._action_timer_signal.emit(False)
+                    timer_running = False
+                    self._progress_signal.emit(0, 0)
+                    self._transaction_progress_signal.emit(0, 0)
                     self._lock.release()
+                    break
             else:
                 if self._process.poll() is not None:
                     self._lock.acquire()
                     self._progress_signal.emit(0, 0)
                     self._transaction_progress_signal.emit(0, 0)
+                    self._action_timer_signal.emit(False)
+                    timer_running = False
                     self._lock.release()
+
                     break
         return len(pkg_links) - self._errors
-
-    def _install_debs(self):
-        pass
 
     def move_cache(self):
         for process in self._processes:

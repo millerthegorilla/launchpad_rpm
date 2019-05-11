@@ -18,7 +18,8 @@ from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from lprpm_conf import cfg, cache, clean_section, all_sections, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
+from lprpm_conf import cfg, cache, pkg_states, clean_section, \
+                        all_sections_not_installed, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
 else:
@@ -151,10 +152,10 @@ class Packages(QThread):
         self._list_changed_signal.emit(self._ppa, self._arch)
 
     def install_pkgs_button(self):
-        clean_section(all_sections)
+        clean_section(all_sections_not_installed)
         empty = True
-        for section in all_sections:
-            if bool(section) is True:
+        for section in all_sections_not_installed:
+            if bool(pkg_states[section]) is True:
                 empty = False
         if empty is True:
             self._ended_signal.emit(ENDED_NTD)
