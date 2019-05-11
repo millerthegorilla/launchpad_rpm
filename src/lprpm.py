@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QApplication
 from launchpadlib.errors import HTTPError
 
 from treeview.tvmodel import TVModel
-from lprpm_conf import cfg, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC, ENDED_NTD
+from lprpm_conf import cfg, initialize_search, clean_installed, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC, ENDED_NTD
 import lprpm_main_window
 
 
@@ -35,6 +35,7 @@ class LPRpm(QThread):
         self.main_window.arch_combo.addItem("amd64")
         self.main_window.arch_combo.addItem("i386")
         self._timer_num = 0
+        self._timer = QTimer()
         # signals
         self.msg_signal.connect(self._message_user)  # , type=Qt.DirectConnection)
         self.log_signal.connect(self._log_msg)  # type=Qt.DirectConnection)
@@ -61,6 +62,12 @@ class LPRpm(QThread):
                                  populate_pkgs_signal=self.populate_pkgs_signal,
                                  action_timer_signal=self.action_timer_signal)
         # self.pkg_model.setSortRole(TVITEM_ROLE)
+
+        # initialises the dnf base, sack and query
+        initialize_search()
+
+        # cleans the installed section, which during testing has been gathering fluff.
+        clean_installed()
 
         # connect
         self.connect()
@@ -99,6 +106,8 @@ class LPRpm(QThread):
     @pyqtSlot(int)
     def _ended(self, cancellation):
         self.moveToThread(self.main_window.thread())
+        self._progress_changed(0, 0)
+        self._transaction_progress_changed(0, 0)
         if cancellation == ENDED_NTD:
             self._message_user("Nothing to do!")
         if cancellation == ENDED_ERR:
@@ -147,17 +156,18 @@ class LPRpm(QThread):
     def _action_timer(self, cont):
         """This is for the progress bar when dealing with undefined length
            actions, in packages.py"""
-        self._timer = QTimer()
-        self._timer.setSingleShot(False)
-        self._timer.timeout.connect(self._timer_fire)
+        if not self._timer.isActive() and cont is True:
+            # self.moveToThread(self.main_window.thread())
+            self._timer.setSingleShot(False)
+            self._timer.timeout.connect(self._timer_fire)
+            self._timer.start(500)
         if self._timer.isActive() and cont is False:
             self._timer.stop()
-        elif not self._timer.isActive() and cont is True:
-            self._timer.start(500)
 
     def _timer_fire(self):
-        self._timer_num += 1
-        self.progress_signal.emit(self._timer_num % 100, 100)
+        self.moveToThread(self.main_window.thread())
+        self._timer_num = self.main_window.progress_bar.value() + 1
+        self._progress_changed(self._timer_num % 100, 100)
 
     def connect(self):
         try:

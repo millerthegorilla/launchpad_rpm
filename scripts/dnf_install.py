@@ -11,7 +11,7 @@ class Progress(callback.TransactionProgress):
 
     @staticmethod
     def error(message):
-        print('kxfedmsg', message)
+        print('kxfedmsg', "There has been a transaction error, please check messages")
         print('kxfedlog', message)
         print('kxfedexcept', message)
         sys.stdout.flush()
@@ -22,30 +22,38 @@ class Progress(callback.TransactionProgress):
             if ti_done == 0:
                 print('kxfedmsg', package.name, " is being installed.")
                 print('kxfedlog', package.name, " is being installed.")
+                sys.stdout.flush()
             if ti_done == ti_total:
                 print('kxfedinstalled', package.name)
                 print('kxfedmsg', package.name, " is being verified.")
                 print('kxfedlog', package.name, " is being verified.")
-                print('kxfedverify')
+                print('kxfedverify_begin')
+                sys.stdout.flush()
         if action == callback.PKG_REMOVE:
             if ti_done == 0:
                 print('kxfedmsg', package.name, " is being removed.")
                 print('kxfedlog', package.name, " is being removed.")
+                sys.stdout.flush()
             if ti_done == ti_total:
                 print('kxfeduninstalled', package.name)
                 print('kxfedmsg', package.name, " is being verified.")
                 print('kxfedlog', package.name, " is being verified.")
-                print('kxfedverify')
+                print('kxfedverify_begin')
+                sys.stdout.flush()
         if action == callback.PKG_VERIFY:
             print('kxfedmsg', package.name, " is verified.")
             print('kxfedlog', package.name, " is verified.")
+            print('kxfedverify_end')
+            sys.stdout.flush()
         if action == callback.TRANS_PREPARATION:
             print('kxfedmsg', "Transaction is being prepared")
             print('kxfedlog', "Transaction is being prepared")
+            sys.stdout.flush()
         if action == callback.TRANS_POST:
             print('kxfedmsg', "Transaction finished, verification continuing...")
             print('kxfedlog', "Transaction finished, verification continuing...")
-
+            print('kxfedverify_begin')
+            sys.stdout.flush()
             ti_done = 0
             ti_total = 0
             ts_done = 0
@@ -81,7 +89,7 @@ class ActionRpms:
                     print('kxfedexcept', 'Error uninstalling ', name, ' It\'s not installed...')
                     sys.stdout.flush()
             else:
-                name = sys.argv[1] + filename
+                name = filename
                 print('kxfedmsg Installing ', name)
                 sys.stdout.flush()
                 pkgs = self.base.add_remote_rpms([name])
