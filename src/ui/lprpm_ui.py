@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'lprpm_ui.ui'
+# Form implementation generated from reading ui file 'assets/lprpm_ui.ui'
 #
 # Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
@@ -167,9 +167,18 @@ class Ui_MainWindow(object):
         self.btn_refresh_cache.setObjectName("btn_refresh_cache")
         self.btn_show_messages = QtWidgets.QAction(MainWindow)
         self.btn_show_messages.setObjectName("btn_show_messages")
-        self.menuPreferences.addAction(self.btn_refresh_cache)
+        self.btn_clear_downloaded = QtWidgets.QAction(MainWindow)
+        self.btn_clear_downloaded.setObjectName("btn_clear_downloaded")
+        self.btn_clear_converted = QtWidgets.QAction(MainWindow)
+        self.btn_clear_converted.setObjectName("btn_clear_converted")
+        self.btn_show_installed = QtWidgets.QAction(MainWindow)
+        self.btn_show_installed.setObjectName("btn_show_installed")
         self.menuPreferences.addAction(self.btn_show_messages)
+        self.menuPreferences.addAction(self.btn_show_installed)
         self.menuPreferences.addAction(self.btn_edit_config)
+        self.menuPreferences.addAction(self.btn_clear_downloaded)
+        self.menuPreferences.addAction(self.btn_clear_converted)
+        self.menuPreferences.addAction(self.btn_refresh_cache)
         self.menuPreferences.addSeparator()
         self.menuPreferences.addAction(self.btn_quit)
         self.menuBar.addAction(self.menuPreferences.menuAction())
@@ -179,7 +188,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "KXFed - KXStudio on Fedora"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "LpRpm - access launchpad.net"))
         self.team_label.setText(_translate("MainWindow", "Team :"))
         self.ppa_label.setText(_translate("MainWindow", "PPA :"))
         self.arch_label.setText(_translate("MainWindow", "Arch :"))
@@ -189,8 +198,11 @@ class Ui_MainWindow(object):
         self.load_label.setText(_translate("MainWindow", "TextLabel"))
         self.menuPreferences.setTitle(_translate("MainWindow", "&Preferences..."))
         self.btn_edit_config.setText(_translate("MainWindow", "&Edit Configuration"))
-        self.btn_quit.setText(_translate("MainWindow", "Exit"))
+        self.btn_quit.setText(_translate("MainWindow", "&Exit"))
         self.btn_refresh_cache.setText(_translate("MainWindow", "&Refresh Cache"))
         self.btn_show_messages.setText(_translate("MainWindow", "&Messages"))
+        self.btn_clear_downloaded.setText(_translate("MainWindow", "Clear &Downloaded Folder"))
+        self.btn_clear_converted.setText(_translate("MainWindow", "Clear &Converted Folder"))
+        self.btn_show_installed.setText(_translate("MainWindow", "&Show installed"))
 
 

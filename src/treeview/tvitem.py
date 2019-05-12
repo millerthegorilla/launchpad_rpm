@@ -3,6 +3,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QStandardItem
 
 TVITEM_ROLE = Qt.UserRole + 1
+TEAMNAME_ROLE = Qt.UserRole + 2
+PPA_ROLE = Qt.UserRole + 3
 
 
 class TVItem:
@@ -10,27 +12,31 @@ class TVItem:
         self._deb_path = ""
         self._rpm_path = ""
         self._deb_link = ""
-        self._build_link = QStandardItem(pkg_list[0])
+        self._build_link = pkg_list[0]
         self._ppa = pkg_list[1]
         self._installed = Qt.Unchecked
         self._install_state = QStandardItem()
         self._install_state.__lt__ = self.less_than
-        self._install_state.setData(self, role=TVITEM_ROLE)
+        #self._install_state.setData(self, role=TVITEM_ROLE)
         self._install_state.setCheckable(True)
         # self._install_state.setEditable(False)
         self._install_state.setTristate(True)
         self._install_state.setCheckState(Qt.Unchecked)
         self._name = QStandardItem(pkg_list[2])
-        self._name.setData(self, role=TVITEM_ROLE)
+       # self._name.setData(self, role=TVITEM_ROLE)
         self._version = QStandardItem(pkg_list[3])
-        self._version.setData(self, role=TVITEM_ROLE)
-        self._row = [self._install_state, self._name, self._version, self._build_link]
+       # self._version.setData(self, role=TVITEM_ROLE)
+        self._team_display_name = QStandardItem(pkg_list[4])
+        self._team_name = pkg_list[5]
+        self._team_display_name.setData(self._team_name, role=TEAMNAME_ROLE)
+        self._team_display_name.setData(self._ppa, role=PPA_ROLE)
+        self._row = [self._install_state, self._name, self._version, self._team_display_name]
         # self._id = uuid.uuid4().urn
-        self._id = pkg_list[4]
+        self._id = pkg_list[6]
 
     @property
     def build_link(self):
-        return self._build_link.text()
+        return self._build_link
 
     @property
     def name(self):

@@ -8,8 +8,10 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QTimer
 from PyQt5.QtWidgets import QApplication
 from launchpadlib.errors import HTTPError
 
-from treeview.tvmodel import TVModel
-from lprpm_conf import cfg, initialize_search, clean_installed, ENDED_ERR, ENDED_CANCEL, ENDED_SUCC, ENDED_NTD
+from treeview.pkg_tvmodel import PkgTVModel
+from lprpm_conf import cfg, initialize_search, \
+                        clean_installed, ENDED_ERR, ENDED_CANCEL, \
+                        ENDED_SUCC, ENDED_NTD
 import lprpm_main_window
 
 
@@ -48,21 +50,19 @@ class LPRpm(QThread):
         self.populate_pkgs_signal.connect(self.populate_pkgs)
         self.action_timer_signal.connect(self._action_timer)
 
-        self.pkg_model = TVModel(['Installed', 'Pkg Name', 'Version', 'Description'],
-                                 self._team.lower(),
-                                 self.main_window.arch_combo.currentText().lower(),
-                                 msg_signal=self.msg_signal,
-                                 log_signal=self.log_signal,
-                                 progress_signal=self.progress_signal,
-                                 transaction_progress_signal=self.transaction_progress_signal,
-                                 lock_model_signal=self.lock_model_signal,
-                                 list_filling_signal=self.list_filling_signal,
-                                 ended_signal=self.ended_signal,
-                                 request_action_signal=self.request_action_signal,
-                                 populate_pkgs_signal=self.populate_pkgs_signal,
-                                 action_timer_signal=self.action_timer_signal)
-        # self.pkg_model.setSortRole(TVITEM_ROLE)
-
+        self.pkg_model = PkgTVModel(['Installed', 'Pkg Name', 'Version', 'Team Name'],
+                                    self._team.lower(),
+                                    self.main_window.arch_combo.currentText().lower(),
+                                    msg_signal=self.msg_signal,
+                                    log_signal=self.log_signal,
+                                    progress_signal=self.progress_signal,
+                                    transaction_progress_signal=self.transaction_progress_signal,
+                                    lock_model_signal=self.lock_model_signal,
+                                    list_filling_signal=self.list_filling_signal,
+                                    ended_signal=self.ended_signal,
+                                    request_action_signal=self.request_action_signal,
+                                    populate_pkgs_signal=self.populate_pkgs_signal,
+                                    action_timer_signal=self.action_timer_signal)
         # initialises the dnf base, sack and query
         initialize_search()
 

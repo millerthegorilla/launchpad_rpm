@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QFileDialog
 from lprpm_conf import cfg, tmp_dir
-from ui.lprpm_prefs_ui import UiPrefsDialog
+from ui.lprpm_prefs_ui_dialog import UiLPRpmPrefsDialog
 
 
 class LPRpmPrefsDialog(QDialog):
@@ -8,7 +8,7 @@ class LPRpmPrefsDialog(QDialog):
         super(LPRpmPrefsDialog, self).__init__()
 
         # Set up the user interface from Designer.
-        self.ui = UiPrefsDialog()
+        self.ui = UiLPRpmPrefsDialog()
         self.ui.setupUi(self)
         self.ui.directory_label.setToolTip(
             "The directories that store the deb and rpm files are located here, \
