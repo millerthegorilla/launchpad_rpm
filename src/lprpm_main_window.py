@@ -6,11 +6,12 @@ from threading import RLock
 from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QStringListModel
 from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
-
-from lprpm_conf import cfg, cache, pkg_states
-from lprpm_prefs import LPRpmPrefsDialog
+from os import scandir, remove
+from lprpm_conf import cfg, cache, pkg_states, rpms_dir, debs_dir
+from lprpm_prefs_dialog import LPRpmPrefsDialog
 from ui.lprpm_ui import Ui_MainWindow
 from lprpm_msgs_dialog import LPRpmMsgsDialog
+from lprpm_installed_dialog import LPRpmInstalledDialog
 from lprpm import LPRpm
 
 
@@ -40,12 +41,20 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.btn_refresh_cache.triggered.connect(self.refresh_cache)
 
         # preferences dialog
-        self.lprpm_prefs_dialog = LPRpmPrefsDialog()
+        #self.lprpm_prefs_dialog = LPRpmPrefsDialog()
         self.btn_edit_config.triggered.connect(self.show_prefs)
 
         # messages dialog
         self.lprpm_msgs_dialog = LPRpmMsgsDialog()
         self.btn_show_messages.triggered.connect(self.show_msgs)
+
+        # installed dialog
+        self.lprpm_installed_dialog = LPRpmInstalledDialog()
+        self.btn_show_installed.triggered.connect(self.show_installed)
+
+        # menu clear buttons
+        self.btn_clear_converted.triggered.connect(self.clear_converted)
+        self.btn_clear_downloaded.triggered.connect(self.clear_downloaded)
 
         # connection button
         self.reconnectBtn.setVisible(False)
@@ -134,6 +143,9 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def show_msgs(self):
         self.lprpm_msgs_dialog.show()
 
+    def show_installed(self):
+        self.lprpm_installed_dialog.show()
+
     def lock_model(self, enabled):
         self.pkgs_tableView.setEnabled(enabled)
 
@@ -154,19 +166,16 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
             self.pkgs_tableView.resizeRowsToContents()
 
     def progress_change(self, amount, total):
-        # self.lock.acquire(blocking=True)
         if amount == 0 or total == 0:
             self.progress_bar.setVisible(False)
         else:
             # TODO perhaps obtain a lock somewhere in this function
+            # TODO rather than the lock around the call to this function
             self.progress_bar.setVisible(True)
             self.progress_bar.setMaximum(total)
             self.progress_bar.setValue(amount)
 
-    # self.lock.release()
-
     def transaction_progress_changed(self, amount, total):
-        # self.lock.acquire(blocking=True)
         if amount == 0 and total == 0:
             self.transaction_progress_bar.setVisible(False)
             self.transaction_progress_bar.setValue(0)
@@ -174,8 +183,6 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
             self.transaction_progress_bar.setVisible(True)
             self.transaction_progress_bar.setMaximum(total)
             self.transaction_progress_bar.setValue(amount)
-
-    # self.lock.release()
 
     def message_user(self, msg):
         self.lock.acquire(blocking=True)
@@ -262,3 +269,15 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
             except OSError as e:
                 self.log_signal.emit(e, logging.CRITICAL)
             event.accept()
+
+    @staticmethod
+    def clear_downloaded():
+        with scandir(debs_dir) as it:
+            for file in it:
+                remove(file.path)
+
+    @staticmethod
+    def clear_converted():
+        with scandir(rpms_dir) as it:
+            for file in it:
+                remove(file.path)

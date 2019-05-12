@@ -26,7 +26,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>KXFed - KXStudio on Fedora</string>
+   <string>LpRpm - access launchpad.net</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -267,9 +267,12 @@
     <property name="title">
      <string>&amp;Preferences...</string>
     </property>
-    <addaction name="btn_refresh_cache"/>
     <addaction name="btn_show_messages"/>
+    <addaction name="btn_show_installed"/>
     <addaction name="btn_edit_config"/>
+    <addaction name="btn_clear_downloaded"/>
+    <addaction name="btn_clear_converted"/>
+    <addaction name="btn_refresh_cache"/>
     <addaction name="separator"/>
     <addaction name="btn_quit"/>
    </widget>
@@ -282,7 +285,7 @@
   </action>
   <action name="btn_quit">
    <property name="text">
-    <string>Exit</string>
+    <string>&amp;Exit</string>
    </property>
   </action>
   <action name="btn_refresh_cache">
@@ -293,6 +296,21 @@
   <action name="btn_show_messages">
    <property name="text">
     <string>&amp;Messages</string>
+   </property>
+  </action>
+  <action name="btn_clear_downloaded">
+   <property name="text">
+    <string>Clear &amp;Downloaded Folder</string>
+   </property>
+  </action>
+  <action name="btn_clear_converted">
+   <property name="text">
+    <string>Clear &amp;Converted Folder</string>
+   </property>
+  </action>
+  <action name="btn_show_installed">
+   <property name="text">
+    <string>&amp;Show installed</string>
    </property>
   </action>
  </widget>

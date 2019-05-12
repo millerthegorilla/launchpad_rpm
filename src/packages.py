@@ -137,6 +137,8 @@ class Packages(QThread):
                                ppa,
                                i.binary_package_name,
                                i.binary_package_version,
+                               self.lp_team.display_name,
+                               self.lp_team.name,
                                uuid.uuid4().urn]
                         if pkg not in pkgs:
                             pkgs.append(pkg)
