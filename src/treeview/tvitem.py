@@ -9,6 +9,14 @@ PPA_ROLE = Qt.UserRole + 3
 
 class TVItem:
     def __init__(self, pkg_list):
+        """pkg_list is a list:
+          [i.build_link,
+           ppa,
+           i.binary_package_name,
+           i.binary_package_version,
+           self.lp_team.display_name,
+           self.lp_team.name,
+           uuid.uuid4().urn]"""
         self._deb_path = ""
         self._rpm_path = ""
         self._deb_link = ""
@@ -49,6 +57,10 @@ class TVItem:
     @property
     def ppa(self):
         return self._ppa
+
+    @property
+    def team(self):
+        return self._team_name
 
     @property
     def installed(self):

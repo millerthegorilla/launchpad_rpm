@@ -97,11 +97,19 @@ else:
 arch = cfg['arch']
 
 
-def delete_ppa_if_empty(section, ppa):
+def delete_ppa_if_empty(section, team, ppa):
     """section is string, ppa is string"""
-    if ppa in cfg['pkg_states'][section]:
-        if not cfg['pkg_states'][section][ppa]:  # if ppa is empty
-            cfg['pkg_states'][section].pop(ppa)
+    if ppa in cfg['pkg_states'][section][team]:
+        if not cfg['pkg_states'][section][team][ppa]:  # if ppa is empty
+            cfg['pkg_states'][section][team].pop(ppa)
+            cfg.write()
+
+
+def delete_team_if_empty(section, team):
+    """section is string, ppa is string"""
+    if team in cfg['pkg_states'][section]:
+        if not cfg['pkg_states'][section][team]:  # if ppa is empty
+            cfg['pkg_states'][section].pop(team)
             cfg.write()
 
 
@@ -112,33 +120,37 @@ def clean_section(sections):
     for section in sections:
         if type(section) is str:
             section = cfg['pkg_states'][section]
-        for ppa in section:
-            delete_ppa_if_empty(section.name, ppa)
+        for team in section:
+            for ppa in section[team]:
+                delete_ppa_if_empty(section.name, team, ppa)
+                delete_team_if_empty(section.name, team)
 
 
 def add_item_to_section(section, pkg):
     """section is a string name of section
        pkg is of type tvitem or a configobj section"""
     if type(pkg) is TVItem:
-        if pkg.ppa not in cfg['pkg_states'][section]:
-            cfg['pkg_states'][section][pkg.ppa] = {}
-        if pkg.id not in cfg['pkg_states'][section][pkg.ppa]:
-            cfg['pkg_states'][section][pkg.ppa][pkg.id] = {}
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['id'] = pkg.id
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['name'] = pkg.name
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['version'] = pkg.version
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
-            cfg['pkg_states'][section][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+        if pkg.team not in cfg['pkg_states'][section]:
+            cfg['pkg_states'][section][pkg.team] = {}
+        if pkg.ppa not in cfg['pkg_states'][section][pkg.team]:
+            cfg['pkg_states'][section][pkg.team][pkg.ppa] = {}
+        if pkg.id not in cfg['pkg_states'][section][pkg.team][pkg.ppa]:
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id] = {}
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['id'] = pkg.id
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['name'] = pkg.name
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['version'] = pkg.version
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
+            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
             return True
         else:
             return False
     else:
-        if pkg.parent.name not in cfg['pkg_states'][section]:
-            cfg['pkg_states'][section][pkg.parent.name] = {}
-        if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.name]:
-            cfg['pkg_states'][section][pkg.parent.name][pkg['id']] = pkg
+        if pkg.parent.parent.name not in cfg['pkg_states'][section]:
+            cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name] = {}
+        if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name]:
+            cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name][pkg['id']] = pkg
             return True
         else:
             return False
@@ -146,9 +158,10 @@ def add_item_to_section(section, pkg):
 
 def has_pending(section):
     if cfg['pkg_states'][section]:
-        for ppa in cfg['pkg_states'][section]:
-            if cfg['pkg_states'][section][ppa]:
-                return True
+        for team in cfg['pkg_states'][section]:
+            for ppa in cfg['pkg_states'][team][section]:
+                if cfg['pkg_states'][section][team][ppa]:
+                    return True
     return False
 
 
@@ -156,10 +169,11 @@ def pkg_search(sections, search_value):
     """sections is a list of strings - names of sections - to search
        search value is content string"""
     for section in sections:
-        for ppa in cfg['pkg_states'][section]:
-            for pkgid in cfg['pkg_states'][section][ppa]:
-                if search_value in [str(v) for v in cfg['pkg_states'][section][ppa][pkgid].dict().values()]:
-                    return cfg['pkg_states'][section][ppa][pkgid]
+        for team in cfg['pkg_states'][section]:
+            for ppa in cfg['pkg_states'][section][team]:
+                for pkgid in cfg['pkg_states'][section][team][ppa]:
+                    if search_value in [str(v) for v in cfg['pkg_states'][section][team][ppa][pkgid].dict().values()]:
+                        return cfg['pkg_states'][section][team][ppa][pkgid]
     return False
 
 
@@ -203,11 +217,12 @@ def check_installed(name=None, version=None):
 
 def clean_installed():
     """cleans the installed section, run at start"""
-    for ppa in cfg['pkg_states']['installed']:
-        for pkg in cfg['pkg_states']['installed'][ppa]:
-            if not check_installed(cfg['pkg_states']['installed'][ppa][pkg]['name'],
-                                   cfg['pkg_states']['installed'][ppa][pkg]['version']):
-                cfg['pkg_states']['installed'][ppa].pop(pkg)
+    for team in cfg['pkg_states']['installed']:
+        for ppa in cfg['pkg_states']['installed'][team]:
+            for pkg in cfg['pkg_states']['installed'][team][ppa]:
+                if not check_installed(cfg['pkg_states']['installed'][team][ppa][pkg]['name'],
+                                       cfg['pkg_states']['installed'][team][ppa][pkg]['version']):
+                    cfg['pkg_states']['installed'][team][ppa].pop(pkg)
 
 
 cache = make_region().configure(
@@ -217,6 +232,7 @@ cache = make_region().configure(
 
 cfg._lock = RLock()
 cfg.delete_ppa_if_empty = delete_ppa_if_empty
+cfg.delete_team_if_empty = delete_team_if_empty
 cfg.add_item_to_section = add_item_to_section
 
 __this__.cfg = cfg
