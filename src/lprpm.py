@@ -187,6 +187,7 @@ class LPRpm(QThread):
             self.msg_signal.emit('Error connecting - see messages for more detail - check your internet connection. ')
 
 
+# TODO change to use dnf
 def check_requirements():
     dependencies = []
     import distro

@@ -7,7 +7,7 @@ from PyQt5.QtGui import QBrush, QColor
 
 import packages
 from lprpm_conf import cfg, \
-    pkg_states, delete_ppa_if_empty, \
+    pkg_states, delete_ppa_if_empty, delete_team_if_empty, \
     add_item_to_section, pkg_search, check_installed, \
     all_sections_not_installed
 from treeview.tvmodel import TVModel
@@ -94,8 +94,9 @@ class PkgTVModel(TVModel):
                         pkg.install_state.setBackground(Qt.red)
                         self.appendRow(pkg.row)
                     else:
-                        pkg_states['uninstalling'][pkg.ppa].pop(pkg.id)
-                        delete_ppa_if_empty('uninstalling', pkg.ppa)
+                        pkg_states['uninstalling'][pkg.team][pkg.ppa].pop(pkg.id)
+                        delete_ppa_if_empty('uninstalling', pkg.team, pkg.ppa)
+                        delete_team_if_empty('uninstalling', pkg.team)
                         continue
                 if pkg_search(['tobeinstalled', 'downloading', 'converting', 'installing'], pkg.id):
                     pkg.installed = Qt.PartiallyChecked

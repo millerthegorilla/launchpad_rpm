@@ -28,5 +28,14 @@ class LPRpmInstalledDialog(QDialog):
         self.populate_model()
 
     def populate_model(self):
-        for pkg in pkg_states['installled']:
-            item = TVItem(pkg.values())
+        for team in pkg_states['installed']:
+            for ppa in pkg_states['installed'][team]:
+                for pkg in pkg_states['installed'][team][ppa]:
+                    item = TVItem([pkg_states['installed'][team][ppa][pkg]['build_link'],
+                                   ppa,
+                                   pkg_states['installed'][team][ppa][pkg]['name'],
+                                   pkg_states['installed'][team][ppa][pkg]['version'],
+                                   team,
+                                   "",
+                                   pkg_states['installed'][team][ppa][pkg]['id']])
+                    self.model.appendRow(item.row)

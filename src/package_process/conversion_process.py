@@ -72,7 +72,8 @@ class ConversionProcess(PackageProcess):
                 found_pkg = pkg_search([self._section], search_value=deb_path)
                 if found_pkg:
                     if isfile(rpms_dir + rpm_name):
-                        pkg_states[self._section][found_pkg.parent.name][found_pkg.name]['rpm_path'] = \
+                        pkg_states[self._section][found_pkg.parent.parent.name]\
+                            [found_pkg.parent.name][found_pkg.id]['rpm_path'] = \
                             rpms_dir + rpm_name
                     num_of_conv += 1
                     if isfile(found_pkg['deb_path']) and cfg['delete_downloaded'] == 'True':
@@ -88,14 +89,15 @@ class ConversionProcess(PackageProcess):
                 break
         assert num_of_conv > 0, "num of conv is zero"
         if num_of_conv > 0:
-            for ppa in pkg_states[self._section]:
-                if pkg_states[self._section][ppa]:
-                    for pkg_id in pkg_states[self._section][ppa]:
-                        if not isfile(pkg_states[self._section][ppa][pkg_id][self._path_name]):
-                            self._lock.acquire()
-                            self._log_signal.emit('Error - did not convert ' +
-                                                  pkg_states[self._section][ppa][pkg_id]['name'], logging.INFO)
-                            self._lock.release()
+            for team in pkg_states[self._section]:
+                for ppa in pkg_states[self._section][team]:
+                    if pkg_states[self._section][team][ppa]:
+                        for pkg_id in pkg_states[self._section][team][ppa]:
+                            if not isfile(pkg_states[self._section][team][ppa][pkg_id][self._path_name]):
+                                self._lock.acquire()
+                                self._log_signal.emit('Error - did not convert ' +
+                                                      pkg_states[self._section][team][ppa][pkg_id]['name'], logging.INFO)
+                                self._lock.release()
         else:
             self._log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
             return False

@@ -30,10 +30,11 @@ class DownloadProcess(PackageProcess):
 
     def prepare_action(self):
         moved_section = False
-        for ppa in pkg_states["tobeinstalled"]:
-            for pkg_id in pkg_states["tobeinstalled"][ppa]:
-                add_item_to_section(self._section, pkg_states["tobeinstalled"][ppa].pop(pkg_id))
-                moved_section = True
+        for team in pkg_states["tobeinstalled"]:
+            for ppa in pkg_states["tobeinstalled"][team]:
+                for pkg_id in pkg_states["tobeinstalled"][team][ppa]:
+                    add_item_to_section(self._section, pkg_states["tobeinstalled"][team][ppa].pop(pkg_id))
+                    moved_section = True
         moved_section = super().prepare_action() | moved_section
         cfg.write()
         return moved_section
