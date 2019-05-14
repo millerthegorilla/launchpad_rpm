@@ -13,7 +13,7 @@ from lprpm_conf import cfg, \
 from treeview.tvitem import TVITEM_ROLE
 
 
-class TVModel(QStandardItemModel, QObject):
+class TVModel(QStandardItemModel):
     list_filled_signal = pyqtSignal(list)
     list_changed_signal = pyqtSignal(str, str)
     clear_brush = None
@@ -31,7 +31,6 @@ class TVModel(QStandardItemModel, QObject):
 
     def sort(self, p_int, order=None):
         super(TVModel, self).sort(p_int, order)
-        pass
 
     def itemChanged(self, item):
         # I tried overloaded itemChanged, and also connecting itemChanged
@@ -99,9 +98,13 @@ class TVModel(QStandardItemModel, QObject):
                     # if item is being set to uninstall
                     if pkg.installed == Qt.Checked:
                         # move from installed to uninstalling section
+                        section = pkg_search(['uninstalling'], pkg.id)
+                        if section:
+                            # installed window has changed
+                            item.setBackground(QBrush(Qt.red))
                         section = pkg_search(['installed'], pkg.id)
                         if section:
-                            pkg_states['installed'][pkg.ppa].pop(pkg.id)
+                            pkg_states['installed'][pkg.team][pkg.ppa].pop(pkg.id)
                             delete_ppa_if_empty('installed', pkg.team, pkg.ppa)
                             delete_team_if_empty('installed', pkg.team)
                             add_item_to_section('uninstalling', pkg)
@@ -109,19 +112,24 @@ class TVModel(QStandardItemModel, QObject):
                 # item is to be downloaded/converted
                 if item.checkState() == Qt.Checked:
                     # ie item was partially checked and user clicked it
-                    item.setCheckState(Qt.Unchecked)
-                    found_pkg = pkg_search(all_sections_not_installed, pkg.id)
-                    section = found_pkg.parent.parent.name
-                    ppa = found_pkg.parent.name
-                    team = found_pkg.parent.parent.name
-                    pkg_states[section][ppa].pop(found_pkg['id'])
-                    delete_ppa_if_empty(section, team, ppa)
-                    delete_team_if_empty(section, team)
+                    if pkg.installed != Qt.Checked:
+                        # the pkg.installed check here is for the sake of the installed table
+                        item.setCheckState(Qt.Unchecked)
+                        found_pkg = pkg_search(all_sections_not_installed, pkg.id)
+                        section = found_pkg.parent.parent.name
+                        ppa = found_pkg.parent.name
+                        team = found_pkg.parent.parent.name
+                        pkg_states[section][team][ppa].pop(found_pkg['id'])
+                        delete_ppa_if_empty(section, team, ppa)
+                        delete_team_if_empty(section, team)
+                    else:
+                        # so the installed table has been checked again and the pkgtable needs adjusting
+                        item.setBackground(QBrush(Qt.color0))
                 if item.checkState() == Qt.PartiallyChecked:
                     # but if the pkg wasn't downloaded/converted yet
                     if pkg.installed == Qt.Unchecked:
                         if item.background().color() == Qt.red:
-                            pkg_states['uninstalling'][pkg.ppa].pop(pkg.id)
+                            pkg_states['uninstalling'][pkg.team][pkg.ppa].pop(pkg.id)
                             delete_ppa_if_empty('uninstalling', pkg.team, pkg.ppa)
                             delete_team_if_empty('uninstalling', pkg.team)
                             add_item_to_section('installed', pkg)
@@ -131,7 +139,7 @@ class TVModel(QStandardItemModel, QObject):
                             cfg.add_item_to_section('tobeinstalled', pkg)
                     # or item is to be uninstalled
                     if pkg.installed == Qt.Checked:
-                        pkg_states['installed'][pkg.ppa].pop(pkg.id)
+                        pkg_states['installed'][pkg.team][pkg.ppa].pop(pkg.id)
                         delete_ppa_if_empty('installed', pkg.team, pkg.ppa)
                         delete_team_if_empty('installed', pkg.team)
                         cfg.add_item_to_section('tobeuninstalled', pkg)
@@ -141,7 +149,7 @@ class TVModel(QStandardItemModel, QObject):
             cfg.write()
             super().itemChanged.connect(self.itemChanged)
         except KeyError as e:
-            pass
+            super().itemChanged.connect(self.itemChanged)
         except Exception as e:
             pass
 

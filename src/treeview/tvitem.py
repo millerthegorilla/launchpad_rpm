@@ -25,15 +25,15 @@ class TVItem:
         self._installed = Qt.Unchecked
         self._install_state = QStandardItem()
         self._install_state.__lt__ = self.less_than
-        #self._install_state.setData(self, role=TVITEM_ROLE)
+        self._install_state.setData(self, role=TVITEM_ROLE)
         self._install_state.setCheckable(True)
         # self._install_state.setEditable(False)
         self._install_state.setTristate(True)
         self._install_state.setCheckState(Qt.Unchecked)
         self._name = QStandardItem(pkg_list[2])
-       # self._name.setData(self, role=TVITEM_ROLE)
+        self._name.setData(self, role=TVITEM_ROLE)
         self._version = QStandardItem(pkg_list[3])
-       # self._version.setData(self, role=TVITEM_ROLE)
+        self._version.setData(self, role=TVITEM_ROLE)
         self._team_display_name = QStandardItem(pkg_list[4])
         self._team_name = pkg_list[5]
         self._team_display_name.setData(self._team_name, role=TEAMNAME_ROLE)

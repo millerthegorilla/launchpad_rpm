@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 
-import multiprocessing.dummy
-import logging
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, Qt
 from PyQt5.QtGui import QBrush, QColor
 
-from lprpm_conf import cfg, \
-    pkg_states, delete_ppa_if_empty, \
-    add_item_to_section, pkg_search, check_installed
 from treeview.tvmodel import TVModel
-from treeview.tvitem import TVItem
+from treeview.tvitem import TEAMNAME_ROLE, PPA_ROLE, TVITEM_ROLE
 
 
 class InstalledTVModel(TVModel):
@@ -18,9 +13,28 @@ class InstalledTVModel(TVModel):
     highlight_color = QColor(255, 204, 204)
     highlight_brush = QBrush()
 
-    def __init__(self, headers):
+    def __init__(self, headers, current_team, model):
         super(InstalledTVModel, self).__init__(headers)
-
+        self.current_team = current_team
+        self.main_window_model = model
         TVModel.highlight_brush.setColor(TVModel.highlight_color)
         TVModel.highlight_brush.setStyle(Qt.DiagCrossPattern)
+
+    def itemChanged(self, item):
+        super().itemChanged(item)
+        pkg = item.data(TVITEM_ROLE)
+        if pkg.team.lower() == self.current_team.lower():
+            try:
+                row = self.main_window_model.findItems(pkg.name, column=1)[0].row()
+                foreign_table_item = self.main_window_model.itemFromIndex(self.main_window_model.index(row, 0))
+                if foreign_table_item.checkState() == Qt.Checked:
+                    foreign_table_item.setCheckState(Qt.Unchecked)
+                elif foreign_table_item.checkState() == Qt.Unchecked:
+                    foreign_table_item.data(TVITEM_ROLE)._installed = Qt.Checked
+                    foreign_table_item.setCheckState(Qt.Checked)
+                #super().itemChanged(item_)
+                #self.main_window_model.itemChanged(item_)
+            except Exception as e:
+                pass
+
 
