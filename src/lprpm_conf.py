@@ -129,31 +129,36 @@ def clean_section(sections):
 def add_item_to_section(section, pkg):
     """section is a string name of section
        pkg is of type tvitem or a configobj section"""
+
     if type(pkg) is TVItem:
-        if pkg.team not in cfg['pkg_states'][section]:
-            cfg['pkg_states'][section][pkg.team] = {}
-        if pkg.ppa not in cfg['pkg_states'][section][pkg.team]:
-            cfg['pkg_states'][section][pkg.team][pkg.ppa] = {}
-        if pkg.id not in cfg['pkg_states'][section][pkg.team][pkg.ppa]:
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id] = {}
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['id'] = pkg.id
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['name'] = pkg.name
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['version'] = pkg.version
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
-            cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
-            return True
-        else:
-            return False
+        if not pkg_search([section], pkg.id):
+            if pkg.team not in cfg['pkg_states'][section]:
+                cfg['pkg_states'][section][pkg.team] = {}
+            if pkg.ppa not in cfg['pkg_states'][section][pkg.team]:
+                cfg['pkg_states'][section][pkg.team][pkg.ppa] = {}
+            if pkg.id not in cfg['pkg_states'][section][pkg.team][pkg.ppa]:
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id] = {}
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['id'] = pkg.id
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['name'] = pkg.name
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['version'] = pkg.version
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_link'] = pkg.deb_link
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['deb_path'] = pkg.deb_path
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['rpm_path'] = pkg.rpm_path
+                cfg['pkg_states'][section][pkg.team][pkg.ppa][pkg.id]['build_link'] = pkg.build_link
+                return True
+            else:
+                return False
     else:
-        if pkg.parent.parent.name not in cfg['pkg_states'][section]:
-            cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name] = {}
-        if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name]:
-            cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name][pkg['id']] = pkg
-            return True
-        else:
-            return False
+        if not pkg_search([section], pkg['id']):
+            if pkg.parent.parent.name not in cfg['pkg_states'][section]:
+                cfg['pkg_states'][section][pkg.parent.parent.name] = {}
+            if pkg.parent.name not in cfg['pkg_states'][section][pkg.parent.parent.name]:
+                cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name] = {}
+            if pkg['id'] not in cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name]:
+                cfg['pkg_states'][section][pkg.parent.parent.name][pkg.parent.name][pkg['id']] = pkg
+                return True
+            else:
+                return False
 
 
 def has_pending(section):

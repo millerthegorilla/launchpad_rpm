@@ -68,7 +68,7 @@ class PkgTVModel(TVModel):
     @pyqtSlot(str, str)
     def list_changed(self, ppa, arch):
         self.removeRows(0, self.rowCount())
-        self.pkg_list_complete(self.packages.populate_pkgs(ppa, arch))
+        self.packages.populate_pkgs(ppa, arch)
 
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
