@@ -56,58 +56,61 @@ class ConversionProcess(PackageProcess):
             self._log_signal.emit(e)
         num_of_conv = 0
         i = 0
-        while 1:
-            next_line = self._process.stdout.readline()
-            self._process.stdout.flush()
-            QGuiApplication.processEvents()
-            i += 1
+        try:
+            while 1:
+                next_line = self._process.stdout.readline()
+                self._process.stdout.flush()
+                QGuiApplication.processEvents()
+                i += 1
+                self._lock.acquire()
+                self._progress_signal.emit(i % 17, deb_length * 17)
+                self._log_signal.emit(next_line, logging.INFO)
+                self._lock.release()
+                if 'Converted' in next_line:
+                    word_list = next_line.split(' to ')
+                    rpm_name = word_list[1].rstrip('\n')
+                    deb_path = word_list[0].lstrip('Converted ')
+                    found_pkg = pkg_search([self._section], search_value=deb_path)
+                    if found_pkg:
+                        if isfile(rpms_dir + rpm_name):
+                            pkg_states[self._section][found_pkg.parent.parent.name]\
+                                [found_pkg.parent.name][found_pkg['id']]['rpm_path'] = \
+                                rpms_dir + rpm_name
+                        num_of_conv += 1
+                        if isfile(found_pkg['deb_path']) and cfg['delete_downloaded'] == 'True':
+                            remove(found_pkg['deb_path'])
+                            found_pkg['deb_path'] = ""
+                        self._lock.acquire()
+                        self._transaction_progress_signal.emit(num_of_conv, deb_length)
+                        self._msg_signal.emit(next_line)
+                        self._lock.release()
+                if next_line == '' and self._process.poll() is not None:
+                    self._progress_signal.emit(0, 0)
+                    self._transaction_progress_signal.emit(0, 0)
+                    break
+            assert num_of_conv > 0, "num of conv is zero"
+            if num_of_conv > 0:
+                for team in pkg_states[self._section]:
+                    for ppa in pkg_states[self._section][team]:
+                        if pkg_states[self._section][team][ppa]:
+                            for pkg_id in pkg_states[self._section][team][ppa]:
+                                if not isfile(pkg_states[self._section][team][ppa][pkg_id][self._path_name]):
+                                    self._lock.acquire()
+                                    self._log_signal.emit('Error - did not convert ' +
+                                                          pkg_states[self._section][team][ppa][pkg_id]['name'], logging.INFO)
+                                    self._lock.release()
+            else:
+                self._log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
+                return False
             self._lock.acquire()
-            self._progress_signal.emit(i % 17, deb_length * 17)
-            self._log_signal.emit(next_line, logging.INFO)
+            self._msg_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length))
+            self._log_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length), logging.INFO)
+            self._progress_signal.emit(0, 0)
+            self._transaction_progress_signal.emit(0, 0)
             self._lock.release()
-            if 'Converted' in next_line:
-                word_list = next_line.split(' to ')
-                rpm_name = word_list[1].rstrip('\n')
-                deb_path = word_list[0].lstrip('Converted ')
-                found_pkg = pkg_search([self._section], search_value=deb_path)
-                if found_pkg:
-                    if isfile(rpms_dir + rpm_name):
-                        pkg_states[self._section][found_pkg.parent.parent.name]\
-                            [found_pkg.parent.name][found_pkg.id]['rpm_path'] = \
-                            rpms_dir + rpm_name
-                    num_of_conv += 1
-                    if isfile(found_pkg['deb_path']) and cfg['delete_downloaded'] == 'True':
-                        remove(found_pkg['deb_path'])
-                        found_pkg['deb_path'] = ""
-                    self._lock.acquire()
-                    self._transaction_progress_signal.emit(num_of_conv, deb_length)
-                    self._msg_signal.emit(next_line)
-                    self._lock.release()
-            if next_line == '' and self._process.poll() is not None:
-                self._progress_signal.emit(0, 0)
-                self._transaction_progress_signal.emit(0, 0)
-                break
-        assert num_of_conv > 0, "num of conv is zero"
-        if num_of_conv > 0:
-            for team in pkg_states[self._section]:
-                for ppa in pkg_states[self._section][team]:
-                    if pkg_states[self._section][team][ppa]:
-                        for pkg_id in pkg_states[self._section][team][ppa]:
-                            if not isfile(pkg_states[self._section][team][ppa][pkg_id][self._path_name]):
-                                self._lock.acquire()
-                                self._log_signal.emit('Error - did not convert ' +
-                                                      pkg_states[self._section][team][ppa][pkg_id]['name'], logging.INFO)
-                                self._lock.release()
-        else:
-            self._log_signal.emit(Exception("There is an error with the bash script when converting."), logging.CRITICAL)
-            return False
-        self._lock.acquire()
-        self._msg_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length))
-        self._log_signal.emit("Converted " + str(num_of_conv) + " out of " + str(deb_length), logging.INFO)
-        self._progress_signal.emit(0, 0)
-        self._transaction_progress_signal.emit(0, 0)
-        self._lock.release()
-        return num_of_conv, deb_length
+            return num_of_conv, deb_length
+        except Exception as e:
+            pass
 
     def _conversion_finished(self, tup):
         if tup is not False:

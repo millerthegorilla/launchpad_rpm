@@ -116,7 +116,7 @@ class TVModel(QStandardItemModel):
                         # the pkg.installed check here is for the sake of the installed table
                         item.setCheckState(Qt.Unchecked)
                         found_pkg = pkg_search(all_sections_not_installed, pkg.id)
-                        section = found_pkg.parent.parent.name
+                        section = found_pkg.parent.parent.parent.name
                         ppa = found_pkg.parent.name
                         team = found_pkg.parent.parent.name
                         pkg_states[section][team][ppa].pop(found_pkg['id'])

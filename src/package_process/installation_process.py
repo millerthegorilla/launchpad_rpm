@@ -47,9 +47,9 @@ class InstallationProcess(PackageProcess):
                 for pkg_id in pkg_states[self._section][team][ppa]:
                     if check_installed(pkg_states[self._section][team][ppa][pkg_id]['name'],
                                        pkg_states[self._section][team][ppa][pkg_id]['version']):
-                        add_item_to_section(self._next_section, pkg_states[self._section][ppa].pop(pkg_id))
+                        add_item_to_section(self._next_section, pkg_states[self._section][team][ppa].pop(pkg_id))
                     else:
-                        add_item_to_section(self._error_section, pkg_states[self._section][ppa].pop(pkg_id))
+                        add_item_to_section(self._error_section, pkg_states[self._section][team][ppa].pop(pkg_id))
                 delete_ppa_if_empty(self._section, team, ppa)
                 delete_team_if_empty(self._section, team)
         cfg.write()
