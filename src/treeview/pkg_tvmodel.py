@@ -68,7 +68,7 @@ class PkgTVModel(TVModel):
     @pyqtSlot(str, str)
     def list_changed(self, ppa, arch):
         self.removeRows(0, self.rowCount())
-        self.pkg_list_complete(self.packages.populate_pkg_list(ppa, arch))
+        self.pkg_list_complete(self.packages.populate_pkgs(ppa, arch))
 
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
@@ -106,3 +106,7 @@ class PkgTVModel(TVModel):
                     pkg.installed = Qt.Unchecked
                     self.appendRow(pkg.row)
         cfg.write()
+
+    def repopulate(self):
+        """method for external table to adjust values in this model"""
+        self.populate_pkg_list(self._packages.ppa, self._packages.arch)

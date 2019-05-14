@@ -159,7 +159,7 @@ def add_item_to_section(section, pkg):
 def has_pending(section):
     if cfg['pkg_states'][section]:
         for team in cfg['pkg_states'][section]:
-            for ppa in cfg['pkg_states'][team][section]:
+            for ppa in cfg['pkg_states'][section][team]:
                 if cfg['pkg_states'][section][team][ppa]:
                     return True
     return False

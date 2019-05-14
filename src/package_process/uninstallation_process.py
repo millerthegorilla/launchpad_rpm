@@ -55,7 +55,7 @@ class UninstallationProcess(PackageProcess):
         pkg_links = []
         for team in pkg_states['uninstalling']:
             for ppa in pkg_states['uninstalling'][team]:
-                for pkg in pkg_states['uninstalling'][ppa][team]:
+                for pkg in pkg_states['uninstalling'][team][ppa]:
                     pkg_links.append('uninstalling' + pkg_states['uninstalling'][team][ppa][pkg]['name'])
         return pkg_links
 

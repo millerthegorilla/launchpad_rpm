@@ -26,11 +26,13 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Close</set>
      </property>
     </widget>
    </item>
   </layout>
+  <zorder>buttonBox</zorder>
+  <zorder>tableView</zorder>
  </widget>
  <resources/>
  <connections>

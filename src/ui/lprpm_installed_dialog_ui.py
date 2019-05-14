@@ -21,17 +21,16 @@ class UiLPRpmInstalledDialog(object):
         self.verticalLayout.addWidget(self.tableView)
         self.buttonBox = QtWidgets.QDialogButtonBox(LPRpmInstalledDialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Apply|QtWidgets.QDialogButtonBox.Close)
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
+        self.buttonBox.raise_()
+        self.tableView.raise_()
 
         self.retranslateUi(LPRpmInstalledDialog)
-        self.buttonBox.accepted.connect(LPRpmInstalledDialog.accept)
         self.buttonBox.rejected.connect(LPRpmInstalledDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(LPRpmInstalledDialog)
 
     def retranslateUi(self, LPRpmInstalledDialog):
         _translate = QtCore.QCoreApplication.translate
         LPRpmInstalledDialog.setWindowTitle(_translate("LPRpmInstalledDialog", "Installed Packages"))
-
-

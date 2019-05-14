@@ -49,7 +49,8 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.btn_show_messages.triggered.connect(self.show_msgs)
 
         # installed dialog
-        self.lprpm_installed_dialog = LPRpmInstalledDialog()
+        #self.lprpm_installed_dialog = LPRpmInstalledDialog()
+        self.lprpm_installed_dialog = None
         self.btn_show_installed.triggered.connect(self.show_installed)
 
         # menu clear buttons
@@ -144,6 +145,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.lprpm_msgs_dialog.show()
 
     def show_installed(self):
+        self.lprpm_installed_dialog = LPRpmInstalledDialog(self.lprpm.team, self.lprpm.pkg_model)
         self.lprpm_installed_dialog.show()
 
     def lock_model(self, enabled):

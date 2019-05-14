@@ -60,6 +60,7 @@ class Packages(QThread):
         self._list_filled_signal = list_filled_signal
         self._list_changed_signal = list_changed_signal
         self._action_timer_signal = action_timer_signal
+        self._actioning_finished_signal.connect(self.post_state_change)
         # process handle for the sake of cancelling
         self.process = None
         self._num_processed = 0
@@ -103,7 +104,7 @@ class Packages(QThread):
         self._ppa = ppa
         self._arch = arch
         #  self._list_filling_signal.emit()
-        self._thread_pool.apply_async(self._populate_pkg_list, (ppa, arch,),
+        self._thread_pool.apply_async(self._populate_pkg_list, (self._lp_team, ppa, arch,),
                                       callback=self.pkg_populated)
 
     def pkg_populated(self, pkgs):
@@ -111,11 +112,11 @@ class Packages(QThread):
         self._list_filling_signal.emit(False)
 
     @cache.cache_on_arguments()
-    def _populate_pkg_list(self, ppa, arch):
+    def _populate_pkg_list(self, team, ppa, arch):
         try:
             pkgs = []
             ubuntu = self._launchpad.distributions["ubuntu"]
-            lp_ppa = self._lp_team.getPPAByName(distribution=ubuntu, name=ppa)
+            lp_ppa = team.getPPAByName(distribution=ubuntu, name=ppa)
 
             ds1 = ubuntu.getSeries(name_or_version="trusty")
             ds2 = ubuntu.getSeries(name_or_version="lucid")
@@ -162,7 +163,6 @@ class Packages(QThread):
         if empty is True:
             self._ended_signal.emit(ENDED_NTD)
         else:
-            self._actioning_finished_signal.connect(self.post_state_change)
             try:
                 if cfg['distro_type'] == 'rpm':
                     self._transaction = RPMTransaction(team_web_link=self._lp_team_web_link,
@@ -190,9 +190,6 @@ class Packages(QThread):
             except Exception as e:
                 self._log_signal.emit(format_exc(), logging.ERROR)
                 self._ended_signal.emit(ENDED_ERR)
-
-    def begin_transaction(self, transaction):
-        pass
 
     def cancel(self):
         if self.process is not None:
