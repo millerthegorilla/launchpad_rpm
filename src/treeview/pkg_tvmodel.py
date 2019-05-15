@@ -25,13 +25,15 @@ class PkgTVModel(TVModel):
                  transaction_progress_signal=None,
                  lock_model_signal=None, list_filling_signal=None,
                  ended_signal=None, request_action_signal=None,
-                 populate_pkgs_signal=None, action_timer_signal=None):
+                 populate_pkgs_signal=None, action_timer_signal=None,
+                 installed_changed_signal=None):
         super(PkgTVModel, self).__init__(headers)
         self.list_filling_signal = list_filling_signal
         self.list_filled_signal.connect(self.pkg_list_complete)
         self.list_changed_signal.connect(self.list_changed)
         self._msg_signal = msg_signal
         self._log_signal = log_signal
+        self._installed_changed_signal = installed_changed_signal
         self._pool = multiprocessing.dummy.Pool(10)
         TVModel.highlight_brush.setColor(TVModel.highlight_color)
         TVModel.highlight_brush.setStyle(Qt.DiagCrossPattern)
@@ -49,7 +51,8 @@ class PkgTVModel(TVModel):
                                            populate_pkgs_signal=populate_pkgs_signal,
                                            action_timer_signal=action_timer_signal,
                                            list_filled_signal=self.list_filled_signal,
-                                           list_changed_signal=self.list_changed_signal)
+                                           list_changed_signal=self.list_changed_signal,
+                                           installed_changed_signal=installed_changed_signal)
 
     @property
     def packages(self):
@@ -72,6 +75,7 @@ class PkgTVModel(TVModel):
 
     @pyqtSlot(list)
     def pkg_list_complete(self, pkgs):
+        """list_filled_signal - called when the pkg_model has changed"""
         for pkg in pkgs:
             pkg = TVItem(pkg)
             # if pkg is installed
@@ -107,6 +111,6 @@ class PkgTVModel(TVModel):
                     self.appendRow(pkg.row)
         cfg.write()
 
-    def repopulate(self):
-        """method for external table to adjust values in this model"""
-        self.populate_pkg_list(self._packages.ppa, self._packages.arch)
+    # def repopulate(self):
+    #     """method for external table to adjust values in this model"""
+    #     self.populate_pkg_list(self._packages.ppa, self._packages.arch)

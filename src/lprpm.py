@@ -26,8 +26,9 @@ class LPRpm(QThread):
     request_action_signal = pyqtSignal(str, 'PyQt_PyObject')
     populate_pkgs_signal = pyqtSignal()
     action_timer_signal = pyqtSignal(bool)
+    installed_changed_signal = pyqtSignal()
 
-    def __init__(self, mainw):
+    def __init__(self, mainw, ):
         super().__init__()
         self.main_window = mainw
         # instance variables
@@ -49,7 +50,7 @@ class LPRpm(QThread):
         self.request_action_signal.connect(self._request_action)
         self.populate_pkgs_signal.connect(self.populate_pkgs)
         self.action_timer_signal.connect(self._action_timer)
-
+        self.installed_dialog = None
         self.pkg_model = PkgTVModel(['Installed', 'Pkg Name', 'Version', 'Team Name'],
                                     self._team.lower(),
                                     self.main_window.arch_combo.currentText().lower(),
@@ -62,7 +63,8 @@ class LPRpm(QThread):
                                     ended_signal=self.ended_signal,
                                     request_action_signal=self.request_action_signal,
                                     populate_pkgs_signal=self.populate_pkgs_signal,
-                                    action_timer_signal=self.action_timer_signal)
+                                    action_timer_signal=self.action_timer_signal,
+                                    installed_changed_signal=self.installed_changed_signal)
         # initialises the dnf base, sack and query
         initialize_search()
 
@@ -169,15 +171,18 @@ class LPRpm(QThread):
         self._timer_num = self.main_window.progress_bar.value() + 1
         self._progress_changed(self._timer_num % 100, 100)
 
+    def populate_ppa_combo(self):
+        ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
+        self.main_window._ppas_json = requests.get(ppas_link).json()
+        self.main_window.ppa_combo.clear()
+        for ppa in self.main_window._ppas_json['entries']:
+            self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
+
     def connect(self):
         try:
             self._pkg_model.packages.connect()
             self.main_window.reconnectBtn.setVisible(False)
-            ppas_link = self.pkg_model.packages.lp_team.ppas_collection_link
-            self.main_window._ppas_json = requests.get(ppas_link).json()
-            self.main_window.ppa_combo.clear()
-            for ppa in self.main_window._ppas_json['entries']:
-                self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
+            self.populate_ppa_combo()
             self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
                                               self.pkg_model.packages.arch)
             self.log_signal.emit("Connected to Launchpad", logging.INFO)
