@@ -35,7 +35,8 @@ class Packages(QThread):
                  transaction_progress_signal=None,
                  lock_model_signal=None, list_filling_signal=None,
                  ended_signal=None, request_action_signal=None, populate_pkgs_signal=None,
-                 list_filled_signal=None, list_changed_signal=None, action_timer_signal=None):
+                 list_filled_signal=None, list_changed_signal=None, action_timer_signal=None,
+                 installed_changed_signal=None):
         super().__init__()
         self.team = team
         self._launchpad = None
@@ -59,6 +60,7 @@ class Packages(QThread):
         self._populate_pkgs_signal = populate_pkgs_signal
         self._list_filled_signal = list_filled_signal
         self._list_changed_signal = list_changed_signal
+        self._installed_changed_signal = installed_changed_signal
         self._action_timer_signal = action_timer_signal
         self._actioning_finished_signal.connect(self.post_state_change)
         # process handle for the sake of cancelling
@@ -110,6 +112,8 @@ class Packages(QThread):
     def pkg_populated(self, pkgs):
         self._list_filled_signal.emit(pkgs)
         self._list_filling_signal.emit(False)
+        if self._installed_changed_signal is not None:
+            self._installed_changed_signal.emit()
 
     @cache.cache_on_arguments()
     def _populate_pkg_list(self, team, ppa, arch):
@@ -144,7 +148,6 @@ class Packages(QThread):
                         if pkg not in pkgs:
                             pkgs.append(pkg)
 
-            cfg['cache']['initiated'] = time.time()
             return pkgs
         except HTTPError as http_error:
             self._log_signal.emit(http_error, logging.CRITICAL)

@@ -13,6 +13,8 @@ from ui.lprpm_ui import Ui_MainWindow
 from lprpm_msgs_dialog import LPRpmMsgsDialog
 from lprpm_installed_dialog import LPRpmInstalledDialog
 from lprpm import LPRpm
+from multiprocessing.dummy import Pool as ThreadPool
+import time
 
 
 class MainW(QMainWindow, Ui_MainWindow, QApplication):
@@ -21,6 +23,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         QMainWindow.__init__(self)
         self.setupUi(self)
         self.lock = RLock()
+        self._thread_pool = ThreadPool(10)
 
         self._movie = QMovie("./assets/loader.gif")
         self.load_label.setMovie(self._movie)
@@ -96,18 +99,41 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
         self.team_line_edit.textChanged.connect(self._team_text)
         self.qcomplete = QCompleter()
-        self.qcomplete.highlighted.connect(self._chosen)
+        self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
+        self.qcomplete.activated.connect(self._chosen)
+        self._team_data_list = None
+        self._team_data_wrapper()
 
     def _chosen(self, text):
         self.lprpm.team = text
         self.qcomplete.popup().hide()
 
     def _team_text(self, text):
-        if len(text) > 3:
+        if len(text) > 3 and self._team_data_list is not None:
             model = QStringListModel()
-            model.setStringList([x.name for x in self.lprpm.pkg_model.packages.launchpad.people.findTeam(text=text)])
+            model.setStringList(self._team_data_list)
             self.qcomplete.setModel(model)
             self.team_line_edit.setCompleter(self.qcomplete)
+        elif self._team_data_list is None:
+            self.message_user("team list is updating, check back in a few moments...")
+
+    def _team_data_wrapper(self):
+        if cfg['cache']['initiated'] is None:
+            cfg['cache']['initiated'] = time.time()
+        self._thread_pool.apply_async(self._team_data, (cfg['cache']['initiated'],), callback=self._team_data_obtained)
+
+    def _team_data_obtained(self, team_list):
+        self.message_user("Finished updating list of teams from launchpad.  The result is cached and you can renew"
+                          "caches if you wish to reinstall this list")
+        self.log_msg("Finished initiating team list", level=logging.INFO)
+        self._team_data_list = team_list
+
+    @cache.cache_on_arguments()
+    def _team_data(self, initiation_time):
+        self.message_user("Updating list of teams from launchpad.  The result is cached and you can renew"
+                          "caches if you wish to reinstall this list")
+        self.log_msg("initiating team list", level=logging.INFO)
+        return [x.name for x in self.lprpm.pkg_model.packages.launchpad.people.findTeam(text="")]
 
     def _less_than(self, index0, index1):
         # index0 = self._proxy_model.mapToSource(index0)
@@ -145,8 +171,9 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.lprpm_msgs_dialog.show()
 
     def show_installed(self):
-        self.lprpm_installed_dialog = LPRpmInstalledDialog(self.lprpm.team, self.lprpm.pkg_model)
-        self.lprpm_installed_dialog.show()
+        self.lprpm.installed_dialog = LPRpmInstalledDialog(self.lprpm.team, self.lprpm.pkg_model)
+        self.lprpm.installed_changed_signal.connect(self.lprpm.installed_dialog.populate_model)
+        self.lprpm.installed_dialog.show()
 
     def lock_model(self, enabled):
         self.pkgs_tableView.setEnabled(enabled)

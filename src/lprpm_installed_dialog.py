@@ -36,6 +36,7 @@ class LPRpmInstalledDialog(QDialog):
         self.populate_model()
 
     def populate_model(self):
+        self.model.removeRows(0, self.model.rowCount())
         for team in pkg_states['installed']:
             for ppa in pkg_states['installed'][team]:
                 for pkg in pkg_states['installed'][team][ppa]:
@@ -64,7 +65,7 @@ class LPRpmInstalledDialog(QDialog):
                         self.model.appendRow(item.row)
                         display_item = self.model.item(self.model.rowCount() - 1, 0)
                         display_item.setBackground(QBrush(Qt.red))
-                    self.list_changed()
+            self.list_changed()
 
     def list_changed(self):
         self.ui.tableView.resizeColumnsToContents()
