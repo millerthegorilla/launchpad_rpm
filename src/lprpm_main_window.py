@@ -3,18 +3,20 @@ import logging
 import traceback
 from threading import RLock
 
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QStringListModel
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QStringListModel, QEvent
 from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from os import scandir, remove
 from lprpm_conf import cfg, cache, pkg_states, rpms_dir, debs_dir
 from lprpm_prefs_dialog import LPRpmPrefsDialog
-from ui.lprpm_ui import Ui_MainWindow
+from ui.lprpm_main_window_ui import Ui_MainWindow
 from lprpm_msgs_dialog import LPRpmMsgsDialog
 from lprpm_installed_dialog import LPRpmInstalledDialog
+from lprpm_first_run_dialog import LPRpmFirstRunDialog
 from lprpm import LPRpm
 from multiprocessing.dummy import Pool as ThreadPool
 import time
+import pickle
 
 
 class MainW(QMainWindow, Ui_MainWindow, QApplication):
@@ -98,24 +100,42 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self._proxy_model.lessThan = self._less_than
 
         self.team_line_edit.textChanged.connect(self._team_text)
+        #self.team_line_edit.installEventFilter(self.team_line_edit)
+        #self.team_line_edit.textEdited.connect(self._team_text)
         self.qcomplete = QCompleter()
         self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
-        self.qcomplete.activated.connect(self._chosen)
-        self._team_data_list = None
+        #self.qcomplete.activated.connect(self._chosen)
+        # if cfg['cache']['initiated'] is None:
+        #     self._first_run_dialog = LPRpmFirstRunDialog()
+        with open('teamnames.pkl', 'rb') as f:
+            self._team_data_list = pickle.load(f)
+        self.completer_model = QStringListModel()
+        self.completer_model.setStringList(self._team_data_list)
+        self.qcomplete.setModel(self.completer_model)
+        self.team_line_edit.setCompleter(self.qcomplete)
         self._team_data_wrapper()
+
+        self.team_line_edit.returnPressed.connect(self._team_text_return_slot)
+
+    # def eventFilter(self, source, event):
+    #     if event.type is QEvent.KeyPress and source is self.team_line_edit:
+    #         bob = event.key()
+    #         # self.lprpm.team = self.team_line_edit.text()
+    #     return super().eventFilter(source, event)
+
+    def _team_text_return_slot(self):
+        name = self.completer_model.data(self.qcomplete.currentIndex(), 0)
+        if name is None:
+            self.lprpm.team = self.team_line_edit.text()
+        else:
+            self.lprpm.team = name
 
     def _chosen(self, text):
         self.lprpm.team = text
         self.qcomplete.popup().hide()
 
     def _team_text(self, text):
-        if len(text) > 3 and self._team_data_list is not None:
-            model = QStringListModel()
-            model.setStringList(self._team_data_list)
-            self.qcomplete.setModel(model)
-            self.team_line_edit.setCompleter(self.qcomplete)
-        elif self._team_data_list is None:
-            self.message_user("team list is updating, check back in a few moments...")
+        self.qcomplete.setModel(self.completer_model)
 
     def _team_data_wrapper(self):
         if cfg['cache']['initiated'] is None:
@@ -123,16 +143,18 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self._thread_pool.apply_async(self._team_data, (cfg['cache']['initiated'],), callback=self._team_data_obtained)
 
     def _team_data_obtained(self, team_list):
-        self.message_user("Finished updating list of teams from launchpad.  The result is cached and you can renew"
-                          "caches if you wish to reinstall this list")
-        self.log_msg("Finished initiating team list", level=logging.INFO)
+        #self.message_user("Finished updating list of teams from launchpad.  See messages.")
+        self.log_msg("Finished initialising team list, The result is cached and you can renew"
+                     "caches if you wish to reinstall this list", level=logging.INFO)
+        with open('teamnames.pkl', 'wb') as f:
+            pickle.dump(team_list, f)
         self._team_data_list = team_list
 
-    @cache.cache_on_arguments()
+    #@cache.cache_on_arguments()
     def _team_data(self, initiation_time):
-        self.message_user("Updating list of teams from launchpad.  The result is cached and you can renew"
-                          "caches if you wish to reinstall this list")
-        self.log_msg("initiating team list", level=logging.INFO)
+        #self.message_user("Updating list of teams from launchpad.")
+        self.log_msg("Initialising team list. The result is cached and you can renew"
+                     "caches if you wish to reinitialise this list", level=logging.INFO)
         return [x.name for x in self.lprpm.pkg_model.packages.launchpad.people.findTeam(text="")]
 
     def _less_than(self, index0, index1):

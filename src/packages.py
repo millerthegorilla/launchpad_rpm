@@ -18,7 +18,7 @@ from PyQt5.QtCore import pyqtSignal, QThread
 from launchpadlib.errors import HTTPError
 from launchpadlib.launchpad import Launchpad
 from traceback import format_exc
-from lprpm_conf import cfg, cache, pkg_states, clean_section, \
+from lprpm_conf import cfg, cache, cache_dir, pkg_states, clean_section, \
                         all_sections_not_installed, ENDED_CANCEL, ENDED_ERR, ENDED_NTD
 if cfg['distro_type'] == 'rpm':
     from transaction import RPMTransaction
@@ -70,7 +70,7 @@ class Packages(QThread):
         self._teams = None
 
     def connect(self):
-        self._launchpad = Launchpad.login_anonymously('lprpm.py', 'production')
+        self._launchpad = Launchpad.login_anonymously('lprpm', 'production', cache_dir, version='devel')
         self._lp_team = self._launchpad.people[self.team]
         self._lp_team_web_link = self._lp_team.web_link
 
@@ -80,7 +80,8 @@ class Packages(QThread):
 
     @lp_team.setter
     def lp_team(self, team):
-        self._lp_team = self._launchpad.people.findTeam(text=team)[0]
+        list = self._launchpad.people.findTeam(text=team)
+        self._lp_team = list[0]
 
     @property
     def team_web_link(self, team):
