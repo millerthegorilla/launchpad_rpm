@@ -35,6 +35,7 @@ config_dir = str(Path.home()) + "/" + CONFIG_DIR
 tmp_dir = str(Path.home()) + "/.local/share/kxfed/"
 debs_dir = tmp_dir + "debs/"
 rpms_dir = tmp_dir + "rpms/"
+cache_dir = str(Path.home()) + "/" + '.cache/lprpm/'
 
 
 def change_tmp_dir(tmpdir):
@@ -48,7 +49,7 @@ def mkpath(path):
         Path(path).mkdir(parents=True, exist_ok=True)
 
 
-paths = [config_dir, tmp_dir, debs_dir, rpms_dir]
+paths = [config_dir, cache_dir, tmp_dir, debs_dir, rpms_dir]
 for path in paths:
     mkpath(path)
 

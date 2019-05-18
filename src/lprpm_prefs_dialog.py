@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QDialog, QFileDialog
 from lprpm_conf import cfg, tmp_dir
-from ui.lprpm_prefs_ui_dialog import UiLPRpmPrefsDialog
+from ui.lprpm_prefs_dialog_ui import UiLPRpmPrefsDialog
 
 
 class LPRpmPrefsDialog(QDialog):

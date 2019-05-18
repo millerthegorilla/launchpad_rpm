@@ -81,7 +81,10 @@ class LPRpm(QThread):
     @team.setter
     def team(self, name):
         self._team = name
-        self.pkg_model.packages.lp_team = self._team
+        try:
+            self.pkg_model.packages.lp_team = self._team
+        except Exception as e:
+            self.log_signal.emit(str(e))
         self.populate_ppa_combo()
         self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
                                           self.pkg_model.packages.arch)
