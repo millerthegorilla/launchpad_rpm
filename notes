@@ -1,0 +1,18 @@
+install
+one
+many
+
+uninstall
+one
+many
+
+install one and uninstall many
+install many and uninstall one
+
+partial download
+partial convert
+partial install
+
+partial download and install one
+partial download and uninstall one
+partial download and install one and uninstall one

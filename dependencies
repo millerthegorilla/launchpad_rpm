@@ -1,7 +1,17 @@
+
+requests
+httplib2
 launchpadlib
 beautifulsoup4
+lxml
 configobj
-dogpile
+dogpile.cache
 pyqt5
+python-levenshtein
+fuzzywuzzy
 
 dnf rpm-devel
+dnf install redhat-rpm-config (for hardened gcc)
+dnf install python3-devel  for fastcache
+alien
+rpm_build
