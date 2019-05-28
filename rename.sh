@@ -1,4 +1,4 @@
-git filter-branch --env-filter 'if [ "$GIT_AUTHOR_EMAIL" = "james@localhost" ]; then
+git filter-branch --env-filter 'if [ "$GIT_AUTHOR_EMAIL" = "james@localhost.localdomain" ]; then
      GIT_AUTHOR_EMAIL=jamesstewartmiller@gmail.com;
      GIT_AUTHOR_NAME="james miller";
      GIT_COMMITTER_EMAIL=$GIT_AUTHOR_EMAIL;
