@@ -106,7 +106,7 @@ class ActionProcess(PackageProcess):
                                           stderr=PIPE)
                 elif cfg['distro_type'] == 'deb':
                     self._process = Popen(['/usr/bin/pkexec',
-                                          SCRIPT_PATH + 'apt_install.py',
+                                          SCRIPT_PATH + 'deb_install.py',
                                           rpms_dir] + pkg_links,
                                           universal_newlines=True,
                                           bufsize=1,

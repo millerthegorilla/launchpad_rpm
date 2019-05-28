@@ -144,8 +144,8 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def _team_data_obtained(self, team_list):
         #self.message_user("Finished updating list of teams from launchpad.  See messages.")
-        self.log_msg("Finished initialising team list, The result is cached and you can renew"
-                     "caches if you wish to reinstall this list", level=logging.INFO)
+        self.lprpm.log_signal.emit("Finished initialising team list, The result is cached and you can renew"
+                                   "caches if you wish to reinstall this list", level=logging.INFO)
         with open('teamnames.pkl', 'wb') as f:
             pickle.dump(team_list, f)
         self._team_data_list = team_list
@@ -153,8 +153,8 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     #@cache.cache_on_arguments()
     def _team_data(self, initiation_time):
         #self.message_user("Updating list of teams from launchpad.")
-        self.log_msg("Initialising team list. The result is cached and you can renew"
-                     "caches if you wish to reinitialise this list", level=logging.INFO)
+        self.lprpm.log_signal.emit("Initialising team list. The result is cached and you can renew"
+                                   "caches if you wish to reinitialise this list", level=logging.INFO)
         return [x.name for x in self.lprpm.pkg_model.packages.launchpad.people.findTeam(text="")]
 
     def _less_than(self, index0, index1):

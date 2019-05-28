@@ -191,10 +191,11 @@ query = None
 
 
 def initialize_search():
-    global base, sack, query
-    base = Base()
-    sack = base.fill_sack()
-    query = sack.query()
+    if DISTRO_TYPE == 'rpm':
+        global base, sack, query
+        base = Base()
+        sack = base.fill_sack()
+        query = sack.query()
 
 
 def check_installed(name=None, version=None):
