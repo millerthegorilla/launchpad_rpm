@@ -107,7 +107,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         #self.qcomplete.activated.connect(self._chosen)
         # if cfg['cache']['initiated'] is None:
         #     self._first_run_dialog = LPRpmFirstRunDialog()
-        with open('teamnames.pkl', 'rb') as f:
+        with open('../teamnames.pkl', 'rb') as f:
             self._team_data_list = pickle.load(f)
         self.completer_model = QStringListModel()
         self.completer_model.setStringList(self._team_data_list)
