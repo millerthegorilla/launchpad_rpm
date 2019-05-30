@@ -1,4 +1,7 @@
-from lprpm_conf import cfg, rpms_dir, has_pending, initialize_search, pkg_search, ENDED_ERR, SCRIPT_PATH
+from lprpm_conf import cfg, rpms_dir, debs_dir, has_pending, \
+                       initialize_search, purge_conf, \
+                       auto_fix_delete, auto_fix_install, \
+                       ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import time
@@ -107,7 +110,9 @@ class ActionProcess(PackageProcess):
                 elif cfg['distro_type'] == 'deb':
                     self._process = Popen(['/usr/bin/pkexec',
                                           SCRIPT_PATH + 'deb_install.py',
-                                          rpms_dir] + pkg_links,
+                                          debs_dir, str(purge_conf),
+                                          str(auto_fix_install),
+                                          str(auto_fix_delete)] + pkg_links,
                                           universal_newlines=True,
                                           bufsize=1,
                                           stdin=PIPE,
@@ -115,7 +120,7 @@ class ActionProcess(PackageProcess):
                                           stderr=PIPE)
             else:
                 raise ValueError("Error! : links to installable packages \
-                                 in cache may be empty; action_process.py line 115")
+                                 in cache may be empty; action_process.py line 123")
         except Exception as e:
             self._log_signal.emit(e, logging.CRITICAL)
         #now = time.time()
@@ -185,7 +190,9 @@ class ActionProcess(PackageProcess):
                     self._transaction_progress_signal.emit(0, 0)
                     self._lock.release()
                     break
-            else:
+                elif line != '':
+                    self._log_signal.emit(line, logging.INFO)
+            elif line == '':
                 if self._process.poll() is not None:
                     self._lock.acquire()
                     self._progress_signal.emit(0, 0)
@@ -193,7 +200,6 @@ class ActionProcess(PackageProcess):
                     self._action_timer_signal.emit(False)
                     timer_running = False
                     self._lock.release()
-
                     break
         return len(pkg_links) - self._errors
 

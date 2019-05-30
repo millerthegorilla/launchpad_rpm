@@ -37,7 +37,6 @@ debs_dir = tmp_dir + "debs/"
 rpms_dir = tmp_dir + "rpms/"
 cache_dir = str(Path.home()) + "/" + '.cache/lprpm/'
 
-
 def change_tmp_dir(tmpdir):
     cfg[tmp_dir] = tmpdir
     cfg[debs_dir] = tmpdir + "debs/"
@@ -92,10 +91,16 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['delete_converted'] = "True"
     cfg['delete_downloaded'] = "True"
     cfg['log_file_path'] = tmp_dir + cfg["log_name"]
+    cfg['purge_conf'] = True
+    cfg['auto_fix_delete'] = True
+    cfg['auto_fix_install'] = True
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
 arch = cfg['arch']
+purge_conf = cfg['purge_conf']
+auto_fix_delete = cfg['auto_fix_delete']
+auto_fix_install = cfg['auto_fix_install']
 
 
 def delete_ppa_if_empty(section, team, ppa):
