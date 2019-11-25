@@ -12,8 +12,8 @@ from threading import RLock
 
 
 class PackageProcess(list):
-    """An abstract base class that extends also from list. The abstract methods define an interface
-        that must be implemented by the sub classes"""
+    """A base class that extends also from list. Serves as the base for processes,
+       such as action process or conversion"""
     def __init__(self, *args, msg_signal=None, log_signal=None):
         super(PackageProcess, self).__init__(*args)
         self._section = ""

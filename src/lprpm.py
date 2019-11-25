@@ -80,14 +80,20 @@ class LPRpm(QThread):
 
     @team.setter
     def team(self, name):
-        self._team = name
         try:
-            self.pkg_model.packages.lp_team = self._team
-        except Exception as e:
-            self.log_signal.emit(str(e))
-        self.populate_ppa_combo()
-        self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
-                                          self.pkg_model.packages.arch)
+            self.pkg_model.packages.lp_team = name
+        except ValueError as v:
+            self.msg_signal.emit("Unable to find team with that name")
+            self.log_signal.emit("Unable to find team with that name", logging.INFO)
+            return
+        self._team = name
+        if self.populate_ppa_combo() is not 0:
+            self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
+                                              self.pkg_model.packages.arch)
+        else:
+            # try the standard root ppa archive
+            self._pkg_model.populate_pkg_list('ppa',
+                                              self.pkg_model.packages.arch)
         self.log_signal.emit("Connected to Launchpad", logging.INFO)
 
     @property
@@ -180,6 +186,7 @@ class LPRpm(QThread):
         self.main_window.ppa_combo.clear()
         for ppa in self.main_window._ppas_json['entries']:
             self.main_window.ppa_combo.addItem(ppa['displayname'], ppa['name'])
+        return len(self.main_window._ppas_json['entries'])
 
     def connect(self):
         try:
@@ -222,9 +229,5 @@ if __name__ == '__main__':
         app = QApplication(sys.argv)
         myapp = lprpm_main_window.MainW()
         myapp.show()
-
-        # timer = QTimer()
-        # timer.timeout.connect(lambda:None)
-        # timer.start(100)
 
         sys.exit(app.exec_())

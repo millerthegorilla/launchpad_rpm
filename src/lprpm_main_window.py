@@ -3,7 +3,7 @@ import logging
 import traceback
 from threading import RLock
 
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QStringListModel, QEvent
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QStringListModel
 from PyQt5.QtGui import QMovie
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMessageBox, QCompleter
 from os import scandir, remove
@@ -27,10 +27,11 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.lock = RLock()
         self._thread_pool = ThreadPool(10)
 
-        self._movie = QMovie("./assets/loader.gif")
+        self._movie = QMovie("../assets/loader.gif")
         self.load_label.setMovie(self._movie)
         self.load_label.setMinimumWidth(200)
         self.load_label.setMinimumHeight(20)
+
 
         # preferences dialog
         self.lprpm_prefs_dialog = LPRpmPrefsDialog()
@@ -103,10 +104,10 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         #self.team_line_edit.installEventFilter(self.team_line_edit)
         #self.team_line_edit.textEdited.connect(self._team_text)
         self.qcomplete = QCompleter()
-        self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
+        #self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
         #self.qcomplete.activated.connect(self._chosen)
-        # if cfg['cache']['initiated'] is None:
-        #     self._first_run_dialog = LPRpmFirstRunDialog()
+        if cfg['cache']['initiated'] is None:
+            self._first_run_dialog = LPRpmFirstRunDialog()
         with open('../teamnames.pkl', 'rb') as f:
             self._team_data_list = pickle.load(f)
         self.completer_model = QStringListModel()
@@ -124,11 +125,12 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     #     return super().eventFilter(source, event)
 
     def _team_text_return_slot(self):
-        name = self.completer_model.data(self.qcomplete.currentIndex(), 0)
-        if name is None:
-            self.lprpm.team = self.team_line_edit.text()
-        else:
-            self.lprpm.team = name
+        # name = self.completer_model.data(self.qcomplete.currentIndex(), 0)
+        self.lprpm.team = self.team_line_edit.text()
+        # if name is None:
+        #     self.lprpm.team = self.team_line_edit.text()
+        # else:
+        #     self.lprpm.team = name
 
     def _chosen(self, text):
         self.lprpm.team = text
@@ -138,17 +140,17 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.qcomplete.setModel(self.completer_model)
 
     def _team_data_wrapper(self):
-        if cfg['cache']['initiated'] is None:
-            cfg['cache']['initiated'] = time.time()
+        #if cfg['cache']['initiated'] is None or cfg['cache']['initiated']:
         self._thread_pool.apply_async(self._team_data, (cfg['cache']['initiated'],), callback=self._team_data_obtained)
 
     def _team_data_obtained(self, team_list):
-        #self.message_user("Finished updating list of teams from launchpad.  See messages.")
+        self.message_user("Finished updating list of teams from launchpad. Result is cached. See preferences to renew")
         self.lprpm.log_signal.emit("Finished initialising team list, The result is cached and you can renew"
                                    "caches if you wish to reinstall this list", level=logging.INFO)
         with open('teamnames.pkl', 'wb') as f:
             pickle.dump(team_list, f)
         self._team_data_list = team_list
+        cfg['cache']['initiated'] = time.time()
 
     #@cache.cache_on_arguments()
     def _team_data(self, initiation_time):
@@ -271,8 +273,11 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
     def populate_pkgs(self):
         try:
             self.load_label.setVisible(True)
+            ppa = self.ppa_combo.currentData()
+            if ppa is None:
+                ppa = 'ppa'
             self.lprpm.pkg_model.populate_pkg_list(
-                self.ppa_combo.itemData(self.ppa_combo.currentIndex()),
+                ppa,
                 self.arch_combo.currentText())
         except Exception as e:
             self.log_msg(e, logging.ERROR)

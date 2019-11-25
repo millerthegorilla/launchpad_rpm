@@ -62,11 +62,11 @@ class PkgTVModel(TVModel):
     def populate_pkg_list(self, ppa, arch):
         self.list_filling_signal.emit(True)
         self.removeRows(0, self.rowCount())
-        if ppa is not None and arch is not None:
-            self._packages.populate_pkgs(ppa.lower(), arch.lower())
-        else:
-            self._msg_signal.emit("The team " + str(self.packages.lp_team.name) + " has no ppas listed")
+        if ppa is 'ppa':
+            self._msg_signal.emit("The team " + str(self.packages.lp_team.name) +
+                                  " has no ppas listed.  Checking root packages")
             self._log_signal.emit("This team has no ppas listed", logging.INFO)
+        self._packages.populate_pkgs(ppa.lower(), arch.lower())
 
     @pyqtSlot(str, str)
     def list_changed(self, ppa, arch):

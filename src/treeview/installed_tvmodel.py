@@ -32,8 +32,6 @@ class InstalledTVModel(TVModel):
                 elif foreign_table_item.checkState() == Qt.Unchecked:
                     foreign_table_item.data(TVITEM_ROLE)._installed = Qt.Checked
                     foreign_table_item.setCheckState(Qt.Checked)
-                #super().itemChanged(item_)
-                #self.main_window_model.itemChanged(item_)
             except Exception as e:
                 pass
 

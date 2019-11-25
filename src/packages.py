@@ -80,8 +80,11 @@ class Packages(QThread):
 
     @lp_team.setter
     def lp_team(self, team):
-        list = self._launchpad.people.findTeam(text=team)
-        self._lp_team = list[0]
+        name_list = self._launchpad.people.findTeam(text=team)
+        if len(name_list) > 0:
+            self._lp_team = name_list[0]
+        else:
+            raise ValueError
 
     @property
     def team_web_link(self, team):
@@ -104,14 +107,16 @@ class Packages(QThread):
         return self._launchpad
 
     def populate_pkgs(self, ppa, arch):
-        self._ppa = ppa
-        self._arch = arch
-        #  self._list_filling_signal.emit()
-        self._thread_pool.apply_async(self._populate_pkg_list, (self._lp_team, ppa, arch,),
-                                      callback=self.pkg_populated)
+        if arch is not '':
+            self._arch = arch
+        self._list_filling_signal.emit(True)
+        if ppa is not None or (ppa is 'ppa' and self._lp_team.archive_link is not None):
+            self._thread_pool.apply_async(self._populate_pkg_list, (self._lp_team, ppa, arch,),
+                                          callback=self.pkg_populated)
 
     def pkg_populated(self, pkgs):
-        self._list_filled_signal.emit(pkgs)
+        if pkgs is not None and len(pkgs) > 0:
+            self._list_filled_signal.emit(pkgs)
         self._list_filling_signal.emit(False)
         if self._installed_changed_signal is not None:
             self._installed_changed_signal.emit()
@@ -148,10 +153,14 @@ class Packages(QThread):
                                uuid.uuid4().urn]
                         if pkg not in pkgs:
                             pkgs.append(pkg)
-
+            if len(pkgs) is 0:
+                self._log_signal.emit("No packages found in ppa - " + ppa)
             return pkgs
         except HTTPError as http_error:
-            self._log_signal.emit(http_error, logging.CRITICAL)
+            if http_error.content.decode() == "No such ppa: 'ppa'.":
+                self._log_signal.emit("No ppa available, no packages found", logging.INFO)
+            else:
+                self._log_signal.emit(http_error, logging.CRITICAL)
 
     def post_state_change(self):
         self._progress_signal.emit(0, 0)

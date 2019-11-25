@@ -13,7 +13,7 @@ class LPRpmFirstRunDialog(QDialog):
         self._timer = QTimer()
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self._timer_fire)
-        self._timer_id = self._timer.start(500)
+        self._timer_id = self._timer.startTimer(500)
         if cache_renew is False:
             self.ui.label.setText("First run... initialising team names from launchpad.net."
                                   "  The result is cached, so you won't have to wait again,"

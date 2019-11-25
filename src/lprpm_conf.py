@@ -20,9 +20,9 @@ else:
 # %_topdir /home/james/.local/share/kxfed/
 
 # constants
-CONFIG_DIR = ".config/kxfed/"
-CONFIG_FILE = "kxfed.cfg"
-CACHE_FILE = "kxfed.cache.db"
+CONFIG_DIR = ".config/lprpm/"
+CONFIG_FILE = "lprpm.cfg"
+CACHE_FILE = "lprpm.cache.db"
 SCRIPT_PATH = "/home/james/Src/launchpad_rpm/scripts/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
@@ -32,10 +32,11 @@ ENDED_NTD = 3
 __this__ = sys.modules[__name__]
 
 config_dir = str(Path.home()) + "/" + CONFIG_DIR
-tmp_dir = str(Path.home()) + "/.local/share/kxfed/"
+tmp_dir = str(Path.home()) + "/.local/share/lprpm/"
 debs_dir = tmp_dir + "debs/"
 rpms_dir = tmp_dir + "rpms/"
 cache_dir = str(Path.home()) + "/" + '.cache/lprpm/'
+
 
 def change_tmp_dir(tmpdir):
     cfg[tmp_dir] = tmpdir
@@ -53,7 +54,7 @@ for path in paths:
     mkpath(path)
 
 if not os.path.exists(config_dir + CONFIG_FILE):
-    cfg = ConfigObj()
+    cfg = ConfigObj(config_dir + CONFIG_FILE)
     cfg['config'] = {}
     cfg['config']['dir'] = config_dir
     cfg['config']['filename'] = CONFIG_FILE
@@ -64,7 +65,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['cache']['expiration_time'] = "604800"
     cfg['cache']['arguments'] = {}
     cfg['cache']['arguments']['filename'] = config_dir + CACHE_FILE
-    cfg['cache']['initiated'] = {}
+    cfg['cache']['initiated'] = "None"
     cfg['distro_type'] = DISTRO_TYPE
     cfg['pkg_states'] = {}
     cfg['pkg_states']['tobeinstalled'] = {}
@@ -81,7 +82,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['tmp_dir'] = tmp_dir
     cfg['debs'] = {}
     cfg['debs_dir'] = debs_dir
-    cfg['log_name'] = "kxfed.log"
+    cfg['log_name'] = "lprpm.log"
     cfg['rpms_dir'] = rpms_dir
     cfg['arch'] = "amd64"
     cfg['download'] = "True"
@@ -94,6 +95,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['purge_conf'] = True
     cfg['auto_fix_delete'] = True
     cfg['auto_fix_install'] = True
+    cfg.write()
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)
 
