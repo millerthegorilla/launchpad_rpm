@@ -12,11 +12,8 @@ from lprpm_prefs_dialog import LPRpmPrefsDialog
 from ui.lprpm_main_window_ui import Ui_MainWindow
 from lprpm_msgs_dialog import LPRpmMsgsDialog
 from lprpm_installed_dialog import LPRpmInstalledDialog
-from lprpm_first_run_dialog import LPRpmFirstRunDialog
 from lprpm import LPRpm
 from multiprocessing.dummy import Pool as ThreadPool
-import time
-import pickle
 
 
 class MainW(QMainWindow, Ui_MainWindow, QApplication):
@@ -31,7 +28,6 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.load_label.setMovie(self._movie)
         self.load_label.setMinimumWidth(200)
         self.load_label.setMinimumHeight(20)
-
 
         # preferences dialog
         self.lprpm_prefs_dialog = LPRpmPrefsDialog()
@@ -66,7 +62,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         # connection button
         self.reconnectBtn.setVisible(False)
 
-        # kxfed object - controller
+        # lprpm object - controller
         self.lprpm = LPRpm(self)
 
         self.reconnectBtn.pressed.connect(self.lprpm.connect)
@@ -106,15 +102,11 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.qcomplete = QCompleter()
         #self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
         #self.qcomplete.activated.connect(self._chosen)
-        if cfg['cache']['initiated'] is None:
-            self._first_run_dialog = LPRpmFirstRunDialog()
-        with open('../teamnames.pkl', 'rb') as f:
-            self._team_data_list = pickle.load(f)
+
         self.completer_model = QStringListModel()
         self.completer_model.setStringList(self._team_data_list)
         self.qcomplete.setModel(self.completer_model)
         self.team_line_edit.setCompleter(self.qcomplete)
-        self._team_data_wrapper()
 
         self.team_line_edit.returnPressed.connect(self._team_text_return_slot)
 
@@ -138,26 +130,6 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
 
     def _team_text(self, text):
         self.qcomplete.setModel(self.completer_model)
-
-    def _team_data_wrapper(self):
-        #if cfg['cache']['initiated'] is None or cfg['cache']['initiated']:
-        self._thread_pool.apply_async(self._team_data, (cfg['cache']['initiated'],), callback=self._team_data_obtained)
-
-    def _team_data_obtained(self, team_list):
-        self.message_user("Finished updating list of teams from launchpad. Result is cached. See preferences to renew")
-        self.lprpm.log_signal.emit("Finished initialising team list, The result is cached and you can renew"
-                                   "caches if you wish to reinstall this list", level=logging.INFO)
-        with open('teamnames.pkl', 'wb') as f:
-            pickle.dump(team_list, f)
-        self._team_data_list = team_list
-        cfg['cache']['initiated'] = time.time()
-
-    #@cache.cache_on_arguments()
-    def _team_data(self, initiation_time):
-        #self.message_user("Updating list of teams from launchpad.")
-        self.lprpm.log_signal.emit("Initialising team list. The result is cached and you can renew"
-                                   "caches if you wish to reinitialise this list", level=logging.INFO)
-        return [x.name for x in self.lprpm.pkg_model.packages.launchpad.people.findTeam(text="")]
 
     def _less_than(self, index0, index1):
         # index0 = self._proxy_model.mapToSource(index0)

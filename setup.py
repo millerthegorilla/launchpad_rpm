@@ -10,5 +10,5 @@ setup(
     author='James Miller',
     author_email='jamesstewartmiller@gmail.com',
     description='QT Gui application to download, convert, and install packages from launchpad.net',
-    install_requires=['httplib2', 'requests', 'PyQt5', 'launchpadlib', 'fuzzywuzzy']
+    install_requires=['httplib2', 'requests', 'PyQt5', 'launchpadlib', 'fuzzywuzzy', 'configobj', 'dogpile', 'distro']
 )

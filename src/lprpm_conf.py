@@ -65,7 +65,7 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['cache']['expiration_time'] = "604800"
     cfg['cache']['arguments'] = {}
     cfg['cache']['arguments']['filename'] = config_dir + CACHE_FILE
-    cfg['cache']['initiated'] = "None"
+    cfg['cache']['initiated'] = {}
     cfg['distro_type'] = DISTRO_TYPE
     cfg['pkg_states'] = {}
     cfg['pkg_states']['tobeinstalled'] = {}
@@ -95,6 +95,11 @@ if not os.path.exists(config_dir + CONFIG_FILE):
     cfg['purge_conf'] = True
     cfg['auto_fix_delete'] = True
     cfg['auto_fix_install'] = True
+    cfg['initialised'] = {}
+    cfg['initialised']['renew_period'] = None
+    cfg['initialised']['day'] = None
+    cfg['initialised']['month'] = None
+    cfg['initialised']['year'] = None
     cfg.write()
 else:
     cfg = ConfigObj(config_dir + CONFIG_FILE)

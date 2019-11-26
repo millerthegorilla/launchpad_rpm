@@ -13,6 +13,8 @@ from lprpm_conf import cfg, initialize_search, \
                         clean_installed, ENDED_ERR, ENDED_CANCEL, \
                         ENDED_SUCC, ENDED_NTD
 import lprpm_main_window
+from lprpm_first_run_dialog import LPRpmFirstRunDialog
+from datetime import datetime
 
 
 class LPRpm(QThread):
@@ -51,6 +53,7 @@ class LPRpm(QThread):
         self.populate_pkgs_signal.connect(self.populate_pkgs)
         self.action_timer_signal.connect(self._action_timer)
         self.installed_dialog = None
+        self.first_run_dialog = None
         self.pkg_model = PkgTVModel(['Installed', 'Pkg Name', 'Version', 'Team Name'],
                                     self._team.lower(),
                                     self.main_window.arch_combo.currentText().lower(),
@@ -65,6 +68,8 @@ class LPRpm(QThread):
                                     populate_pkgs_signal=self.populate_pkgs_signal,
                                     action_timer_signal=self.action_timer_signal,
                                     installed_changed_signal=self.installed_changed_signal)
+
+        self.check_renew()
         # initialises the dnf base, sack and query
         initialize_search()
 
@@ -174,6 +179,30 @@ class LPRpm(QThread):
             self._timer.start(500)
         if self._timer.isActive() and cont is False:
             self._timer.stop()
+
+    def check_renew(self):
+        renew_cache = False
+        if cfg['initialised']['renew_period'] is None:
+            self.first_run_dialog = LPRpmFirstRunDialog(log_signal=self.log_signal, message_user_signal=self.msg_signal,
+                                                        cache_renew=False)
+        elif cfg['initialised']['renew_period'] == "every_time":
+            renew_cache = True
+        elif cfg['initialised']['renew_period'] == "daily":
+            if cfg['initialised']['month'] != datetime.now().date().month:
+                renew_cache = True
+            elif cfg['initialised']['day'] != datetime.now().date().day:
+                renew_cache = True
+        elif cfg['initialised']['renew_period'] == "monthly":
+            if cfg['initialised']['month'] != datetime.now().date().month:
+                renew_cache = True
+        elif cfg['initialised']['renew_period'] == "6month":
+            if datetime.now().date().year() != cfg['initialised']['year']:
+                if ((12 - cfg['initialised']['month']) + datetime.now().date().month) > 6:
+                    renew_cache = True
+            elif datetime.now().date().month - cfg['initialised']['month'] > 6:
+                renew_cache = True
+        if renew_cache is True:
+            self.first_run_dialog = LPRpmFirstRunDialog(cache_renew=True)
 
     def _timer_fire(self):
         self.moveToThread(self.main_window.thread())

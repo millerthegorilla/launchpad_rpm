@@ -6,7 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from ui.qlabelchanged import QLabelChanged
 
 
@@ -14,7 +14,7 @@ class UiLPRpmPrefsDialog(object):
     def setupUi(self, prefs_dialog):
         prefs_dialog.setObjectName("prefs_dialog")
         prefs_dialog.setWindowModality(QtCore.Qt.ApplicationModal)
-        prefs_dialog.resize(290, 406)
+        prefs_dialog.resize(290, 424)
         self.gridLayout = QtWidgets.QGridLayout(prefs_dialog)
         self.gridLayout.setObjectName("gridLayout")
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -117,13 +117,14 @@ class UiLPRpmPrefsDialog(object):
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
         self.verticalLayout_5.addWidget(self.line_2)
+        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
+        self.closeButton = QtWidgets.QPushButton(prefs_dialog)
+        self.closeButton.setObjectName("closeButton")
+        self.horizontalLayout_5.addWidget(self.closeButton)
+        self.verticalLayout_5.addLayout(self.horizontalLayout_5)
         self.verticalLayout_4.addLayout(self.verticalLayout_5)
         self.verticalLayout.addLayout(self.verticalLayout_4)
-        self.buttonBox = QtWidgets.QDialogButtonBox(prefs_dialog)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout.addWidget(self.buttonBox)
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(prefs_dialog)
@@ -145,4 +146,4 @@ class UiLPRpmPrefsDialog(object):
         self.renew_every_month_chkbox.setText(_translate("prefs_dialog", "every month"))
         self.renew_every_6_months_chkbox.setText(_translate("prefs_dialog", "every 6 months"))
         self.renew_every_time_chkbox.setText(_translate("prefs_dialog", "when opening"))
-
+        self.closeButton.setText(_translate("prefs_dialog", "Close"))
