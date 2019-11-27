@@ -13,7 +13,7 @@ from ui.lprpm_main_window_ui import Ui_MainWindow
 from lprpm_msgs_dialog import LPRpmMsgsDialog
 from lprpm_installed_dialog import LPRpmInstalledDialog
 from lprpm import LPRpm
-from multiprocessing.dummy import Pool as ThreadPool
+import pickle
 
 
 class MainW(QMainWindow, Ui_MainWindow, QApplication):
@@ -22,12 +22,14 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         QMainWindow.__init__(self)
         self.setupUi(self)
         self.lock = RLock()
-        self._thread_pool = ThreadPool(10)
 
         self._movie = QMovie("../assets/loader.gif")
         self.load_label.setMovie(self._movie)
         self.load_label.setMinimumWidth(200)
         self.load_label.setMinimumHeight(20)
+
+        self._team_data_list = None
+        self.completer_model = None
 
         # preferences dialog
         self.lprpm_prefs_dialog = LPRpmPrefsDialog()
@@ -62,6 +64,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         # connection button
         self.reconnectBtn.setVisible(False)
 
+        self.qcomplete = QCompleter()
         # lprpm object - controller
         self.lprpm = LPRpm(self)
 
@@ -99,15 +102,17 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.team_line_edit.textChanged.connect(self._team_text)
         #self.team_line_edit.installEventFilter(self.team_line_edit)
         #self.team_line_edit.textEdited.connect(self._team_text)
-        self.qcomplete = QCompleter()
+
         #self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
         #self.qcomplete.activated.connect(self._chosen)
 
+    def set_team_name(self):
+        with open('../teamnames.pkl', 'rb') as f:
+            self._team_data_list = pickle.load(f)
         self.completer_model = QStringListModel()
         self.completer_model.setStringList(self._team_data_list)
         self.qcomplete.setModel(self.completer_model)
         self.team_line_edit.setCompleter(self.qcomplete)
-
         self.team_line_edit.returnPressed.connect(self._team_text_return_slot)
 
     # def eventFilter(self, source, event):
@@ -291,6 +296,9 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         if result == QMessageBox.Yes:
             pkg_states['tobeinstalled'].clear()
             pkg_states['tobeuninstalled'].clear()
+            if self.lprpm.first_run_dialog != None:
+                self.lprpm.first_run_dialog.hide()
+                self.lprpm.first_run_dialog = None
             try:
                 cfg.filename = (cfg['config']['dir'] + cfg['config']['filename'])
                 cfg.write()

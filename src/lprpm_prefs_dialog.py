@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QDialog, QFileDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 from lprpm_conf import cfg, tmp_dir
 from ui.lprpm_prefs_dialog_ui import UiLPRpmPrefsDialog
 from datetime import datetime
@@ -28,6 +28,10 @@ class LPRpmPrefsDialog(QDialog):
         self.ui.uninstall_chkbox.setCheckState(2 if cfg.as_bool('uninstall') else 0)
         self.ui.delete_downloaded_chkbox.setCheckState(2 if cfg.as_bool('delete_downloaded') else 0)
         self.ui.delete_converted_chkbox.setCheckState(2 if cfg.as_bool('delete_converted') else 0)
+        self.ui.renew_every_time_chkbox.setCheckState(2 if cfg['initialised']['renew_period'] == "every_time" else 0)
+        self.ui.renew_every_day_chkbox.setCheckState(2 if cfg['initialised']['renew_period'] == "daily" else 0)
+        self.ui.renew_every_month_chkbox.setCheckState(2 if cfg['initialised']['renew_period'] == "monthly" else 0)
+        self.ui.renew_every_6_months_chkbox.setCheckState(2 if cfg['initialised']['renew_period'] == "6months" else 0)
         # signals
         self.ui.directory_label.clicked.connect(self.openFileNameDialog)
         self.ui.download_chkbox.stateChanged.connect(self.download_checkbox_changed)
@@ -37,14 +41,18 @@ class LPRpmPrefsDialog(QDialog):
         self.ui.delete_converted_chkbox.stateChanged.connect(self.delete_converted_changed)
         self.ui.delete_downloaded_chkbox.stateChanged.connect(self.delete_downloaded_changed)
         self.ui.closeButton.clicked.connect(self._close)
-        self.ui.renew_every_time_chkbox.toggled.connect(self.renew_cache_every_time_clicked)
-        self.ui.renew_every_month_chkbox.toggled.connect(self.renew_cache_monthly_clicked)
-        self.ui.renew_every_6_months_chkbox.toggled.connect(self.renew_cache_6months_clicked)
-        self.ui.renew_every_day_chkbox.toggled.connect(self.renew_cache_daily_clicked)
+        self.ui.renew_every_time_chkbox.clicked.connect(self.renew_cache_every_time_clicked)
+        self.ui.renew_every_month_chkbox.clicked.connect(self.renew_cache_monthly_clicked)
+        self.ui.renew_every_6_months_chkbox.clicked.connect(self.renew_cache_6months_clicked)
+        self.ui.renew_every_day_chkbox.clicked.connect(self.renew_cache_daily_clicked)
+        self.day = datetime.now().date().day
+        self.month = datetime.now().date().month
+        self.year = datetime.now().date().year
 
     def _close(self):
         self.hide()
 
+    @pyqtSlot()
     def openFileNameDialog(self):
         global tmp_dir
         options = QFileDialog.Options()
@@ -58,51 +66,61 @@ class LPRpmPrefsDialog(QDialog):
         else:
             self.ui.directory_label.setText(tmp_dir)
 
+    @pyqtSlot()
     def download_checkbox_changed(self):
         cfg['download'] = str(self.ui.download_chkbox.isChecked())
 
+    @pyqtSlot()
     def convert_checkbox_changed(self):
         cfg['convert'] = str(self.ui.convert_chkbox.isChecked())
 
+    @pyqtSlot()
     def install_checkbox_changed(self):
         cfg['install'] = str(self.ui.install_chkbox.isChecked())
 
+    @pyqtSlot()
     def uninstall_checkbox_changed(self):
         cfg['uninstall'] = str(self.ui.uninstall_chkbox.isChecked())
 
+    @pyqtSlot()
     def delete_converted_changed(self):
         cfg['delete_converted'] = str(self.ui.delete_converted_chkbox.isChecked())
 
+    @pyqtSlot()
     def delete_downloaded_changed(self):
         cfg['delete_downloaded'] = str(self.ui.delete_downloaded_chkbox.isChecked())
 
+    @pyqtSlot()
     def renew_cache_daily_clicked(self):
-        self.ui.renew_every_6_months_chkbox.setCheckState(Qt.Unchecked)
-        self.ui.renew_every_month_chkbox.setCheckState(Qt.Unchecked)
-        self.ui.renew_every_time_chkbox.setCheckState(Qt.Unchecked)
+        self.ui.renew_every_6_months_chkbox.setChecked(False)
+        self.ui.renew_every_month_chkbox.setChecked(False)
+        self.ui.renew_every_time_chkbox.setChecked(False)
         cfg['initialised']['renew_period'] = "daily"
-        cfg['initialised']['day'] = datetime.date().day
-        cfg['initialised']['month'] = datetime.date().month
-        cfg['initialised']['year'] = datetime.date().year
+        cfg['initialised']['day'] = self.day
+        cfg['initialised']['month'] = self.month
+        cfg['initialised']['year'] = self.year
 
+    @pyqtSlot()
     def renew_cache_monthly_clicked(self):
         self.ui.renew_every_6_months_chkbox.setCheckState(Qt.Unchecked)
         self.ui.renew_every_day_chkbox.setCheckState(Qt.Unchecked)
         self.ui.renew_every_time_chkbox.setCheckState(Qt.Unchecked)
         cfg['initialised']['renew_period'] = "monthly"
-        cfg['initialised']['day'] = datetime.date().day
-        cfg['initialised']['month'] = datetime.date().month
-        cfg['initialised']['year'] = datetime.date().year
+        cfg['initialised']['day'] = self.day
+        cfg['initialised']['month'] = self.month
+        cfg['initialised']['year'] = self.year
 
+    @pyqtSlot()
     def renew_cache_6months_clicked(self):
         self.ui.renew_every_day_chkbox.setCheckState(Qt.Unchecked)
         self.ui.renew_every_month_chkbox.setCheckState(Qt.Unchecked)
         self.ui.renew_every_time_chkbox.setCheckState(Qt.Unchecked)
         cfg['initialised']['renew_period'] = "6months"
-        cfg['initialised']['day'] = datetime.date().day
-        cfg['initialised']['month'] = datetime.date().month
-        cfg['initialised']['year'] = datetime.date().year
+        cfg['initialised']['day'] = self.day
+        cfg['initialised']['month'] = self.month
+        cfg['initialised']['year'] = self.year
 
+    @pyqtSlot()
     def renew_cache_every_time_clicked(self):
         self.ui.renew_every_6_months_chkbox.setCheckState(Qt.Unchecked)
         self.ui.renew_every_month_chkbox.setCheckState(Qt.Unchecked)

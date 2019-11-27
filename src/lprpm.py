@@ -4,7 +4,7 @@ import sys
 
 import httplib2
 import requests
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QTimer
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QThread, QTimer, Qt
 from PyQt5.QtWidgets import QApplication
 from launchpadlib.errors import HTTPError
 
@@ -12,12 +12,21 @@ from treeview.pkg_tvmodel import PkgTVModel
 from lprpm_conf import cfg, initialize_search, \
                         clean_installed, ENDED_ERR, ENDED_CANCEL, \
                         ENDED_SUCC, ENDED_NTD
+import pickle
+import logging
 import lprpm_main_window
 from lprpm_first_run_dialog import LPRpmFirstRunDialog
 from datetime import datetime
+from multiprocessing.dummy import Pool as ThreadPool
 
 
 class LPRpm(QThread):
+    '''
+    Main controller class, extends QThread to allow it to use signalling.
+    Mainwindow constructs controller object, which constructs a package treeview model.
+    The pkg_tv_model then contains a packages object which does the main work of
+    interacting with launchpad.
+    '''
     msg_signal = pyqtSignal(str)
     log_signal = pyqtSignal('PyQt_PyObject', int)
     progress_signal = pyqtSignal(int, int)
@@ -29,6 +38,7 @@ class LPRpm(QThread):
     populate_pkgs_signal = pyqtSignal()
     action_timer_signal = pyqtSignal(bool)
     installed_changed_signal = pyqtSignal()
+    team_signal = pyqtSignal()
 
     def __init__(self, mainw, ):
         super().__init__()
@@ -41,7 +51,9 @@ class LPRpm(QThread):
         self.main_window.arch_combo.addItem("i386")
         self._timer_num = 0
         self._timer = QTimer()
+        self._thread_pool = ThreadPool(10)
         # signals
+        self.team_signal.connect(self._team_data_wrapper)
         self.msg_signal.connect(self._message_user)  # , type=Qt.DirectConnection)
         self.log_signal.connect(self._log_msg)  # type=Qt.DirectConnection)
         self.progress_signal.connect(self._progress_changed)  # , type=Qt.DirectConnection)
@@ -69,7 +81,6 @@ class LPRpm(QThread):
                                     action_timer_signal=self.action_timer_signal,
                                     installed_changed_signal=self.installed_changed_signal)
 
-        self.check_renew()
         # initialises the dnf base, sack and query
         initialize_search()
 
@@ -180,29 +191,46 @@ class LPRpm(QThread):
         if self._timer.isActive() and cont is False:
             self._timer.stop()
 
+    @pyqtSlot('PyQt_PyObject')
+    def _set_team_list(self):
+        """called as a signal from first_run_dialog"""
+        self.main_window.set_team_name()
+
     def check_renew(self):
         renew_cache = False
-        if cfg['initialised']['renew_period'] is None:
-            self.first_run_dialog = LPRpmFirstRunDialog(log_signal=self.log_signal, message_user_signal=self.msg_signal,
-                                                        cache_renew=False)
+        if cfg['initialised']['renew_period'] != "None":
+            day = int(cfg['initialised']['day'])
+            month = int(cfg['initialised']['month'])
+            year = int(cfg['initialised']['year'])
+
+        if cfg['initialised']['renew_period'] == "None":
+            renew_cache = True
         elif cfg['initialised']['renew_period'] == "every_time":
             renew_cache = True
         elif cfg['initialised']['renew_period'] == "daily":
-            if cfg['initialised']['month'] != datetime.now().date().month:
+            if month != datetime.now().date().month:
                 renew_cache = True
-            elif cfg['initialised']['day'] != datetime.now().date().day:
+            elif day != datetime.now().date().day:
                 renew_cache = True
         elif cfg['initialised']['renew_period'] == "monthly":
-            if cfg['initialised']['month'] != datetime.now().date().month:
+            if month != datetime.now().date().month:
                 renew_cache = True
         elif cfg['initialised']['renew_period'] == "6month":
-            if datetime.now().date().year() != cfg['initialised']['year']:
-                if ((12 - cfg['initialised']['month']) + datetime.now().date().month) > 6:
+            if datetime.now().date().year != year:
+                if ((12 - month) + datetime.now().date().month) > 6:
                     renew_cache = True
-            elif datetime.now().date().month - cfg['initialised']['month'] > 6:
+            elif (datetime.now().date().month - month) > 6:
                 renew_cache = True
+
         if renew_cache is True:
-            self.first_run_dialog = LPRpmFirstRunDialog(cache_renew=True)
+            if cfg['initialised']['renew_period'] != "None":
+                renew_cache = False
+            self.first_run_dialog = LPRpmFirstRunDialog(mainw=self.main_window, team_signal=self.team_signal, log_signal=self.log_signal,
+                                                        message_user_signal=self.msg_signal, cache_renew=renew_cache)
+            self.first_run_dialog.setWindowModality(Qt.ApplicationModal)
+            self.first_run_dialog.show()
+        else:
+            self.main_window.set_team_name()
 
     def _timer_fire(self):
         self.moveToThread(self.main_window.thread())
@@ -218,6 +246,10 @@ class LPRpm(QThread):
         return len(self.main_window._ppas_json['entries'])
 
     def connect(self):
+        '''
+        function to connect to launchpad.net rest api
+        calls check_renew to check prefs for renewing teamname list when connected
+        '''
         try:
             self._pkg_model.packages.connect()
             self.main_window.reconnectBtn.setVisible(False)
@@ -225,10 +257,49 @@ class LPRpm(QThread):
             self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
                                               self.pkg_model.packages.arch)
             self.log_signal.emit("Connected to Launchpad", logging.INFO)
+            self._message_user("Connected to Launchpad")
+            self.check_renew()
         except (httplib2.ServerNotFoundError, HTTPError) as e:
             self.main_window.reconnectBtn.setVisible(True)
             self.log_signal.emit(e, logging.ERROR)
             self.msg_signal.emit('Error connecting - see messages for more detail - check your internet connection. ')
+
+    def _team_data_wrapper(self):
+        '''
+        wrapper function to call the launchpad name obtaining function using async call
+        '''
+        self._message_user("Updating list of teams from launchpad.")
+        self._log_msg("Initialising team list. The result is cached and you can renew"
+                      "caches if you wish to reinitialise this list", logging.INFO)
+        self._thread_pool.apply_async(self._team_data, callback=self._team_data_obtained)
+
+    def _team_data_obtained(self, bob):
+        '''
+        callback from async function.  dumps list as pickle
+        :param team_list: list of teamnames from launchpad
+        :type team_list: list
+        '''
+        self._message_user("Finished updating list of teams from launchpad. Result is cached. "
+                           "See preferences to renew")
+        self._log_msg("Finished initialising team list, The result is cached and you can renew"
+                      "caches if you wish to reinstall this list", logging.INFO)
+        self.first_run_dialog.hide()
+        self.main_window.set_team_name()
+
+    def _team_data(self):
+        '''
+        function to obtain list of names of teams from Launchpad.net
+        takes a long time...
+        :return: list of team names
+        :rtype: list
+        '''
+        try:
+            team_list = self.pkg_model.packages.launchpad.people.findTeam(text="")
+            team_name_list = [x.name for x in team_list]
+            with open('teamnames.pkl', 'wb') as f:
+                pickle.dump(team_name_list, f)
+        except Exception as e:
+            self.log_signal.emit(e, logging.INFO)
 
 
 # TODO change to use dnf

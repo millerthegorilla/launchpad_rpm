@@ -128,11 +128,11 @@ class UiLPRpmPrefsDialog(object):
         self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
 
         self.retranslateUi(prefs_dialog)
-        QtCore.QMetaObject.connectSlotsByName(prefs_dialog)
+        #QtCore.QMetaObject.connectSlotsByName(prefs_dialog)
 
     def retranslateUi(self, prefs_dialog):
         _translate = QtCore.QCoreApplication.translate
-        prefs_dialog.setWindowTitle(_translate("prefs_dialog", "KXFed Preferences"))
+        prefs_dialog.setWindowTitle(_translate("prefs_dialog", "LpRpm Preferences"))
         self.download_chkbox.setText(_translate("prefs_dialog", "Download Checked Packages"))
         self.convert_chkbox.setText(_translate("prefs_dialog", "Convert Checked Packages"))
         self.install_chkbox.setText(_translate("prefs_dialog", "Install Checked Packages"))
