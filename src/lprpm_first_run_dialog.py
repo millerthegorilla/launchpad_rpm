@@ -16,7 +16,7 @@ class LPRpmFirstRunDialog(QDialog):
         self._timer = QTimer(self)
         self._timer.setSingleShot(False)
         self._timer.timeout.connect(self._timer_fire)
-        self._timer.start(1800)
+        self._timer.start(2000)
         if cache_renew is False:
             self.ui.label.setText("First run... initialising team names from launchpad.net."
                                   "  The result is cached, so you won't have to wait again,"
@@ -30,6 +30,6 @@ class LPRpmFirstRunDialog(QDialog):
         timer_num = self.ui.progressBar.value() + 1
         self.ui.progressBar.setValue(timer_num % 100)
 
-    def killTimer(self):
-        super().killTimer(self._timer_id)
+    # def killTimer(self):
+    #     super().killTimer(self._timer_id)
 

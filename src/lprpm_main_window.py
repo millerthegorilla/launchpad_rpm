@@ -99,27 +99,18 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self._proxy_model.setFilterKeyColumn(1)
         self._proxy_model.lessThan = self._less_than
 
-        self.team_line_edit.textChanged.connect(self._team_text)
-        #self.team_line_edit.installEventFilter(self.team_line_edit)
-        #self.team_line_edit.textEdited.connect(self._team_text)
-
-        #self.qcomplete.setModelSorting(QCompleter.CaseSensitivelySortedModel)
-        #self.qcomplete.activated.connect(self._chosen)
-
     def set_team_name(self):
         with open('../teamnames.pkl', 'rb') as f:
             self._team_data_list = pickle.load(f)
         self.completer_model = QStringListModel()
         self.completer_model.setStringList(self._team_data_list)
         self.qcomplete.setModel(self.completer_model)
+        self.qcomplete.setCaseSensitivity(Qt.CaseInsensitive)
+        #self.qcomplete.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.qcomplete.activated.connect(self.team_line_edit.returnPressed.emit)
         self.team_line_edit.setCompleter(self.qcomplete)
+        self.team_line_edit.textChanged.connect(self._team_text)
         self.team_line_edit.returnPressed.connect(self._team_text_return_slot)
-
-    # def eventFilter(self, source, event):
-    #     if event.type is QEvent.KeyPress and source is self.team_line_edit:
-    #         bob = event.key()
-    #         # self.lprpm.team = self.team_line_edit.text()
-    #     return super().eventFilter(source, event)
 
     def _team_text_return_slot(self):
         # name = self.completer_model.data(self.qcomplete.currentIndex(), 0)
