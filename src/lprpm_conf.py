@@ -23,7 +23,7 @@ else:
 CONFIG_DIR = ".config/lprpm/"
 CONFIG_FILE = "lprpm.cfg"
 CACHE_FILE = "lprpm.cache.db"
-SCRIPT_PATH = "/home/james/Src/launchpad_rpm/scripts/"
+SCRIPT_PATH = "/home/james/PycharmProjects/launchpad_rpm/scripts/"
 ENDED_ERR = 0
 ENDED_SUCC = 1
 ENDED_CANCEL = 2

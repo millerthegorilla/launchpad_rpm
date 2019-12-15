@@ -1,7 +1,7 @@
 from lprpm_conf import cfg, rpms_dir, debs_dir, has_pending, \
                        initialize_search, purge_conf, \
                        auto_fix_delete, auto_fix_install, \
-                       ENDED_ERR, SCRIPT_PATH
+                       pkg_search, ENDED_ERR, SCRIPT_PATH
 from subprocess import Popen, PIPE
 from PyQt5.QtGui import QGuiApplication
 import time
@@ -55,11 +55,15 @@ class ActionProcess(PackageProcess):
                     self._installation_process = DEBInstallationProcess(msg_signal=self._msg_signal,
                                                                         log_signal=self._log_signal)
                 self._processes.append(self._installation_process)
+            else:
+                cfg['install'] = 'False'
         if cfg.as_bool('uninstall'):
             if has_pending('uninstalling'):
                 self._uninstallation_process = UninstallationProcess(msg_signal=self._msg_signal,
                                                                      log_signal=self._log_signal)
                 self._processes.append(self._uninstallation_process)
+        else:
+            cfg['uninstall'] = 'False'
 
     def prepare_action(self):
         self.prepare_processes()
@@ -134,26 +138,32 @@ class ActionProcess(PackageProcess):
                 #     timer_running = True
                 #     self._action_timer_signal.emit(True)
                 # self.log_signal.emit(line, logging.INFO)
-                if 'kxfedlog' in line:
+                if 'lprpmlog' in line:
                     self._lock.acquire()
-                    self._log_signal.emit(line.lstrip('kxfedlog'), logging.INFO)
+                    self._log_signal.emit(line.lstrip('lprpmlog'), logging.INFO)
                     self._lock.release()
-                if 'kxfedexcept' in line:
+                if 'lprpmexcept' in line:
                     self._lock.acquire()
-                    self._log_signal.emit(line.lstrip('kxfedexcept'), logging.CRITICAL)
+                    self._log_signal.emit(line.lstrip('lprpmexcept'), logging.CRITICAL)
                     self._msg_signal.emit('Error Installing! Check messages...')
                     self._lock.release()
                     self._errors += 1
-                if 'kxfedmsg' in line:
+                if 'lprpmuninstallnotfound' in line:
                     self._lock.acquire()
-                    self._msg_signal.emit(line.lstrip('kxfedmsg'))
+                    self._log_signal.emit("Error Uninstalling" + line.lstrip('lprpmuninstallnotfound')
+                                          + "is not installed", logging.INFO)
+                    name = line.lstrip('lprpmuninstallnotfound')
+                    #pkg_states['uninstalling'] pkg_search('uninstalling', name)
+                if 'lprpmmsg' in line:
+                    self._lock.acquire()
+                    self._msg_signal.emit(line.lstrip('lprpmmsg'))
                     self._lock.release()
-                if 'kxfedprogress' in line:
+                if 'lprpmprogress' in line:
                     sig = line.split(' ')
                     self._lock.acquire()
                     self._progress_signal.emit(sig[1], sig[2])
                     self._lock.release()
-                if 'kxfedtransprogress' in line:
+                if 'lprpmtransprogress' in line:
                     sig = line.split(' ')
                     if sig[1] == sig[2]:
                         self._lock.acquire()
@@ -162,26 +172,26 @@ class ActionProcess(PackageProcess):
                     self._lock.acquire()
                     self._transaction_progress_signal.emit(sig[1], sig[2])
                     self._lock.release()
-                if 'kxfedinstalled' in line:
-                    name = line.lstrip('kxfedinstalled').replace('\n', '').strip()
+                if 'lprpminstalled' in line:
+                    name = line.lstrip('lprpminstalled').replace('\n', '').strip()
                     self._lock.acquire()
                     self._msg_signal.emit('Installed ' + name)
                     self._log_signal.emit('Installed ' + name, logging.INFO)
                     self._lock.release()
-                if 'kxfeduninstalled' in line:
-                    name = line.lstrip('kxfeduninstalled').replace('\n', '').strip()
+                if 'lprpmuninstalled' in line:
+                    name = line.lstrip('lprpmuninstalled').replace('\n', '').strip()
                     self._lock.acquire()
                     self._msg_signal.emit('Uninstalled ' + name)
                     self._log_signal.emit('Uninstalled ' + name, logging.INFO)
                     self._lock.release()
-                if 'kxfedverify_begin' in line:
+                if 'lprpmverify_begin' in line:
                     self._lock.acquire()
                     self._log_signal.emit(line, logging.INFO)
                     if timer_running is False:
                         timer_running = True
                         self._action_timer_signal.emit(True)
                     self._lock.release()
-                if 'kxfedverify_end' in line:
+                if 'lprpmverify_end' in line:
                     self._lock.acquire()
                     self._log_signal.emit(line, logging.INFO)
                     self._action_timer_signal.emit(False)

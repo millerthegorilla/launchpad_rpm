@@ -225,6 +225,10 @@ class LPRpm(QThread):
         if renew_cache is True:
             if cfg['initialised']['renew_period'] != "None":
                 renew_cache = False
+                cfg['initialised']['month'] = datetime.now().date().month
+                cfg['initialised']['day'] = datetime.now().date().day
+                cfg['initialised']['year'] = datetime.now().date().year
+
             self.first_run_dialog = LPRpmFirstRunDialog(mainw=self.main_window, team_signal=self.team_signal, log_signal=self.log_signal,
                                                         message_user_signal=self.msg_signal, cache_renew=renew_cache)
             self.first_run_dialog.setWindowModality(Qt.ApplicationModal)
@@ -251,8 +255,8 @@ class LPRpm(QThread):
         calls check_renew to check prefs for renewing teamname list when connected
         '''
         try:
-            self._pkg_model.packages.connect()
             self.main_window.reconnectBtn.setVisible(False)
+            self._pkg_model.packages.connect()
             self.populate_ppa_combo()
             self._pkg_model.populate_pkg_list(self.main_window.ppa_combo.currentData(),
                                               self.pkg_model.packages.arch)

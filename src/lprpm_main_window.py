@@ -84,7 +84,7 @@ class MainW(QMainWindow, Ui_MainWindow, QApplication):
         self.transaction_progress_bar.setVisible(False)
 
         # connection button
-        self.reconnectBtn.setVisible(False)
+        #self.reconnectBtn.setVisible(False)
         self.reconnectBtn.pressed.connect(self.lprpm.connect)
 
         # refresh cache button
